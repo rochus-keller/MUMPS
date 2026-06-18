@@ -1,0 +1,72 @@
+BSCBIT  ;31-Dec-40 ;UTILITIES ;BSC ;SHOWS STATUS BIT FOR $ZA ;JH
+        I ZA<0 W !,$T(TAB+32) S ZA=-ZA
+A       S B=1 D SHBIT:ZA#2
+B       F B=2:1:32 D SHBIT:ZA\$E($T(POWER+B),2,24)#2
+        Q
+SHBIT   W !,$T(TAB+B) Q
+POWER   ;
+        ;;EXTRA
+        2
+        4
+        8
+        16
+        32
+        64
+        128
+        256
+        512
+        1024
+        2048
+        4096
+        8192
+        16384
+        32768
+        65536
+        131072
+        262144
+        524288
+        1048576
+        2097152
+        4194304
+        8388608
+        16777216
+        33554432
+        67108864
+        134217728
+        268435456
+        536870912
+        1073741824
+        2147483648
+TAB     ;
+        S.ACK  =  SUCCESSFUL ACK RECEIVED
+        S.COV  =  WRITE COMPLETE + CONVERSATIONAL REPLY RECEIVED
+        S.RVI  =  WRITE COMPLETE + REVERSE INTERRUPT RECEIVED
+        S.TPR  =  TRANSPARENT DATA READ
+        UNDEFINED
+        UNDEFINED
+        UNDEFINED
+        UNDEFINED
+        DEVICE SELECT
+        DEVICE SELECT
+        DEVICE SELECT
+        DEVICE SELECT
+        DEVICE SELECT
+        DEVICE SELECT
+        DEVICE SELECT
+        DEVICE SELECT
+        E.CNTN  = CONTENTION WHILE ATTEMPTING WRITE
+        E.FRMT  = FORMAT ERROR WRITING A BSC BLOCK
+        E.NAKX  = NAK THRESHOLD EXCEEDED
+        E.NOTM  = PROTOCOL RECORD TERMINATOR NOT FOUND
+        E.ENQX  = ENQ THRESHOLD EXCEEDED
+        E.OVER  = MESSAGE BUFFER OVERFLOW
+        E.ABOR  = EOT RECEIVED
+        E.DISC  = LINE DISCONNECT RECEIVED
+        E.TIMO  = IO TIMEOUT
+        E.NDSR  = NO DATA SET READY
+        E.NCXR  = NO CXR DETECTED
+        E.NCTS  = NO CTS
+        I.NDTR  = NO DATA TERMINAL READY
+        I.DALA  = DATA LATE
+        I.DAOV  = DATA OVERRUN
+        ERROR FLAG SET

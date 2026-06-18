@@ -1,0 +1,748 @@
+Saved by %RS from [MGR,XAK] on 31-MAY-1990 22:42:48.88
+Fileman Manager Routines for VAX DSM
+%DT
+DIDT	; SF/XAK - DATE/TIME UTILITY ;2/8/89  10:50
+	;;17.7;VA FileMan; 6/9/89
+%DT	K % S:$D(%DT)[0 %DT="" G NA:%DT'["A"
+	W !,$S($D(%DT("A")):%DT("A"),1:"DATE: "),$S($D(%DT("B")):%DT("B")_"//",1:"")
+	R X:$S($D(DTIME):DTIME,1:999) S:'$T X="^",DTOUT=1
+	I $D(%DT("B")),X="" S X=%DT("B")
+	I "^"[X S Y=-1 K %I,% Q
+NA	S %(0)=X G 1:X'?.ANP
+	F %=1:1:$L(X) Q:X?.UNP  S Y=$E(X,%) I Y?1L S X=$E(X,1,%-1)_$C($A(Y)-32)_$E(X,%+1,99)
+	I %DT["E",X?."?" D HELP^%DTC G B
+	I %DT["N",X?.N,+X=X G NO
+	I X?1.A,(X["MID"!(X["NOON")) S X="@"_X
+	I X'?1"NOV".E,X?1"N".1"OW".1P.E G N^%DTC:%DT["T"!(%DT["R") S X=$E(X,2,99),X="T"_$P(X,"OW")_$P(X,"OW",2)
+	I X?1.N." "1.2A!(X?1.N1":"2N." ".2A)!(X?1.N1":"2N1":"2N." ".2A) S X="T@"_X
+	I X?7N1"."1.N G R
+	I X'["@",%DT'["R" G R
+	I %DT'["T",%DT'["R" G NO
+	S Y=$P(X,"@",2,9),X=$P(X,"@")
+	S:X="" X="T" S Y=$P(Y,":")_$P(Y,":",2)_$P(Y,":",3,9),%I=Y
+	I Y?1.A S Y=$S(Y["MID":2400,Y["NOON":1200,1:"")
+	G G:Y?4N,1:Y'?1.N.AP I %DT["R",Y="" G NO
+	I %DT["S",Y?5.6N.A S %I=$P(Y,+Y,2),Y=+Y,%(3)=$E(Y,$L(Y)-1,$L(Y)),Y=$E(Y,1,$L(Y)-2)_$S(%I["A":"A",%I["P":"P",1:"") G 1:%(3)>59,G:Y?4N
+	S:Y<13 Y=Y*100 I %I["A" S Y=$S(Y=1200:2400,Y>1159:Y-1200,1:Y)
+	E  I Y<1200,%I["P"!(Y<600) G 1:Y<100 S Y=Y+1200
+G	G 1:Y>2400!'Y,1:Y#100>59 S %(1)=Y/10000
+R	I %DT["F"!(%DT["P") D TY S %(9)=%
+7	G 8:X'?7N.1".".E S Y=$E(X,8,16),%=$E(Y_"000000",2,7)
+	G NO:%DT'["T"&Y
+	I %DT["E",(%'?.N)!(%>240000)!($E(%,3,4)>59)!($E(%,5,6)>59) G NO
+	S:Y %(1)=+Y S X=$E(X,4,7)_($E(X,1,3)+1700)
+8	S %I=0,%="" I X'?.N G T^%DTC:"T+-"[$E(X),U:X["^",X
+	I %DT'["X",X\300=6!(X?2N) S (%I(1),%I(2))=0,%I(3)=X G 3
+	F %I=0:1 S Y=$E(X,1,2),X=$E(X,3,9) G OT:Y="",1:%DT["X"&'Y S:%I=2 Y=Y_X,X="" S %I(%I+1)=Y
+	;
+X	S Y=$E(X),X=$E(X,2,99) I Y?1N G A:%?.N,Y
+	I Y?1A G A:%?.A,Y
+OT	D:%]"" % G 1:%I>3,X:Y?1P,1:Y]"",@%I
+Y	D % S %=Y G 1:%I>3,X
+A	S %=%_Y G X
+TY	S %=$H#1461,%=$H\1461*4+(%\365)+141-(%=1460) Q
+0	;
+1	W:%DT["E"&'$D(DIER) *7," ??"
+B	G %DT:%DT["A",NO
+U	S X="^",%(0)=X
+NO	S Y=-1 G Q:%DT'["A",Q:X["^",%DT
+2	I %I(2)>31,%DT'["X" S %I(3)=%I(2),%I(2)=0 G 3
+	D TY S %I(3)=% D PF^%DTC:$D(%(9)) G C
+3	I %I(3)?2N S %I(3)=%I(3)+$S(%DT'["P":200,$E(%(9),2,3)<%I(3):100,1:200) G C
+	S %I(3)=%I(3)-1700 G 1:%I(3)'?3N
+C	I %I(1)>12 G 1
+	I %I(2)>28,$E("303232332323",%I(1))+28<%I(2),%I(1)-2!(%I(2)-29)!(%I(3)#4)!(%I(3)=200) G 1
+D	D P
+E	I $D(%(1)) S:$D(%(3)) %(1)=$E(%(1)_"000",1,5)_%(3) S Y=Y_%(1)
+	I %DT["E" S %=Y D DD W "  ("_Y_")" S Y=%
+	I $D(%DT(0)) S %=%DT(0),%I=$S(%["-":Y,1:-Y) D:'% NOW^%DTC,Z I %+%I>.0001 G 1
+Q	S X=%(0) K %,%I,%H Q
+Z	S:%DT(0)["-" %=-% Q
+DD	S Y=$P($T(M)," ",$S($E(Y,4,5):$E(Y,4,5)+2,1:0))_" "_$S($E(Y,6,7):$E(Y,6,7)_", ",1:"")_($E(Y,1,3)+1700)_$S(Y[".":"."_$P(Y,".",2),1:"")
+	I Y["." S Y=$P(Y,".")_"@"_$E(Y_0,14,15)_":"_$E(Y_"000",16,17)_$S($E(Y,18,19):":"_$E(Y_0,18,19),1:"")
+	I $D(%DT)#2,%DT["S",Y["@",$P(Y,":",3)="" S Y=Y_":00"
+	Q
+P	S Y=%I(3)_$E(%I(1)+100,2,3)_$E(%I(2)+100,2,3) Q
+%	I %?3.A S %=$F($T(M),$E(%,1,3))-4\4 I %>0,%I=1 S %I(1)=%,%=+%(0)
+	S:%<1 %I=9 S %I=%I+1,%I(%I)=%,%=""
+M	;; JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC
+
+%DTC
+DIDTC	; SF/XAK - DATE/TIME OPERATIONS ; 10/12/88  18:13 ;
+	;;17.7;VA FileMan; 6/9/89
+D	I 'X1!'X2 S X="" Q
+	S X=X1 D H S X1=%H,X=X2,X2=%Y+1 D H S X=X1-%H,%Y=%Y+1&X2
+	K %H,X1,X2 Q
+	;
+C	S X=X1 Q:'X  D H S %H=%H+X2 D YMD S:$P(X1,".",2) X=X_"."_$P(X1,".",2) K X1,X2 Q
+S	S %=%#60/100+(%#3600\60)/100+(%\3600)/100 Q
+	;
+H	I X<1410000 S %H=0,%Y=-1 Q
+	S %Y=$E(X,1,3),%M=$E(X,4,5),%D=$E(X,6,7)
+	S %T=$E(X_0,9,10)*60+$E(X_"000",11,12)*60+$E(X_"00000",13,14)
+TOH	S %H=%M>2&'(%Y#4)+$P("^31^59^90^120^151^181^212^243^273^304^334","^",%M)+%D
+	S %='%M!'%D,%Y=%Y-141,%H=%H+(%Y*365)+(%Y\4)-(%Y>59)+%,%Y=$S(%:-1,1:%H+4#7)
+	K %M,%D,% Q
+	;
+DOW	D H S Y=%Y K %H,%Y Q
+DW	D H S Y=%Y,X=$P("SUN^MON^TUES^WEDNES^THURS^FRI^SATUR","^",Y+1)_"DAY"
+	S:Y<0 X="" Q
+7	S %=%H>21608+%H-.1,%Y=%\365.25+141,%=%#365.25\1
+	S %D=%+306#(%Y#4=0+365)#153#61#31+1,%M=%-%D\29+1
+	S X=%Y_"00"+%M_"00"+%D Q
+	;
+YX	D YMD S Y=X_% G DD^%DT
+YMD	D 7 S %=$P(%H,",",2) D S K %D,%M,%Y Q
+T	F %=1:1 S Y=$E(X,%) Q:"+-"[Y  G 1^%DT:$E("TODAY",%)'=Y
+	S X=$E(X,%+1,99) G PM:Y="" I +X'=X D DMW S X=%
+	G 1^%DT:X>999!'X
+PM	S @("%H=$H"_Y_X) D TT G D^%DT
+N	F %=2:1 S Y=$E(X,%) Q:"+-"[Y  G 1^%DT:$E("NOW",%)'=Y
+	I Y="" S %H=$H G RT
+	S X=$E(X,%+1,99)
+	I X?1.N1"H" S X=X*3600,%H=$H,@("X=$P(%H,"","",2)"_Y_X),%=$S(X<0:-1,1:0)+(X\86400),X=X#86400,%H=$P(%H,",")+%_","_X G RT
+	D DMW G 1^%DT:'% S @("%H=$H"_Y_%),%H=%H_","_$P($H,",",2)
+RT	D TT S %=$P(%H,",",2) D S S %=X_% I %DT'["S" S %=+$E(%,1,12)
+	Q:'$D(%(0))  S Y=% G E^%DT
+PF	S %H=$H D YMD S %(9)=X,X=%DT["F"*2-1 I @("%I(1)*100+%I(2)"_$E("> <",X+2)_"$E(%(9),4,7)") S %I(3)=%I(3)+X
+	Q
+TT	D 7 S %I(1)=%M,%I(2)=%D,%I(3)=%Y K %M,%D,%Y Q
+NOW	S %H=$H D TT S %=$P($H,",",2) D S S %=X_$S(%:%,1:"") Q
+DMW	S %=$S(X?1.N1"D":+X,X?1.N1"W":X*7,X?1.N1"M":X*30,+X=X:X,1:0)
+	Q
+COMMA	;
+	S %D=X<0 S:%D X=-X S %=$S($D(X2):+X2,1:2),X=$J(X,1,%),%=$L(X)-3-$E(23456789,%),%L=$S($D(X3):X3,1:12)
+	F %=%:-3 Q:$E(X,%)=""  S X=$E(X,1,%)_","_$E(X,%+1,99)
+	S:$D(X2) X=$E("$",X2["$")_X S X=$J($E("(",%D)_X_$E(" )",%D+1),%L) K %,%D,%L Q
+HELP	;
+	W !?5,"Examples of Valid Dates:"
+	W !?7,"JAN 20 1957 or 20 JAN 57 or 1/20/57" W:%DT'["N" " or 012057"
+	W !?7,"T   (for TODAY),  T+1 (for TOMORROW),  T+2,  T+7,  etc."
+	W !?7,"T-1 (for YESTERDAY),  T-3W (for 3 WEEKS AGO), etc."
+	W !?5,"If the year is omitted, the computer ",$S(%DT["P":"assumes a date in the PAST.",1:"uses the CURRENT YEAR.")
+	I %DT'["X" W !?5,"You may omit the precise day, as:  JAN, 1957"
+	I %DT'["T",%DT'["R" G 0
+	W !?5,"If the date is omitted, the current date is assumed."
+	W !?5,"Follow the date with a time, such as JAN 20@10, T@10AM, 10:30, etc."
+	W !?5,"You may enter a time, such as NOON, MIDNIGHT or NOW."
+	I %DT["S" W !?5,"Seconds may be entered as 10:30:30 or 103030AM."
+	I %DT["R" W !?5,"Time is REQUIRED in this response."
+0	Q:'$D(%DT(0))
+	W !!?5,"Enter a date which is "_$S(%DT(0)["-":"less",1:"greater")_" than or equal to "
+	S Y=$S(%DT(0)["-":$P(%DT(0),"-",2),1:%DT(0)) D DD^%DT:Y'["NOW" W Y_"."
+	Q
+
+%RCR
+DIRCR	; SF/GFT - DELETE THIS LINE AND SAVE AS '%RCR'*** ;05:02 PM  May 11, 1988
+	;;17.7;VA FileMan; 6/9/89
+%RCR	;GFT/SF
+	;
+STORLIST	D INIT
+O	S %D=$N(%RCR(%D)) G CALL:%D<0
+	I $D(@%D)#2 S @(%E_")="_%D) G O:$D(@%D)=1
+	S %X=%D_"(" D %XY G O
+	;
+CALL	S %E=%RCR K %RCR,%X,%Y D @%E
+	S %E="^UTILITY(""%RCR"",$J,"_^UTILITY("%RCR",$J)_",%D",^($J)=^($J)-1,%D=0,%X=%E_","
+G	S %D=$N(@(%E_")")) I %D<0 K %D,%E,%X,%Y,^($J,^UTILITY("%RCR",$J)+1) Q
+	I $D(^(%D))#2 S @%D=^(%D) G G:$D(^(%D))=1
+	S %Y=%D_"(" D %XY G G
+	;
+%XY	;
+	S %Z=1,%A="",%C(0)=0
+S	S %B=-1
+N	S %B=$N(@(%X_%A_"%B)")),%C(%Z)=%C(%Z-1)
+	I %B["," F %C=0:0 S %C=$F(%B,",",%C) Q:'%C  S %C(%Z)=%C(%Z)+1
+	I %B=-1 G Q:%Z=1 S %Z=%Z-1,@("%B="_$P(%A,",",%Z+%C(%Z-1),%Z+%C(%Z))),%A=$P(%A,",",1,%Z-1+%C(%Z-1))_$E(",",%Z>1) G N
+	I $D(@(%X_%A_"%B)"))#10=1 S @(%Y_%A_"%B)="_%X_%A_"%B)")
+	I $D(@(%X_%A_"%B)"))<9 G N
+	G DOWN:+%B=%B F %C=0:0 S %C=$F(%B,"""",%C) Q:'%C  S %B=$E(%B,1,%C-1)_""""_$E(%B,%C,999),%C=%C+1
+	S %B=""""_%B_""""
+DOWN	S %A=%A_%B_",",%Z=%Z+1 G S
+	;
+Q	K %A,%B,%C,%Z Q
+	;
+INIT	I $D(^UTILITY("%RCR",$J))[0 S ^UTILITY("%RCR",$J)=0
+	S ^($J)=^($J)+1,%D="%Z",%E="^UTILITY(""%RCR"",$J,"_^($J)_",%D",%Y=%E_","
+	K ^($J,^($J))
+	Q
+OS	;
+	S $P(^%ZOSF("OS"),"^",2)=DITZS
+	K ^%ZTSK(ZTSK),DITZS
+	Q
+
+%ZIS
+%ZIS	;SFISC/AC,RWF -- DEVICE HANDLER ;5/23/89  17:03 ;3/30/89  9:57 AM
+	;;6.0;
+INIT	;
+	S:$D(%ZIS)#2 %IS=%ZIS S:$D(%ZIS("A")) %IS("A")=%ZIS("A") S:$D(%ZIS("B")) %IS("B")=%ZIS("B") S:$D(%ZIS("IOPAR")) %IS("IOPAR")=%ZIS("IOPAR") S:$D(%ZIS("IOUPAR")) %IS("IOUPAR")=%ZIS("IOUPAR")
+	S:$D(%ZIS("T")) %IS("T")=%ZIS("T")
+	I $D(%IS)[0 S %IS="M" S:'$D(%IS("B")) %IS("B")=""
+	S %ZISV=$S($D(^%ZOSF("VOL")):^("VOL"),1:"") K IO("CLOSE"),IO("HFSIO"),IO("T")
+	N %Z,%Z90,%Z95,%ZTIME,%ZTYPE
+A	K %Z9,%ZISIOS,DTOUT,DUOUT,IO("Q"),IO("S")
+	D K2^%ZIS6 S %ZISB=%IS'["N",POP=0,IO(0)=$I,%Y=""
+	D GETHOME G EXIT^%ZIS1:POP
+	G ^%ZIS1
+	;
+GETHOME	I $D(^XUTL("XQ",$J,"IOS")) S (%E,%H)=^("IOS") Q
+	S %ZISVT=$I D VTLKUP
+	I '%E S %ZISVT=$I D VIRTUAL I %ZISVT=""!(%E'>0) I %IS'[0 O IO(0)::0 I $T U IO(0) W !,"HOME DEVICE DOES NOT EXIST IN THE DEVICE FILE",!,"PLEASE CONTACT YOUR SYSTEM MANAGER!",*7
+	S %H=%E S:'%H&(%IS'[0) POP=1
+	Q
+	;
+VIRTUAL	;Virtual Terminal
+	F %ZISI=0:0 Q:%ZISVT=""  D VTLKUP Q:%E>0  S %ZISVT=$E(%ZISVT,1,($L(%ZISVT)-1))
+	Q
+VTLKUP	;
+	F %ZISX=%ZISV,"" S %E=+$O(^%ZIS(1,"G","SYS."_%ZISX_"."_%ZISVT,0)) Q:%E  S %E=+$O(^%ZIS(1,"CPU",%ZISX_"."_%ZISVT,0)) Q:%E
+	Q
+CURRENT	N POP S FF="#",SL=24,BS="*8",RM=80,(SUB,XY)="",%IS=0,%ZISV=$S($D(^%ZOSF("VOL")):^("VOL"),1:""),POP=0
+	D GETHOME K %E,%IS,%ZISI,%ZISV,%ZISVT,%ZISX Q:POP
+	I $D(^%ZIS(1,%H,"SUBTYPE")) S SUB=+^("SUBTYPE") K %H
+	I $D(SUB),SUB,$D(^%ZIS(2,SUB,1)) S SUB=$S($D(^(0)):^(0),1:""),FF=$P(^(1),"^",2),SL=$P(^(1),"^",3),BS=$P(^(1),"^",4),XY=$P(^(1),"^",5),RM=+^(1)
+	E  S SUB=""
+	I $D(^%ZOSF("RM")) N X S X=RM X ^("RM") K %A
+	Q
+HOME	;Entry point to establish IO* variables for home device.
+	N %,X I '$D(^XUTL("XQ",$J,"IO")) S IOP="HOME" D ^%ZIS Q
+	F %="IO","IOS","IOBS","IOF","IOM","IOSL","IOST","IOST(0)","IOXY" I $D(^(%))#2 S @%=^(%)
+	S IO(0)=IO I '$D(IO("C")),$D(IOM),IO=$I,$D(IO(1,IO)),$D(^%ZOSF("RM")) S X=+IOM X ^("RM") Q
+	Q
+	;
+ZISLPC	I $D(IO("Q")) Q:IO("Q")=1
+	S ZISLL=$N(^%ZIS("Z",106,"B",%ZISIOS,0)) G:ZISLL<0 ZISLPCQ
+	G:%ZISV="" ZISLPCQ
+	S %ZISI=0,ZISLP="" I $O(^%ZIS(1,"CPU",0))'="" G ZISLMDF
+	F %ZISR=1:1 S %ZISI=$O(^%ZIS(1,"C",IO,%ZISI)) Q:%ZISI=""  S ZISLP=$O(^%ZIS("Z",106,"B",%ZISI,0)) I ZISLP'="" S ZISLP=$P(^%ZIS("Z",106,ZISLP,0),"^",2) Q:ZISLP'=""
+	G ZISLPC1
+ZISLMDF	F %ZISR=1:1 S %ZISI=$O(^%ZIS(1,"CPU",%ZISV_"."_IO,%ZISI)) Q:%ZISI=""  S ZISLP=$O(^%ZIS("Z",106,"B",%ZISI,0)) I ZISLP'="" S ZISLP=$P(^%ZIS("Z",106,ZISLP,0),"^",2) Q:ZISLP'=""
+ZISLPC1	G:ZISLP="" ZISLPCQ S ZISLL=^%ZIS("Z",106,ZISLL,0),ZISLL=$P(ZISLL,"^",4) G:ZISLL="" ZISLPCQ G:ZISLL=ZISLP ZISLPCQ D ^%ZISLPC C:POP IO Q
+ZISLPCQ	K ZISLL,ZISLP Q
+
+%ZIS1
+%ZIS1	;SFISC/AC,RWF -- DEVICE HANDLER (DEVICE INPUT) 3/16/89  12:50 PM;3/30/89  9:58 AM ;5/23/89  15:19
+	;;6.0;
+MAIN	;
+	I '$D(IOP),$D(^%ZIS(1,%E,0)),'$P(^(0),"^",3) S %A=%H D ^%ZIS2 G EXIT
+LOOP	;Main Driver
+	I '$D(IOP),$D(IO("Q")),POP D AQUE^%ZIS3 K:%=2 IO("Q") S:%=2 %ZISB=$S(%IS'["N":2,1:0) I %=-1 S POP=1 G EXIT
+	S %E=%H S POP=0
+	D IOP:$D(IOP),R:'$D(IOP)
+	G EXIT:$D(DTOUT)!$D(DUOUT)!(POP&$D(IOP)),LOOP:POP&'$D(IOP)
+	D LKUP I %A'>0 S POP=1,IO="" D:'$D(DUOUT) MSG1 K DUOUT
+	G EXIT:POP&$D(IOP),LOOP:POP&'$D(IOP)
+	I '$D(^%ZIS(1,%A,0)) D MSG1 K %ZISIOS S:$D(IOP)&(%IS["T") IO="" S:$D(IOP) POP=1
+	G EXIT:POP&$D(IOP),LOOP:POP&'$D(IOP)
+	S %E=%A I '$D(IOP),$P(^(0),"^",2)'=$I,$D(^(1)) W "  ",$P(^(1),"^",1)
+	D ^%ZIS2
+	G LOOP:POP&'$D(IOP)&'($D(DTOUT)!$D(DUOUT))
+EXIT	;
+	I 'POP!(%IS["T") G SETVAR^%ZIS6
+	G KILVAR^%ZIS6
+	;
+IOP	;Request From IOP
+	S %X=IOP D LC
+	I %X'="Q" D SETQ Q
+	S %IS=%IS_%X K IOP W %X D SETQ Q
+	;
+R	;Request From Read At Device Prompt
+	S %A=$S($D(%IS("B")):%IS("B"),1:"HOME")
+	I %A="HOME",%IS["P",$D(^%ZIS(1,%E,99)),$D(^%ZIS(1,+^(99),0)) S %A=$P(^(0),"^",1)
+RD	W !,$S($D(%IS("A")):%IS("A"),1:"DEVICE: ")
+	W:%A]"" %A,"// " D SBR S:%X="" %X=%A
+	I %X?2"?".E D EN2^%ZIS7 G R
+	I %X?1"?".E D EN1^%ZIS7 G R
+	I $D(DTOUT)!$D(DUOUT)!(%X'?.ANP)!($L(%X)>31) S:%IS["T" IO="" S POP=1 Q
+	D LC,SETQ G R:$T Q
+	;
+SETQ	D STRIP
+	I %IS["Q",%X="Q" S %X=%Y,%ZISB=0,IO("Q")=1,%IS("A")="DEVICE: " D STRIP:$D(IOP)
+	I $T,'$D(IOP) W "UEUE TO PRINT ON" Q  ; Return $T value
+	Q
+STRIP	S %Y=$P(%X,";",2,9),%X=$P(%X,";",1) Q
+	;
+LKUP	;
+	I %X="H" W:'$D(IOP) "ome" S %X=0
+	I 0[%X!(%X="HOME")!(%X=$I) S %A=%H Q
+	S %A=0 I "P"[%X Q:$D(IOP)&('$D(^%ZIS(1,%E,99)))  I $D(^%ZIS(1,%E,99)) S %A=+^(99) Q
+	I %X=" ",$D(DUZ)#2,$D(^DISV(+DUZ,"^%ZIS(1,")) S %A=^("^%ZIS(1,") Q
+	S %A=+$O(^%ZIS(1,"B",%X,0)) Q:%A>0
+	S %ZISVT=%X D VTLKUP^%ZIS S %A=%E Q:%A>0
+	S %XX=%X D 1^%ZIS5 S %A=+%YY Q
+	;
+SBR	K DFOUT,DTOUT,DUOUT
+	R %X:$S($D(DTIME)#2:DTIME,1:999) E  W *7 S DTOUT=1 Q
+	S:%X="."!(%X="^") DUOUT=1,%X="" Q
+	;
+LC	F %I=1:1:$L(%X) I $E(%X,%I)?1L S %X=$E(%X,1,%I-1)_$C($A(%X,%I)-32)_$E(%X,%I+1,99)
+	Q
+YN	;
+	W "? ",$P("YES// ^NO// ",U,%)
+RYN	R %X:$S($D(DTIME):DTIME,$D(%ZISDTIM):%ZISDTIM,1:999) E  S DTOUT=1,%X=U W *7
+	S:%X]""!'% %=$A(%X),%=$S(%=89:1,%=121:1,%=78:2,%=110:2,%=94:-1,1:0)
+	I '%,%X'?."?" W *7,"??",!?4,"ANSWER 'YES' OR 'NO': " G RYN
+	W:$X>73 ! W $P("  (YES)^  (NO)",U,%) Q
+	;
+MSG1	I '$D(IOP) W ?20,*7,"  [DEVICE DOES NOT EXIST]"
+	Q
+
+%ZIS2
+%ZIS2	;SFISC/AC,RWF -- DEVICE HANDLER (CHECKS) ;5/23/89  15:20 ;3/30/89  10:02 AM
+	;;6.0;
+LOOP	;
+	I $D(DTOUT)!$D(DUOUT) K %ZISHP,%ZISHPOP Q
+	S POP=0 D CHECK I POP,%ZISHG]"",%IS'["D",'$D(%ZISHPOP) D HUNT G LOOP
+	I POP D HGBSY:$D(%ZISHPOP),TMPVAR^%ZIS6:%IS["T" S:%IS'["T" IO="" Q
+	D TMPVAR^%ZIS6
+	D TRM^%ZIS3:%ZTYPE["TRM",SPL^%ZIS3:%ZTYPE="SPL",MT^%ZIS3:%ZTYPE="MT",SDP^%ZIS3:%ZTYPE="SDP",HFS^%ZIS3:%ZTYPE="HFS",OTH^%ZIS3:%ZTYPE="OTH"!(%ZTYPE="BAR")
+	I $D(%ZISHPOP),'$D(IO(1,IO)) D HGBSY Q
+	I POP S:%IS'["T" IO="" I %ZISHG]"",%IS'["D",'$D(%ZISHPOP) D HUNT G LOOP
+	Q
+HGBSY	;
+	S:%IS'["T" IO="" K %ZISHP,%ZISHPOP Q:$D(IOP)
+	W:$X>38 !,?5 W *7," All devices in hunt group "_%ZISHG_" are busy!" Q
+CHECK	;
+	K %ZISCPU S %Z=^%ZIS(1,%E,0),IO=$P(%Z,"^",2),%ZISHG=$P(%Z,"^",10)
+	S %Z90=$S($D(^(90)):^(90),1:""),%Z95=$S($D(^(95)):^(95),1:""),%ZTIME=$S($D(^("TIME")):^("TIME"),1:""),%ZTYPE=$S($D(^("TYPE")):^("TYPE"),1:"")
+VTRM	;Virtual Terminal Check
+	I %ZTYPE="VTRM",'('$D(IO("Q"))&(%A=%H)) W:'$D(IOP)&'$D(%ZISHP) *7,"  [YOU CAN NOT SELECT A VIRTUAL TERMINAL]" S POP=1 Q
+	S:%ZTYPE="VTRM"&'$D(IO("Q"))&(%A=%H) IO=$I
+OCPU	;Other Cpu Check
+	I $P(%Z,"^",9)=%ZISV!($P(%Z,"^",9)="") G OOS
+	S %ZISCPU=$P(%Z,"^",9)
+	I %IS["Q" S IO("Q")=1,%ZISB=0
+	E  I %ZISB&(%ZTYPE="TRM"&($P(%Z,"^",10)]""&(%IS'["D"))) S POP=1
+	E  S POP=1 I '$D(IOP) W *7,"  [DEVICE IS ON ANOTHER CPU ('",%ZISCPU,"')]",!
+	Q:POP
+OOS	;Out Of Service Check
+	I %Z90,$D(DT)#2,%Z90'>DT S:%ZISB POP=1
+	I $T,'$D(IOP),'$D(%ZISHP) W *7,"  [OUT OF SERVICE]" I 'POP W " ..OK" N DTIME S %=2,U="^",DTIME=5 D YN^%ZIS1 G:%=0 OOS S:%'=1 POP=1
+	Q:POP!(IO=$I)!(IO=0)
+	;
+PTIME	;Prohibitted Time Check
+	I %ZISB,%ZTIME]"" S %A=$P(%ZTIME,"^",1),%X=$P($H,",",2),%=%X\60#60+(%X\3600*100),%X=$P(%A,"-",2) I %X'<%A&(%'>%X&(%'<%A))!(%X<%A&(%'<%A!(%'>%X))) S POP=1 I '$D(IOP),'$D(%ZISHP) W *7,"  [ACCESS PROHIBITED AT THIS TIME]"
+	Q:POP
+DUZ	;Security Check
+	I %Z95]"" S %X=$S($D(DUZ(0)):DUZ(0),1:"") I %X'="@" S POP=1 F %A=1:1:$L(%X) S:%Z95[$E(%X,%A) POP=0 Q:'POP
+	I POP,'$D(IOP),'$D(%ZISHP) W *7,"  [ACCESS PROHIBITED]"
+	Q
+HUNT	;
+	I '$D(%ZISHP) S %ZISHP=%E,%E=0
+	F %ZISHGL=0:0 S %E=+$O(^%ZIS(1,"AH",%ZISHG,%E)) Q:%E'>0  I $D(^%ZIS(1,%E,0))#2,$P(^(0),"^",9)=%ZISV!($P(^(0),"^",9)="") Q
+	I %E'>0 S %ZISHPOP=1,%E=%ZISHP Q
+	Q
+	;
+
+%ZIS3
+%ZIS3	;SFISC/AC,RWF -- DEVICE HANDLER(DEVICE TYPES & PARAMETERS);5/25/89  11:01 ;5/26/89  10:01
+	;;6.0;
+TRM	;Terminal type
+	D OPEN^%ZIS4:'POP&(%ZISB),MARGN:'POP,SETPAR:'POP
+	I 'POP,%IS'["T",%ZISB=1,'$D(IOP),IO'=IO(0),'$D(IO("Q")),%IS["Q" D AQUE
+	W:'$D(IOP) ! I '$D(IO("Q")) D O^%ZIS4:'POP&(%ZISB&(%IS'["T"))
+	Q
+SPL	;Spool type
+	N %E,%Z D MARGN W:'$D(IOP) ! D SPOOL^%ZIS4:%IS'["T" Q
+MT	;Magtape type
+	D MARGN,ASKPAR,AMTREW:'POP&'$D(IOP) W:'$D(IOP) ! D O^%ZIS4:'POP&(%ZISB&(%IS'["T")) Q
+SDP	;Sequential disk processor type
+	D MARGN,ASKPAR W:'$D(IOP) ! D O^%ZIS4:'POP&(%ZISB&(%IS'["T")) Q
+HFS	;Host File Server type
+	D MARGN,HFS^%ZIS4 W:'$D(IOP) ! D O^%ZIS4:'POP&(%ZISB&(%IS'["T")) Q
+OTH	;Other Device type
+	D OPEN^%ZIS4:'POP&(%ZISB),MARGN:'POP,ASKPAR:'POP W:'$D(IOP) ! D O^%ZIS4:'POP&(%ZISB&(%IS'["T")) Q
+	;
+MARGN	S %A=$P(%Y,";",1) I %A?1A.ANP D SUB I $D(^%ZIS(2,%A,1)) S %ZISTP=0 K %Z91 D ST S %Y=$P(%Y,";",2,3) G MARGN
+	S:$P(%Y,";",2) $P(%Z91,"^",3)=+$P(%Y,";",2) I %A>3 S $P(%Z91,"^")=+%A Q
+	Q:%ZTYPE'["TRM"
+ASKMAR	I %IS["M",'$D(IOP),$S(%E=%H:+$P(%Z,"^",3),1:1),$P(%Z,"^",4) W "    RIGHT MARGIN: " W:$P(%Z91,"^")]"" +%Z91,"// "
+	E  Q
+	D SBR^%ZIS1 I '$D(DTOUT)&'$D(DUOUT) S:%X=""&($P(%Z91,"^")]"") %X=+%Z91 G ASKMAR:%X'?1.N S $P(%Z91,"^")=$S(%X<256:%X,1:0) Q
+	S POP=1 I %ZISB&(%ZTYPE["TRM")&(IO'=IO(0)) C IO K IO(1,IO) Q
+	Q
+	;
+ASKPAR	I '$D(IOP),$P(^%ZIS(1,%E,0),"^",4) W "  ADDRESS/PARAMETERS: " W:%ZISOPAR]"" %ZISOPAR_"// " D SBR^%ZIS1 D MSG1:%X="?" G ASKPAR:%X="?" S:%X]"" %ZISOPAR=%X I $D(DTOUT)!$D(DUOUT) S POP=1
+	I POP,%ZISB&(%ZTYPE["TRM") C IO K IO(1,IO) Q
+	Q:POP
+	;
+SETPAR	S:%ZISOPAR]""&($A(%ZISOPAR)-40) %ZISOPAR="("_%ZISOPAR_")" Q
+	;
+AQUE	S %=$S($D(IO("Q")):1,1:2),U="^",%ZISDTIM=60
+	I $D(IO("Q")) W !,"PREVIOUSLY, YOU HAVE SELECTED QUEUEING."
+	W !,"DO YOU "_$S($D(IO("Q")):"STILL ",1:"")_"WANT YOUR OUTPUT QUEUED"
+	D YN^%ZIS1 K %ZISDTIM G AQUE:%=0 Q:$D(IO("Q"))
+	I %=-1 S POP=1 C IO K IO(1,IO) Q
+	I %=1 S IO("Q")=1 C IO K IO(1,IO) Q
+	Q
+AMTREW	I %ZISB,%ZTYPE="MT",'$D(IOP) W "  REWIND" S %=2,U="^",%ZISDTIM=60 D YN^%ZIS1 K %ZISDTIM G AMTREW:%=0 I %=-1 S POP=1 Q
+	S:%=1 %ZISMTR=1 Q
+	;
+ST	S %ZISIOST(0)=%A,%ZISIOST=$S($D(^%ZIS(2,%A,0)):$P(^(0),"^",1),1:"") Q:%ZISTP
+STP	S:'$D(%Z91) %Z91="" S %A=$S('$D(^(1)):"132^#^66^*8",1:^(1))
+	S:$P(%Z91,"^")="" $P(%Z91,"^")=+%A S:$P(%Z91,"^",2)="" $P(%Z91,"^",2)=$P(%A,"^",2) S:'$P(%Z91,"^",3) $P(%Z91,"^",3)=$P(%A,"^",3) S:$P(%Z91,"^",4)="" $P(%Z91,"^",4)=$P(%A,"^",4) S $P(%Z91,"^",5)=$P(%A,"^",5) Q
+	;
+SUB	I $D(^%ZIS(2,"B",%A))>9 S %A=+$O(^%ZIS(2,"B",%A,0)) Q
+	S %XX=%A D 2^%ZIS5 S %A=+%YY Q
+	Q
+MSG1	W !?5,"Enter the desired parameters needed to open the selected device.",!?25 Q
+	;
+
+%ZIS4
+%ZIS4	;SFISC/GFT,RWF,MVB - DEVICE HANDLER SPOOL SPECIFIC CODE(VAX DSM) ;6/29/89  15:17 ;3/30/89  10:29 AM
+	;;6.0;
+	;
+SPOOL	;%ZDA=pointer to ^XMB(3.51, %ZFN=spool file name.
+	I $D(ZISDA) W:'$D(IOP) !?5,*7,"You may not Spool the printing of a Spool document" G N
+	I $D(DUZ)[0 W:'$D(IOP) !,"Must be a valid user." G N
+R	S %ZY=-1 D NEWDOC^ZISPL1 G N:%ZY'>0 S %ZDA=+%ZY,%ZFN=$P(%ZY(0),U,2),IO("DOC")=$P(%ZY(0),U,1) G OK:$D(IO("Q"))
+	G:'%ZISB OK I '$P(%ZY,"^",3),%ZFN]"" D SPL3 G N:%ZFN']"",DOC
+	S %ZFN=IO_"SPOOL_no_"_%ZDA_".TMP" D SPL2 G:%ZFN']"" N S $P(^XMB(3.51,%ZDA,0),U,2)=%ZFN,^XMB(3.51,"C",%ZFN,%ZDA)=""
+DOC	S IO=%ZFN,IO("SPOOL")=%ZDA,^XUTL("XQ",$J,"SPOOL")=%ZDA,IOF="#"
+OK	K %ZDA,%ZFN Q
+N	K %ZDA,%ZFN,IO("DOC") S POP=1 Q
+	;
+SPL2	O %ZFN:NEWVERSION G:$ZA<0 SPL4 S IO(1,%ZFN)="" Q
+SPL3	O %ZFN:READONLY G:$ZA<0 SPL4 S IO(1,%ZFN)="" Q
+SPL4	W:'$D(IOP) !?5,*7,"Couldn't open the spool file." S %ZFN="" Q
+	;
+CLOSE	C:IO]"" IO K:IO]"" IO(1,IO) D MAIL^ZISPL1 Q:%ZDA'>0
+	S %ZFN=$P(%ZS,"^",2) D SPL3 Q:%ZFN']""  U %ZFN S %ZCR=$C(13),%Y="",$ZT="SPLEOF^%ZIS4"
+	F %=0:0 R %X:5 Q:$ZA<0  S %2=%X D CL2
+SPLEOF	I $ZE["ENDO" C %ZFN:DELETE K IO(1,%ZFN) D CLOSE^ZISPL1 K %Y,%X,%1,%ZFN Q
+	ZQ  ;Send error up
+CL2	S %=%+1 I %2[$C(12) S ^XMB(3.9,XMZ,2,%,0)="|TOP|" Q
+	S ^XMB(3.9,XMZ,2,%,0)=%2 Q
+	;
+HFS	;
+	Q:$D(IOP)&$D(%IS("HFSIO"))&$D(%IS("IOPAR"))
+	S %X="" I $D(IOP)!$S($D(^%ZIS(1,%E,1)):$S($P(^(1),"^",5):0,1:1),1:1) S %ZHFN=IO G H1
+	W !,"HOST FILE NAME: "_IO_"//" D SBR^%ZIS1 I %X?1."?".E W !,"ENTER HOST FILE NAME" G HFS
+	I $D(DTOUT)!$D(DUOUT) S POP=1 Q
+	I $D(IO("Q")) S IO("HFSIO")=""
+H1	S %ZHFN=$S(%X]"":%X,1:IO),%XX=$ZC(%PARSE,%ZHFN)
+	I %XX]"",$ZC(%GETDVI,%XX,"DEVCLASS")="DISK"
+	E  S DUOUT=1,POP=1 W:'$D(IOP) !,"HOST FILE NAME NOT VALID" Q
+	S IO=$ZC(%PARSE,%ZHFN,".DAT") I $D(IO("HFSIO")) S IO("HFSIO")=IO
+	D ASKPAR^%ZIS3,SETPAR^%ZIS3
+HFSIOO	I '$D(IOP),%ZTYPE="HFS",'$P(^%ZIS(1,%E,0),"^",4),%ZISOPAR="",$D(^%ZIS(1,%E,1)),$P(^(1),"^",6) W ?45,"INPUT/OUTPUT OPERATION: "
+	Q:'$T  D SBR^%ZIS1 I $D(DTOUT)!$D(DFOUT)!$D(DUOUT) S POP=1 Q
+	D HOPT:%X="?"!($F("?^R^N^RW",%X)'>1),HOPT1:%X="??" G HFSIOO:%X="?"!($F("?^R^N^RW",%X)'>1)
+	S %ZISOPAR=$S(%X="R":"(READONLY)",%X="N":"(NEWVERSION)",1:"") Q
+	;
+HOPT	W !,"Enter one of the following host file input/ouput operation:"
+	W !,?16,"R = READONLY",!,?16,"N = NEWVERSION",!,?15,"RW = READ/WRITE",! Q
+HOPT1	S %ZISI=$O(^DIC(9.2,"B","XUHFSPARAM-VXD",0)) Q:'%ZISI  Q:'$D(^DIC(9.2,+%ZISI,0))  Q:$P(^(0),"^",1)'="XUHFSPARAM-VXD"
+	Q:$D(^DIC(9.2,+%ZISI,1))'>9  F %X=0:0 S %X=$O(^DIC(9.2,+%ZISI,1,%X)) Q:%X'>0  I $D(^(%X,0)) W !,^(0)
+	W ! S %X="??" Q
+OPEN	;
+	O IO::%ZISTO S:$T IO(1,IO)="" G NOPEN:'$D(IO(1,IO))
+	I $D(%ZISHP),'$D(IOP) W !,*7," Routing to device "_$P(^%ZIS(1,%E,0),"^",1)_$S($D(^(1)):" "_$P(^(1),"^",1)_" ",1:"")
+	Q
+NOPEN	;
+	I %IS'["D",$D(%ZISHP)!(%ZISHG]"") S POP=1 Q
+	I '$D(IOP) W *7,"  [BUSY]" W "  ...  RETRY" N DTIME S DTIME=5,%=2,U="^" D YN^%ZIS1 G OPEN:%=1
+	S POP=1 Q
+	Q
+O	I %IS["L" S IO("ZIO")=$ZIO
+	D:$D(%ZISIOS) ZISLPC^%ZIS Q:'%ZISB
+OPRTPORT	I $D(IO("S")),$D(^%ZIS(2,IO("S"),10)),^(10)]"" U IO(0) D X10^ZISX
+OPAR	I $D(IOP),%ZTYPE="HFS",$D(%IS("HFSIO")),$D(%IS("IOPAR")),%IS("HFSIO")]"" S IO=%IS("HFSIO"),%ZISOPAR=%IS("IOPAR")
+	S %A=""""_IO_""":"_%ZISOPAR_":"_%ZISTO O @%A I '$T S POP=1 W:'$D(IOP) !,?5,*7,"[DEVICE IS BUSY]" Q
+	S IO(1,IO)="" I %ZTYPE["TRM" U IO:(WIDTH=+%Z91) U:%IS'[0 IO(0)
+	I %ZISUPAR]"" S %A1=""""_IO_""":"_%ZISUPAR U @%A1 U:%IS'[0 IO(0)
+OXECUTE	I $D(^%ZIS(2,%ZISIOST(0),2))=1 S %Y=^(2) D 2
+ANSBAK	I $D(^%ZIS(2,%ZISIOST(0),102)) S %Y=^(102) D 2 E  S POP=1 W:'$D(IOP) *7,"[NOT ON LINE]" C:%ZISB IO K IO(1,IO) Q
+	I $D(%ZISMTR) U IO W *5 U IO(0)
+	Q
+	;
+2	Q:%Y=""  I %IS'[0 O IO(0)::0 S IO(1,IO(0))=""
+	S %X=$T U IO D %Y^ZISX Q:'%X  U IO(0) Q
+	;
+
+%ZIS5
+%ZIS5	;SFISC/STAFF --DEVICE LOOK-UP ;5/23/89  15:39 ;3/13/89  11:24;3/23/89  5:38 PM
+	;;6.0;
+	S U="^",%DO=""
+	I $D(^%ZIS(%ZISDFN,0)) S %DO=^(0)
+A	G:%ZIS(0)'["A" X I $D(%ZIS("A")) S %DD=%ZIS("A") G B
+	S %DD="Select "_$P(%DO,U,1)_": "
+B	I $D(%ZIS("B")),%ZIS("B")]"" S %YY=%ZIS("B"),%XX=$N(^%ZIS(%ZISDFN,%D,%YY)),%DIY=$S($F(%XX,%YY)-1=$L(%YY):%XX,$D(^%ZIS(%ZISDFN,%YY,0)):$P(^(0),U,1),1:%YY) W %DD,%DIY,"// " R %XX:$S($D(DTIME):DTIME,1:9999) G G:%XX]"" S %XX=%DIY G G
+	W !,%DD R %XX:$S($D(DTIME):DTIME,1:9999)
+G	G NO:'$T,NO:%XX["^" G:%XX?.N&(+%XX=%XX) NUM I %XX'?.ANP!($L(%XX)>30) W:%ZIS(0)["Q" *7," ??" G A
+X	I %XX=" ",$D(DUZ)#2,$D(^DISV(+DUZ,"^%ZIS("_%ZISDFN_",")) S %YY=+^("^%ZIS("_%ZISDFN_",") D S G:'$T NO G GOT
+F	G NO:%XX="" K %DS S %DS=0,%DS(0)=1,%DIX=%XX,%DIY=0
+	I $D(^%ZIS(%ZISDFN,%D,%XX)) G T1
+TRY	S %DIX=$N(^%ZIS(%ZISDFN,%D,%DIX)) G:$P(%DIX,%XX,1)'="" T2 S %DIY=0
+T1	S %DIY=$N(^%ZIS(%ZISDFN,%D,%DIX,%DIY)) G:%DIY<1 TRY S %YY=%DIY D S G:'$T T1
+	I %DS,'(%DS#10) D LST G NO:%XX=U,ADD:%YY<0,GOT:%YY>0
+	S %DS=%DS+1,%DS(%DS)=%DIY G T1
+S	I $D(^%ZIS(%ZISDFN,%YY,0)) D:$D(%ZIS("S")) XS^ZISX
+	Q
+T2	G:'%DS NO S %DIY="" D LST G NO:%XX=U,ADD:%YY<1,GOT
+LST	I %DS=1,'$D(%ZISLST) S %YY=%DS(1) Q
+	S %YY=-1 Q:%ZIS(0)'["E"  W ! F %DZ=%DS(0):1:%DS W !,$J(%DZ,2)," ",$P(^%ZIS(%ZISDFN,%DS(%DZ),0),U,1) I $D(%ZIS("W")) W "  " D XW^ZISX
+L1	W:%DIY !,"Type '^' to Stop, or" W !,"Choose 1" W:%DS>1 "-",%DS
+	R "> ",%YY:$S($D(DTIME):DTIME,1:9999) S %ZISLST=1 I %YY="",%DIY S %DS(0)=%DS+1,%YY=0 W ! Q
+	I %YY=U!(%YY="") S %YY=-1,DUOUT=1 S:%YY=U %XX=U Q
+	I +%YY'=%YY!(%YY<1)!(%YY>%DS) W:%ZIS(0)["Q" *7," ??" G L1
+	S %YY=%DS(%YY) Q
+GOT	S %DZ=^%ZIS(%ZISDFN,+%YY,0)
+	W:%ZIS(0)["E" "  ",$P(%DZ,U,1)
+R	I %ZIS(0)'["F" S:$S($D(DUZ)#2:$S(DUZ:1,1:0),1:0) ^DISV(DUZ,"^%ZIS("_%ZISDFN_",")=+%YY
+	I %ZIS(0)["Z" S %YY(0)=^%ZIS(%ZISDFN,+%YY,0)
+Q	K %ZIS,%ZISDFN,%DO,%DD,%DIX,%DIY,%DZ Q
+K	K %D,%DS,%ZISLST Q
+ADD	;can't add to files
+NO	S %YY=-1 G Q
+NUM	I $D(^%ZIS(%ZISDFN,%XX)) S %YY=%XX D S I $T G GOT
+	G F
+1	F %D="B","LSYN" S %ZISDFN=1,%ZIS(0)=$S($D(IOP):"M",1:"EMQ"),%ZIS("S")="I 1 Q:%D'=""LSYN""  Q:'$D(^%ZOSF(""VOL""))  I $P(^%ZIS(1,%YY,0),U,9)=^%ZOSF(""VOL"")!($P(^%ZIS(1,%YY,0),U,9)="""")" D %ZIS5 Q:%YY>0
+	D K Q
+2	S %D="B",%ZISDFN=2,%ZIS(0)=$S($D(IOP):"M",1:"EMQ") D %ZIS5 D K Q
+	;
+LD1	S %E=0,%Y=0 D LCPU:"PD"[$E(%X) S %E=0 W !
+L	S %E=$S("PD"[$E(%X):$O(^UTILITY("ZIS",$J,"DEVLST","B",%E)),1:$O(^%ZIS(1,"B",%E))) G:%E="" RESTART S %A=+$O(^(%E,0)) G RESTART:'$D(^%ZIS(1,%A,0)),L:$P(^(0),"^",2)=46,L:$P(^(0),"^",2)=63
+	I "AP"[$E(%X) G L:'$D(^("SUBTYPE")),L:'$D(^%ZIS(2,+^("SUBTYPE"),0)),L:^(0)'?1"P".E
+	W $J($P(^%ZIS(1,%A,0),"^",1),9) W:$D(^(1)) " ",$P(^(1),"^",1) I $D(^(90)),^(90) W " ** OUT OF SERVICE"
+	W ?39 I $X>40 W ! S %Y=%Y+1 I %Y>20 R "'^' TO STOP: ",%Y:$S($D(DTIME):DTIME,1:60),! G RESTART:%Y?1P S %Y=0
+	G L
+	;
+LCPU	S %A=%ZISV
+LC1	S %A=$O(^%ZIS(1,"CPU",%A)) Q:$P(%A,".")'=%ZISV  S %E=0
+LC2	S %E=+$O(^%ZIS(1,"CPU",%A,%E)) G LC1:%E'>0,LC1:'$D(^%ZIS(1,%E,0)) S ^UTILITY("ZIS",$J,"DEVLST","B",$P(^(0),"^",1),%E)="" G LC2
+RESTART	S %E=+%H K %X,^UTILITY("ZIS",$J,"DEVLST") Q
+
+%ZIS6
+%ZIS6	;SFISC/AC -- SET/KILL OF MAIN VARIABLES ;5/24/89  13:14
+	;;6.0;
+TMPVAR	K IO("S") S %ZISIOS=%E S:IO=0 IO=$I,IO("S")=%H
+	S %A=$S($D(^%ZIS(1,%E,"SUBTYPE")):+^("SUBTYPE"),1:0)
+	S %ZISOPAR=$S($D(%IS("IOPAR")):%IS("IOPAR"),$D(^("IOPAR")):^("IOPAR"),1:"")
+	S %ZISUPAR=$S($D(%IS("IOUPAR")):%IS("IOUPAR"),$D(^("IOUPAR")):^("IOUPAR"),1:""),%ZISTO=$S($P(%ZTIME,"^",2)]"":+$P(%ZTIME,"^",2),1:1)
+	I $D(IO("S")) S IO=$S(%IS["S":$P($S($D(^%ZIS(1,+$P(%Z,"^",8),0)):^(0),1:""),"^",2),1:IO) I %IS["S",IO]"" S %H=+$P(%Z,"^",8),IO("S")=%H,IO(0)=IO
+	I $D(IO("S")) S IO("S")=$S($D(^%ZIS(1,%H,"SUBTYPE")):^("SUBTYPE"),1:0)
+	I %E=%H,%ZTYPE["TRM",$D(^XUTL("XQ",$J,"IOST(0)")) S %A=+^("IOST(0)"),%Z91="" F %ZISI="IOM","IOF","IOSL","IOBS","IOXY" S %Z91=%Z91_$S($D(^(%ZISI)):^(%ZISI),1:"")_"^"
+	S:'$T&($D(^%ZIS(1,%E,91))) %Z91=^(91)
+	I $D(%Z91),$P(%Z91,"^")]"",$P(%Z91,"^",2)]"",$P(%Z91,"^",3),$P(%Z91,"^",4)]""
+	S %ZISTP=$T D ST^%ZIS3 S:%ZISTP&($P(%Z91,"^",5)="") $P(%Z91,"^",5)=$S($D(^%ZIS(2,%ZISIOST(0),1)):$P(^(1),"^",5),1:"") S:%IS["U" USIO=$P(%Z91,"^",1,4)
+	Q
+SETVAR	S:'$D(IO)#2 IO="" G KILVAR:%IS["T"&(IO="")
+	S:IO'=IO(0)&($D(DUZ)#2) ^DISV(+DUZ,"^%ZIS(1,")=%E
+	S ION=$P(%Z,"^",1),IOM=+%Z91,IOF=$P(%Z91,"^",2),IOSL=$P(%Z91,"^",3),IOBS=$P(%Z91,"^",4),IOXY=$P(%Z91,"^",5)
+	S IOT=%ZTYPE,IOST(0)=%ZISIOST(0),IOST=%ZISIOST,IOPAR=%ZISOPAR,IOUPAR=%ZISUPAR,IOHG=%ZISHG
+	K IOCPU S:$D(%ZISCPU) IOCPU=%ZISCPU
+	G KIL
+	;
+KILVAR	I %IS'["T" S IO=""
+	S:'$D(ION) ION=""
+	S:'$D(IOF) IOF="#" S:'$D(IOM) IOM="" S:'$D(IOBS) IOBS="" S:'$D(IOSL) IOSL=""
+	S:'$D(IOST(0))#2 IOST(0)=0 S:'$D(IOST)#2 IOST=""
+	I $D(%ZISCPU) S:'$D(IOCPU) IOCPU=%ZISCPU
+	K IO("HFSIO"),IO("OPEN")
+	;
+KIL	S:'POP IOS=%ZISIOS
+	I POP K:%IS'["T" %ZISIOS I %IS["T" K IOS S:$D(%ZISIOS) IOS=%ZISIOS
+	S:%IS["T" IO("T")=1 K %ZIS,%IS,%A,%E,%H,%ZISV,IOP
+K2	K %ZISCPU,%ZISI,%ZISR,%ZISVT,%ZISB,%I,%X,%Y,%Z,%Z91,%Z95,%ZTYPE,%ZTIME,%ZISX,ZISI
+	K %ZISHGL,%ZISHP,%ZISIO,%ZISIOS,%ZISIOM,%ZISIOF,%ZISIOSL,%ZISIOBS,%ZISIOST,%ZISIOST(0),%ZISTO,%ZISTP
+	K %ZISHG,%ZISSIO,%ZISOPEN,%ZISOPAR,%ZISUPAR
+	Q
+
+%ZIS7
+%ZIS7	;SFISC/AC - DEVICE HANDLER HELP ;5/23/89  15:41
+	;;6.0;
+EN1	W !,"Specify a device with optional parameters in the format"
+	W !,?10,"Device Name;Right Margin;Page Length"
+	W !,?25,"or",!?5,"Device Name;Subtype;Right Margin;Page Length"
+	W !!,"Enter ?? for more information"
+	Q
+EN2	S X=0 I $D(^%ZOSF("TEST")) S X="XQH" X ^("TEST")
+	I $T S X=$O(^DIC(9.2,"B","XUDOC DEVICE PROMPT*",0)),X=$D(^DIC(9.2,+X,0)) I X S X=($P(^(0),"^",1)="XUDOC DEVICE PROMPT*")
+	W !,"The following information is available:"
+	;W !?20,"Printer Listing",!?20,"Complete Device Listing",!?20,"Extended Help"_$S(X:"",1:" [UNAVAILABLE]")
+	W !?20,"All Printers",!?20,"Printers only on '"_%ZISV_"'",!?20,"Complete Device Listing",!?20,"Devices only on '"_%ZISV_"'",!?20,"Extended Help"_$S(X:"",1:" [UNAVAILABLE]")
+R	W !!?15,"Select one (A,P,C,D, or E): " D SBR^%ZIS1
+	I $D(DTOUT)!$D(DUOUT) K DTOUT,DUOUT Q
+	I %X="?"!("APCDE"'[$E(%X)) W !,"Enter 'A', 'P', 'C', 'D' or 'E'" G R
+	Q:%X=""  I 'X,$E(%X)="E" W *7," [UNAVAILABLE]" G R
+	I "APCD"[$E(%X) D LD1^%ZIS5 Q
+	I $E(%X)'="E" W *7," [ERROR]" Q
+	I '$D(DUZ)#2 N DUZ S DUZ=0
+	I '$D(DTIME) N DTIME S DTIME=60
+	N %IS,%H,%E,%ZISB,%ZISV,IO S U="^",XQH="XUDOC DEVICE PROMPT*" D EN^XQH
+	Q
+
+%ZIS9
+%ZIS9	;SLC/RWF - Collect screen paramiters ; 7/28/88  10:59 ;7/28/88  10:43 AM
+	;;6.0;
+A	S %ZIE=0 D CHKTYPE G Q:%ZIE
+	S %Z0=IOST(0),U="^",IOSC(%Z0)=$P(^%ZIS(2,%Z0,0),U,1),IOSC(%Z0,"LF")="*10"
+	S %Z=^(1) F %=1:1:5 S IOSC(%Z0,$P("IOM^IOF^IOSL^BS^XY",U,%))=$P(%Z,U,%)
+	F %=2,3,4,10,11 S IOSC(%Z0,$P("^OPEN^CLOSE^ONLINE^^^^^^PPO^PPC",U,%))=$S($D(^(%)):^(%),1:"")
+	S %Z=$S($D(^(5)):^(5),1:"") F %=1:1:9 S IOSC(%Z0,$P("10P^12P^HOME^RVON^RVOFF^EOL^EOP^BON^BOFF",U,%))=$P(%Z,U,%)
+	S %Z=$S($D(^(6)):^(6),1:"") F %=1:1:7 S IOSC(%Z0,$P("RESET^HUP^HDWN^UON^UOFF^RLF^PROP",U,%))=$P(%Z,U,%)
+	S %Z=$S($D(^(7)):^(7),1:"") F %=1,2,3 S IOSC(%Z0,$P("INHI^INLOW^INORM",U,%))=$P(%Z,U,%)
+	S IOSC(%Z0,"16P")=$S($D(^(12.1)):^(12.1),1:"")
+	F %=1,2 S IOSC(%Z0,$P("DHDW^SHSW",U,%))=$S($D(^(407+%)):^(407+%),1:"")
+Q	K %Z0,%,%ZIE Q
+CHKTYPE	G NOTYPE:$D(IOST(0))[0,NOTYPE:'IOST(0),NOTYPE:$D(^%ZIS(2,IOST(0),0))[0
+	Q
+NOTYPE	S %ZIE=1 Q
+GETYPE	;
+	S %IS="N0" D ^%ZIS Q
+
+%ZISC
+%ZISC	;SF/GFT,AC,MUS - CLOSE LOGIC FOR DEVICES  [ 04/06/89  5:31 AM ] ;6/29/89  15:59
+	;;6.0;
+C0	D:$D(ZISLP) C^%ZISLPC K %,IO("DOC"),IO("HFSIO") S:$D(IO)[0 IO=$I S:'$D(IO(0)) IO(0)=$I S:$D(ION) %=ION S:'$D(%) %=IO
+	S %ZISV=$S($D(^%ZOSF("VOL")):^("VOL"),1:"")
+	I %=""!(IO="") G SETIO:IO(0)]"" G END
+	I $D(IOST)#2,IOST]"" K %
+	I $D(%) S IOST=$P(%,";",2) D:IOST'?1A.ANP C2A S:IOST IOST(0)=IOST
+	I '$D(%)!($D(%)&(IOST?1A.ANP!($D(IOST(0))))) S:'$D(IOST(0)) IOST(0)=$O(^%ZIS(2,"B",IOST,0)) K % I '$D(IOCPU),$D(IO(1,IO)),$S($D(^%ZIS(2,+IOST(0),3)):^(3),1:"")]"" O IO::0 I $T U IO D X3^ZISX:'$D(IO("T"))
+	I $D(IO("S")) D:$D(^%ZIS(2,+IO("S"),11)) X11^ZISX:'$D(IO("T")) K IO("S")
+	I '$D(IOCPU)&(IO'=IO(0)!$D(IO("C"))) C IO K IO(1,IO)
+	S IO("CLOSE")=IO D:IO'=IO(0) RESETP
+	D CLOSE^%ZIS4:$D(IO("SPOOL"))
+SETIO	S (IO,IOS)=IO(0) K IO("T") D CIOS
+	G END:'IOS S ION=$P(^%ZIS(1,IOS,0),"^",1),IOT=$S($D(^("TYPE")):^("TYPE"),1:""),IOST(0)=$S(IOT="TRM"&($D(^XUTL("XQ",$J,"IOST(0)"))):^("IOST(0)"),1:$S($D(^%ZIS(1,IOS,"SUBTYPE")):^("SUBTYPE"),1:""))
+	I IOT="TRM",$D(^XUTL("XQ",$J,"IOST(0)")) D HOME^%ZIS G END
+	I '$T,$D(^%ZIS(1,IOS,91)) S %=^%ZIS(1,IOS,91),IOM=+%,IOF=$P(%,"^",2),IOSL=$P(%,"^",3) I 1
+	E  I IOST(0),$D(^%ZIS(2,IOST(0),1)) S %=^(1),IOM=+%,IOF=$P(%,"^",2),IOSL=$P(%,"^",3)
+	E  S (IOM,IOF,IOSL)=""
+	S:IOST(0) IOST=$S($D(^%ZIS(2,+IOST(0),0)):^(0),1:"")
+	I '$D(IO("C")),IOT["TRM" D RM:$D(IO(1,IO))
+END	K %,%E,%H,%ZISI,%ZISV,%ZISVT,%ZISX,IOC,IOCPU Q
+	;
+C2A	S IOS=$P(%,";") D CIOS S IOST=IOS
+	S IOST=$S($D(^%ZIS(1,+IOST,"SUBTYPE")):^("SUBTYPE"),1:0)
+	Q
+	;
+CIOS	I $D(^XUTL("XQ",$J,"IOS")) S IOS=+^("IOS") Q
+	I $D(^%ZOSF("VOL")) S %ZISVT=IOS D VTLKUP^%ZIS S IOS=+%E
+	E  S IOS=+$O(^%ZIS(1,"C",IOS,0))
+	Q:IOS>0
+	S %ZISVT=IO(0) D VIRTUAL^%ZIS
+	I $D(%ZISVT) S %H=%E I %ZISVT]"",%H>0,$D(^%ZIS(1,%H,0)),$D(^("TYPE")),^("TYPE")="VTRM" K %ZISVT S IOS=%H
+	Q
+	;
+RESETP	I IO]"" K ^XUTL("ZIS","EON",IO),^XUTL("ZIS","TYPE-AHEAD",IO),^XUTL("ZIS","TRMON",IO) Q
+	Q
+RM	N X S X=+IOM X ^%ZOSF("RM") Q
+
+%ZISLDIS
+ZISLDIS	;WILM/RJ - Disconnect Device from Micom Port; SAVE AS %ZISLDIS IN MGR UCI; 6-9-85
+	;;Version 4.4
+	D ^%ZISLSIT Q:$P(ZISLSITE,"^",2)=""  S (IO,IOP)=$P(ZISLSITE,"^",2),I=0 S:'$D(IO(0)) IO(0)=$I
+	I $O(^%ZIS(1,"CPU",0))'="" G MDF
+SDF	S I=$N(^%ZIS(1,"C",IO(0),I)) Q:I<0  S N=$N(^%ZIS("Z",106,"B",I,0)) G:N<0 SDF
+	G DISC
+MDF	S I=$N(^%ZIS(1,"CPU",ZISLCPU_"."_IO(0),I)) Q:I<0  S N=$N(^%ZIS("Z",106,"B",I,0)) G:N<0 MDF
+DISC	S I=N,U="^",C=0,N=^%ZIS("Z",106,I,0) Q:$P(N,U,3)'=1!($P(N,U,2)="")
+	U IO(0) W !,"Disconnecting -> " S R="DIS P"_$P(N,U,2) X "O IOP:10" I '$T H $R(7) X "O IOP:10" I '$T Q
+	S W=0 F A=1:1 D C^%ZISLVR Q:X'=U!(A>10)  H $R(7)
+	I X=U X ^%ZIS("C") Q
+	D H^%ZISLVR I X=U X ^%ZIS("C") Q
+	U IO(0) W "Bye!" D T S X="" D CP X ^%ZIS("C") Q
+T	U IO R X:1 S Y="" F I=1:1 D P S X=$E(R,I) Q:X=""  U IO W X
+	W *13 F I=1:1 U IO R X:1 S:'$T X=U Q:X=U  S Y=Y_X D P
+	Q:Y["TASK COMPLETE"!(Y["NOT CONNECTED")  S C=C+1 Q:C=2  G T
+CP	;Disconnect Command Port
+	Q:X="^"  S ZISLCPU=$S($D(^%ZOSF("VOL")):^("VOL"),1:"") Q:ZISLCPU=""
+	R X:1 S I=0,X="" I $O(^%ZIS(1,"CPU",0))'="" G MDFCP
+SDFCP	F R=1:1 S I=$O(^%ZIS(1,"C",IO,I)) Q:I=""  S X=$O(^%ZIS("Z",106,"B",I,0)) I X'="" S X=$P(^%ZIS("Z",106,X,0),"^",2) Q:X'=""
+	G CPDISC
+MDFCP	F R=1:1 S I=$O(^%ZIS(1,"CPU",ZISLCPU_"."_IO,I)) Q:I=""  S X=$O(^%ZIS("Z",106,"B",I,0)) I X'="" S X=$P(^%ZIS("Z",106,X,0),"^",2) Q:X'=""
+CPDISC	Q:X=""!(X<0)  S R=$S('$D(ZISLTYPE):"DIS P",ZISLTYPE=6600:"DISC CH ",1:"DIS P")_X F I=1:1 D P S X=$E(R,I) Q:X=""  U IO W X
+	W *13 K IOP,P,R,W,Y,N Q
+P	F P=1:1:50
+	Q
+
+%ZISLPC
+ZISLPC	;WILM/RJ - Micom Printer Contention; SAVE AS %ZISLPC IN MGR UCI; 9-1-86
+	;;Version 4.5
+	S ZISLTASK=$S($D(ZTSK):0,1:1) W:ZISLTASK !?2,"Printer Contention, wait a second->" D 1 I POP K ZISLP X:$D(ZISLC2) ZISLC2 W:ZISLTASK&($L(ZISLE)) !?2,ZISLE G X
+	K Y X:$D(^%ZOSF("UCI")) ^("UCI") W:ZISLTASK !?2,"Connected ",ZISLL," to ",ZISLP,".  Output Device is ",IO I ZISLTASK W:$D(Y) " on System ",$P(Y,",",2),"."
+	S I=$O(^%ZISL(107.3,"B",ZISLP,0)) I +I=0 S I=$P(^%ZISL(107.3,0),"^",4)+1,$P(^%ZISL(107.3,0),"^",3,4)=I_"^"_I,^%ZISL(107.3,I,0)=ZISLP_"^"_IO_"^"_$P(Y,",",2),^%ZISL(107.3,"B",ZISLP,I)=""
+	S $P(^%ZISL(107.3,I,0),"^",4)=1
+X	K ZISLL,ZISLE,ZISLIO,ZISLIO1,ZISLR,ZISLSITE,ZISLY,ZISLPORT,ZISLSITE,ZISLPAUS,ZISLTASK,ZISLZ,ZISLC1,ZISLC2,ZISLCPU,ZISLTYPE Q
+1	S (DX,DY)=0,ZISLE="",POP=1 D ^%ZISLSIT S ZISLIO=$P(ZISLSITE,"^",2) I ZISLIO="" S ZISLE="Unable to find Micom Command Port Device Number." Q
+	D INIT X ZISLC1 I ZISLZ="^" H 5 X ZISLC1 I ZISLZ="^" S ZISLE="Micom Command Port is busy.  Try Later." Q
+	S Y="" U ZISLIO X ^%ZOSF("EOFF"),^%ZOSF("TYPE-AHEAD") X:$D(^%ZOSF("ZMAXBUF")) ^("ZMAXBUF") W *13 F I=1:1 R ZISLZ#1:1 S:'$T ZISLZ="^" Q:ZISLZ="^"  S Y=Y_ZISLZ D P
+	I Y["?"!(Y["A>")!(Y["B>") G SC
+	I Y'["GO",Y'["CONNECTED" G ERCP
+	W *13 F I=1:1:4 R Y#1:1 D P Q:Y="?"!(Y=">")
+	I Y'="?",Y'=">" G ERCP
+SC	S ZISLTYPE=$S(Y[">":6600,1:""),R=$S(ZISLTYPE=6600:"CONN FORC ",1:"CON L")_ZISLL_$S(ZISLTYPE=6600:" ",1:" P")_ZISLP D T I ZISLY["?" D T
+	I ZISLTYPE=6600 S:ZISLY'["!" ZISLY="TASK COMPLETE" G:ZISLY["!"&(ZISLY'["BUSY") ER5 I ZISLY["BUSY" D STA
+	I ZISLTYPE'=6600,ZISLY'["TASK COMPLETE" D STA
+CP	S:ZISLY["TASK COMPLETE" POP=0 S ZISLIO1=IO,IO=ZISLIO,X="" D CP^%ZISLDIS S IO=ZISLIO1 X ZISLC2 Q
+T	U ZISLIO X ^%ZOSF("XY") S Y="" F J=1:1 D P S ZISLZ=$E(R,J) Q:ZISLZ=""  U ZISLIO W ZISLZ
+	W *13 S ZISLY="" F J=0:0 U ZISLIO R ZISLZ#1:1 Q:'$T  S ZISLY=ZISLY_ZISLZ
+	Q
+INIT	S ZISLC1="S ZISLZ=""^"" F I=1:1:5 O ZISLIO:"""":1 I $T S ZISLZ="""" Q",ZISLC2="C ZISLIO"
+	Q
+STA	;get status of line to printer
+	S ZISLR=R,R=$S(ZISLTYPE=6600:"SHO CH ",1:"STA L")_ZISLL D T I ZISLTYPE'=6600 S ZISLPORT=+$E($P(ZISLY,"CONN",2),2,5)
+	I ZISLTYPE=6600 S ZISLPORT=$E($P(ZISLY,"CALLING",2),4,9) S:$E(ZISLPORT,1)=0 ZISLPORT=$E(ZISLPORT,2,6)
+	I ZISLPORT="" S ZISLY="" G ER4
+	S Y=$O(^%ZISL(107.3,"B",ZISLPORT,0)) I +Y=0 S ZISLY="" G ER21
+	S Y=$S($D(^%ZISL(107.3,Y,0)):^(0),1:"") I ZISLP=$P(Y,"^",1)!(ZISLPORT=0) S ZISLY="TASK COMPLETE" Q
+	S ZISLY="" G:$P(Y,"^",4) ER2 G:Y="" ER21
+	S R=$S(ZISLTYPE=6600:"DISC CH ",1:"DIS P")_ZISLP D T I ZISLY["?" G ER3
+	S R=ZISLR D T I ZISLY'["TASK COMPLETE",ZISLY'["A>",ZISLY'["B>" G ER4
+	S ZISLY="TASK COMPLETE"
+	Q
+P	F ZISLPAUS=1:1:100
+	Q
+ERCP	S ZISLE="Unable to access Micom Command Port.  Try Later.",ZISLY="" G CP
+ER2	S ZISLE="Currently in use by Device "_$P(Y,"^",2)_" connected to "_ZISLPORT_" on CPU "_$P(Y,"^",3)_"." Q
+ER21	S ZISLE="This printer is connected to "_ZISLPORT_" which is not defined in file 107.3." Q
+ER3	S ZISLE="Unable to disconnect "_ZISLL_" from "_ZISLPORT_".  Try Again Later." Q
+ER4	S ZISLE="Unable to connect "_ZISLL_" to "_ZISLP_".  Try Again Later." Q
+ER5	D ER4 S ZISLE=ZISLE_$C(10)_$C(13)_$P(ZISLY,$C(10),2) Q
+C	;Disconnect Printer
+	Q:'$D(ZISLP)  S Y=$O(^%ZISL(107.3,"B",ZISLP,0)) Q:+Y=0  I $D(^%ZISL(107.3,Y,0)) S $P(^(0),"^",4)=0
+	D ^%ZISLSIT S ZISLIO=$P(ZISLSITE,"^",2) G:ZISLIO="" CX
+	D INIT X ZISLC1 I ZISLZ="^" X ZISLC1 G:ZISLZ="^" CX
+	S Y="",(DX,DY)=0 U ZISLIO X ^%ZOSF("EOFF"),^%ZOSF("TYPE-AHEAD") X:$D(^%ZOSF("ZMAXBUF")) ^("ZMAXBUF") W *13 F I=1:1 R X#1:1 S:'$T X="^" Q:X="^"  S Y=Y_X D P
+	G:Y["?"!(Y["A>")!(Y["B>") C1 W *13 F I=1:1:4 R Y#1:1 D P Q:Y="?"!(Y=">")
+	I Y'="?",Y'=">" G CC
+C1	S ZISLTYPE=$S(Y[">":6600,1:""),R=$S(ZISLTYPE=6600:"DISC CH ",1:"DIS P")_ZISLP D T I ZISLY["?" D T
+CC	S ZISLIO1=IO,IO=ZISLIO,X="" D CP^%ZISLDIS S IO=ZISLIO1 X ZISLC2
+CX	K ZISLIO,ZISLIO1,ZISLP,R,ZISLSITE,ZISLY,ZISLSITE,ZISLPAUS,ZISLZ,ZISLC1,ZISLC2,ZISLCPU,ZISLTYPE Q
+
+%ZISLSIT
+ZISLSIT	;WILM/RJ - Get Site Variables; SAVE AS %ZISLSIT IN MGR UCI; 12-1-86
+	;;Version 4.5
+	S (ZISLSITE,X)="" Q:'$D(^%ZOSF("VOL"))  S ZISLCPU=^("VOL") S ZISLSITE=$O(^%ZIS("Z",108,"B",ZISLCPU,0)) Q:ZISLSITE<1  S ZISLSITE=$S($D(^%ZIS("Z",108,ZISLSITE,0)):^(0),1:"")
+	F X=2,3 S $P(ZISLSITE,"^",X)=$S($P(ZISLSITE,"^",X)="":"",$D(^%ZIS(1,$P(ZISLSITE,"^",X),0)):$P(^(0),"^",2),1:"")
+	Q
+
+%ZISLVR
+ZISLVR	;WILM/RJ - Verify, Reset Micom Command Port Connection; SAVE AS %ZISLVR IN MGR UCI; 6-9-85
+	;;Version 4.5
+	X ^%ZOSF("UCI") I Y["MGR" W !,"You cannot run this program from the MGR UCI." Q
+	I '$D(^%ZOSF("VOL")) W !,"First, you need to set %ZOSF(""VOL"") to the 3-char volume set of this cpu." Q
+	S ZISLCPU=^("VOL") W !! I '$O(^%ZIS("Z",108,"B",ZISLCPU,0)) W !,"You have not set up your MICOM SITE PARAMETERS file #108 correctly.",!,"Please see section under Micom Site Parameters in the manual." Q
+	D ^%ZISLSIT W !,"Site Name: ",$P(ZISLSITE,"^",1) S ZISLCPU=$O(^%ZIS("Z",108,"B",ZISLCPU,0))
+	S (DIC,DIE)="^%ZIS(""Z"",108,",DA=ZISLCPU,DR=1 D ^DIE,^%ZISLSIT K DIC,DIE,DR,DA I $P(ZISLSITE,"^",2)="" W !,"You must enter a device into this field before I can continue." Q
+	S IOP=$P(ZISLSITE,"^",2) D ^%ZIS I POP W !,"Device ",$P(ZISLSITE,"^",2)," is busy.  Try later." K IOP Q
+	W !!,"Wait, Trying to connect->" S W=1 D C U IO(0) G:X=U E W !?6,"Connection made with command port..." D H,E K IO,ZISLSITE,ZISLTYPE Q
+C	S Y="" U IO X ^%ZOSF("EOFF"),^%ZOSF("TYPE-AHEAD") X:$D(^%ZOSF("ZMAXBUF")) ^("ZMAXBUF") W *13,*13 F I=1:1 R *X:1 S:'$T X=U Q:X=U  S Y=Y_$C(X) D P
+	U:W IO(0) I Y["UNASSIGNED" W:W !?6,"No port set up for class.  See Manual." Q
+	I Y'["GO"&(Y'["?")&(Y'["B>")&(Y'["A>")&(Y'["CONNECTED") W:W !?6,"No Connection Made.  See Manual." Q
+	S X="" Q
+H	U IO W *13 F I=1:1:4 R X:1 D P Q:X["?"!(X["B>")!(X["A>")
+	U:W IO(0) I X["?"!(X["B>")!(X["A>") S ZISLTYPE=$S(X["?":600,1:6600) W:W !?6,"Micom ",ZISLTYPE," connected.",!! U IO R I:1 Q
+	E  W:W !?6,"Micom not responding." S X=U
+	Q
+1	D ^%ZISLSIT I $P(ZISLSITE,"^",2)="" S X=U Q
+	S DX=0,DY=0,(IOP,IO)=$P(ZISLSITE,"^",2),W=0,U="^" D ^%ZIS K IOP S:POP X=U D:X'=U C I X=U X ^%ZIS("C") Q
+	D H X:X=U ^%ZIS("C") Q
+E	D:IO'="" CP^%ZISLDIS X:IO'="" ^%ZIS("C") K %ZIS,I,IOP,P,W,X,Y,ZISLSITE,ZISLCPU Q
+P	F P=1:1:50
+	Q
+
+

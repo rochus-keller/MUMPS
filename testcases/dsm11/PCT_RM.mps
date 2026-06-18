@@ -1,0 +1,7 @@
+%RM     ;17-Jan-86 ;UTILITIES ;LIBRARY ;SHOW MAPPED ROUTINE ;SMB
+1       D ROUNAM^%RM1 Q:"^"[R
+        D INT^%RM1 I ROUSTR<1 W *7,ROUSTA G 1
+        S I=0
+D       S X=$V(I,ROUSTR)#256 Q:X=255  W ! F J=1:1:X W *$V(I+J,ROUSTR)#256
+        W *9 F I=I+2+X:1 S X=$V(I,ROUSTR)#256 Q:X=255  W *X
+        S I=I+1 G D

@@ -1,0 +1,68 @@
+BACKUNJR        Q  ;DSM11 UTILITIES; COPYRIGHT 1980 DEC
+JTEST   I $V(ST+410)=0 S JSW=0 Q
+        I JOP=3 D SHUT Q
+        S JSW=JOP
+        Q
+SHUT    S JIX=$V(ST+54)#H I JIX=128 S JIX=^SYS(0,"JOURNAL SPACE","CURRENT")
+        E  S JIX=-JIX
+        S %STS=$V(ST) D BAKSTOP^JRNSTOP U 0 V ST::%STS K %STS
+        I $V(ST+410)=0 S JSW=-1 Q
+        S JSW=-10 I $D(UNATTN) D MESSG,HD^BACKUP
+        I '$D(UNATTN) W !,"JOURNALING WAS NOT SHUT DOWN SUCCESSFULLY.",!
+        Q
+RESTART ;
+        G FRESH:JSW=-1 Q:JSW'=-2
+HSHUT   I $D(UNATTN) D MESSG1,HD
+        I '$D(UNATTN) W !,"NOW SHUTTING DOWN OLD JOURNAL"
+        D SHUT G HSHUT:JSW'=-1
+        S %STS=$V(ST) D ENABL
+FRESH   ;
+        G NEWSP:^SYS(0,"BACKUP",NM,"JOURNAL SPACE SAME")'="Y"
+        G REMAG:JIX<0
+        I $D(UNATTN) D MESSG2,HD
+        I '$D(UNATTN) W !,"RE-INITIALIZING JOURNAL SPACE'",^SYS(0,"JOURNAL SPACE",JIX,"NAME"),"'",!
+        D ENABL
+        S INX=JIX U 63:(1:1),0 D JRNENT^JRNINIT O 63
+        S %ST=ST,%JSP="JOURNAL SPACE",%CR=^SYS(0,%JSP,JIX,"START")
+        S %IX=JIX D SYSPUT^JRNGETST
+        V ST::$V(ST)+8192 G JRE
+REMAG   I $D(UNATTN) G MAGST
+        W !,"RESTART JOURNAL...",!
+RE2     W "IS THE NEW JOURNAL MAGTAPE NOW READY IN UNIT ",-47-JIX,",",!
+        R "  WRITE-ENABLED [Y/N] ? >  ",A,! G RE2:$E(A,1)'="Y"
+        D ^JRNSTART Q
+JRE     O 46 V ST+410::2 C 46
+        I $D(UNATTN) D MESSG4,HD
+        I '$D(UNATTN) W !,"JOURNAL HAS BEEN RE-STARTED.",!!
+        Q
+MESSG   S MSG="JOURNALING WAS NOT SHUT DOWN SUCCESSFULLY." Q
+MESSG1  S DMSG="! SHUTTING DOWN OLD JOURNAL" Q
+MESSG2  S DMSG="! RE-INITIALIZING JOURNAL SPACE '"_^SYS(0,"JOURNAL SPACE",JIX,"NAME")_"'" Q
+MESSG3  S DMSG="JOURNALING WAS NOT RE-STARTED." Q
+MESSG4  S DMSG="! JOURNAL HAS BEEN RE-STARTED." Q
+HD      ZU $V($V(44)+346)#256:(:::::32) W *7,*7,!!,"***  " D H^CTKDAT W "  UNATTENDED BACKUP MESSAGE  ***",!,DMSG,!! Q
+NEWSP   D ENABL
+        C 63 D ^JRNSTART
+        O 46 V ST::$V(ST)+8192 C 46
+        Q
+ENABL   V ST::$V(ST)\16384*16384+($V(ST)#8192)
+        Q
+MAGST   I ^SYS(^SYS(0,"RUNNING"),"OPTIONS","JRNL")'="Y" S %="03" G STR
+        I $V(ST+410) S %="04" G STR
+        S %RUNJ=ST+410,%DVT=$V(ST+8),%START=2,%MT=-JIX,%DVM=$V(ST+8)+%MT
+        I $V(%DVT+47)#256=255!($V(%DVM)#256=255) S %="13" G STR
+        O %MT:"DS":3 I '$T S %="14" G STR
+        U %MT S ZA=$ZA
+        I ZA\64#2=0 C %MT S %="15" G STR
+        I ZA\4#2 C %MT S %="16" G STR
+        I ZA\32#2=0 W *5
+GIVMT   S %JJOB=$V(ST+55)
+        I %DVM#2 V %DVM-1::$V(%DVM-1)#256+(%JJOB*256)
+        E  V %DVM::$V(%DVM+1)*256+%JJOB
+        V ST+54::$V(ST+55)*256+%MT
+        H 2 V %RUNJ::%START D KMG,MESSG4,HD Q
+KMG     K %RUNJ,%DVT,%START,%MT,%DVM,%JJOB,% Q
+MTXT    ;;Journaling;;not in configuration;;already running
+        ;;Magtape;;not in configuration;;already owned;;offline;;write locked
+STR     S DMSG=$P($T(MTXT+$E(%)),";;",2)_" "_$P($T(MTXT+$E(%)),";;",$E(%,2))
+        D KMG,HD,MESSG3,HD Q

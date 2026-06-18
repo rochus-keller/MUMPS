@@ -1,0 +1,184 @@
+// Copyright 2026 Rochus Keller <mailto:me@rochus-keller.ch>
+// MUMPS 1976 Standard Grammar (NBS Handbook 118)
+// EbnfStudio compatible LL(1) version with a few LL(k) exceptions
+// Extended with DSM-11 commands (NEW, JOB, Z-commands)
+// HALT/HANG merged: both abbreviated 'H', distinguished by argument presence
+
+// TODO: handle ambiguities
+
+Mumps76 ::= { line }
+
+line ::= [ label ] { '.' } { [ CmdSep ] command } Newline
+
+label ::= ident [ '(' params ')' ]
+params ::= [ expr { ',' expr } ]
+
+// Each command consumes an optional CmdSep (space separator) before its args.
+
+command ::= break_ | close_ | do_ | else_ | for_ | goto_
+          | halt_ | if_ | kill_ | lock_ | open_
+          | quit_ | read_ | set_ | use_ | view_ | write_
+          | xecute_ | new_ | job_ | zcmd_
+
+break_  ::= BREAK  [ postcond ] [ CmdSep ] [ exprlist ]
+close_  ::= CLOSE  [ postcond ] [ CmdSep ] openargs
+do_     ::= DO     [ postcond ] [ CmdSep ] [ doargs ]
+else_   ::= ELSE
+for_    ::= FOR    [ postcond ] [ CmdSep ] [ forargs ]
+goto_   ::= GOTO   [ postcond ] [ CmdSep ] gotoargs
+halt_   ::= HALT   [ postcond ] [ CmdSep ] [ exprlist ]
+if_     ::= IF     [ postcond ] [ CmdSep ] [ exprlist ]
+kill_   ::= KILL   [ postcond ] [ CmdSep ] [ killargs ]
+lock_   ::= LOCK   [ postcond ] [ CmdSep ] [ lockargs ]
+open_   ::= OPEN   [ postcond ] [ CmdSep ] openargs
+quit_   ::= QUIT   [ postcond ] [ CmdSep ] [ expr ]
+read_   ::= READ   [ postcond ] [ CmdSep ] readargs
+set_    ::= SET    [ postcond ] [ CmdSep ] setargs
+use_    ::= USE    [ postcond ] [ CmdSep ] [ useargs ]
+useargs ::= usearg { ',' usearg }
+usearg  ::= expr [ openparams ]
+view_   ::= VIEW   [ postcond ] [ CmdSep ] [ viewargs ]
+write_  ::= WRITE  [ postcond ] [ CmdSep ] [ writeargs ]
+xecute_ ::= XECUTE [ postcond ] [ CmdSep ] xecuteargs
+new_    ::= NEW    [ postcond ] [ CmdSep ] [ newargs ]
+job_    ::= JOB    [ postcond ] [ CmdSep ] jobargs
+zcmd_   ::= ZCMD   [ postcond ] [ CmdSep ] [ zargs ]
+
+postcond ::= ':' expr
+
+
+doargs    ::= doarg { ',' doarg }
+doarg     ::= entryref [ postcond ]
+
+gotoargs  ::= gotoarg { ',' gotoarg }
+gotoarg   ::= entryref [ postcond ]
+
+forargs   ::= lvar '=' forarg { ',' forarg }
+forarg    ::= expr [ ':' expr [ ':' expr ] ]
+
+killargs  ::= killarg { ',' killarg }
+killarg   ::= glvn | '$' ident | '(' glvn { ',' glvn } ')'
+
+lockargs  ::= lockarg { ',' lockarg }
+lockarg   ::= nref [ ':' expr ]
+nref      ::= glvn | '(' glvn { ',' glvn } ')'
+
+openargs  ::= openarg { ',' openarg }
+openarg   ::= expr [ openparams ]
+openparams ::= ':' openparam { ':' openparam }
+// In DSM-11, open params can be grouped in parens: O dev:(p1:p2:p3)
+// '(' starts a paren-group (with : as separator).
+// expr_noparen avoids the LL(1) conflict by excluding '(' from starting an expression.
+openparam  ::= [ \LA: 1:'('\ '(' openparam { ':' openparam } ')' | expr ]
+
+readargs  ::= readarg { [ ',' ] readarg }
+readarg   ::= readfmt | string | readvar
+readfmt   ::= '!' | '#' | '?' expr | '*' glvn [ ':' expr ]
+readvar   ::= glvn [ '#' expr ] [ ':' expr ]
+
+setargs   ::= setarg { ',' setarg }
+setarg    ::= setdest [ '=' expr ] | '='
+setdest   ::= glvn
+            | '$' ident [ '(' exprlist ')' ]
+            | '(' setdest { ',' setdest } ')'
+
+// ! and # can appear without comma; * and expr need comma separator
+writeargs ::= writearg { [ ',' ] writearg }
+writearg  ::= '!' | '#' | '?' expr | '*' expr | expr
+
+xecuteargs ::= xecutearg { ',' xecutearg }
+xecutearg  ::= expr [ postcond ]
+
+newargs   ::= newarg { ',' newarg }
+newarg    ::= ident | '(' ident { ',' ident } ')'
+
+jobargs   ::= entryref [ ':' expr { ':' expr } ]
+
+// VIEW with :, separators (DSM-11 extension, allows empty params)
+viewargs  ::= viewgroup { ',' viewgroup }
+viewgroup ::= [ expr ] { ':' [ expr ] }
+
+zargs     ::= expr [ '^' routineref ] [ openparams ] { ',' expr [ '^' routineref ] [ openparams ] }
+
+
+entryref   ::= label_ref [ '+' expr ] [ '^' routineref ] [ '(' [ actuallist ] ')' ]
+             | '^' routineref [ '(' [ actuallist ] ')' ]
+             | '@' expratom [ '+' expr ] [ '^' routineref ] [ '(' [ actuallist ] ')' ]
+
+actuallist ::= [ '.' ] expr { ',' [ '.' ] expr }
+
+label_ref  ::= ident | integer
+
+routineref ::= ident
+             | '@' expratom
+
+
+exprlist ::= [ '.' ] expr { ',' [ '.' ] expr }
+
+expr     ::= expratom { binop expratom | '?' pattern | tick exprCont }
+
+pattern  ::= patAtom { patAtom }
+patAtom  ::= [ numlit | '.' ] ( ident | string | '(' patAlt ')' | '@' expratom )
+patAlt   ::= pattern { ',' pattern }
+
+expratom ::= numlit
+           | string
+           | ident [ '(' exprlist ')' ]
+           | '^' gvntail
+           | dollaritem
+           | '(' expr ')'
+           | unaryop expratom
+           | '@' expratom [ \LL:2\ '@' '(' exprlist ')' ]
+
+numlit   ::= integer | real
+
+gvntail  ::= ident [ '(' exprlist ')' ]
+           | '(' exprlist ')'
+           | '@' expratom [ \LL:2\ '@' '(' exprlist ')' ]
+
+dollaritem ::= '$' ident [ '(' funcargs ')' ]
+             | '$$' [ ident ] [ \LL:2\ '^' ident ] [ '(' funcargs ')' ]
+
+funcargs ::= [ funcarg { ',' funcarg } ]
+funcarg  ::= expr [ '^' routineref ] [ ':' expr ]
+
+unaryop  ::= '+' | '-' | tick
+
+// tick-prefixed operators ('&, '!, '<, '>, '=, '[, ']) are handled
+// in the expr production via 'tick exprCont' to avoid LL(1) ambiguity
+// with tick '?' (pattern not-match).
+binop    ::= '+' | '-' | '*' | '/' | bslash | '#' | '_'
+           | '&' | '!'
+           | '<' | '>' | '=' | '[' | ']'
+
+// this comes after tick in expression, either as negated binop or negated pattern match
+exprCont ::= '?' pattern
+           | ( '&' | '!'  | '<' | '>' | '=' | '[' | ']'
+             | '+' | '-' | '*' | '/' | bslash | '#' | '_' ) expratom
+
+
+glvn     ::= ident [ '(' exprlist ')' ]
+           | '^' gvntail
+           | '@' expratom [ '(' exprlist ')' ]
+
+lvar     ::= ident [ '(' exprlist ')' ]
+           | '@' expratom [ '(' exprlist ')' ]
+
+// Lexer tokens
+ident ::=
+integer ::=
+real ::=
+string ::=
+Newline ::=
+tick ::=
+bslash ::=
+CmdSep ::= // CmdSep is a lexer-emitted token at space boundaries between argument groups. It ensures 
+          // expression parsers stop at the correct place (MUMPS expressions are bounded by spaces).
+
+// Helper
+Comment ::=
+
+// Pragmas
+%module ::= 'Mumps'
+%namespace ::= 'Mps'
+%no_syntree ::= 'true'

@@ -1,0 +1,1762 @@
+Kermit Routines
+ 4-May-90, 22:24
+%ZH
+%ZH ;GEF/MB/DMW;;SYSUTIL V1.0; DSM UTILITIES ; DATE & TIME CONVERTER
+ ;PRX;04Jan87 18:34;(c) Copyright 1986,1987 PRx, Inc. Concord, MA
+ ;MSM;03Jan87; New stuff
+DAT ;
+D S %DT=+$H
+DS NEW (%DT,%DAT,%DAT0,%DAT1) ;
+ I %DT'?1N.N K %DAT Q
+ S %A=$S(%DT<21915:0,1:%DT-21914\36524+1),%A=%DT+%A-(%A+2\4),%B=%A#1461
+ S %F=$E(%B*.00273785,1),%Y=%A\1461*4+1841+%F
+ S %M=101,%D=%B-(%F*365) I %D=0 S %M=112,%Y=%Y-1,%D=31 G %CDSX
+ F %I=31,$S(%Y#100:%Y#4=0,1:%Y#400=0)+28,31,30,31,30,31,31,30,31,30 Q:%I'<%D  S %M=%M+1,%D=%D-%I
+ S %D=%D\10_(%D#10),%M=%M\10_(%M#10)
+%CDSX S %DAT1=%D_"-"_$P("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"," ",(%M-100))_"-"_$E(%Y,3,4)
+ S %DAT0=%D_$P(%DAT1,"-",2)_$E(%Y,3,4)
+ S %DAT=$E(%M,2,3)_"/"_$E(%D+100,2,3)_"/"_$E(%Y,3,4)
+ Q
+ ;
+DN NEW (%DT,%DAT) ;
+ I %DT'?1"T",%DT'?1"T-"1N.N,%DT'?1"T+"1N.N,%DT'?1N.N,%DT'?1N.N1"/"1N.N,%DT'?1N.N1"-"3A1"-"2N,%DT'?1N.N1"-"3A1"-"4N,%DT'?1N.N1"/"1N.N1"/"2N,%DT'?1N.N1"/"1N.N1"/"4N K %DAT Q
+ I %DT["T" G DELTA
+ S %M=$P(%DT,"/",1),%D=$P(%DT,"/",2),%Y=$P(%DT,"/",3)
+ I %DT["-" S %D=+%DT,%Y=$P(%DT,"-",3),%M=$P(%DT,"-",2)
+ I %D=""!(%Y="") D CURDAT
+ I %M?3A F %B=1,2,3 S %M=$E(%M,1,%B-1)_$C($A(%M,%B)#32+64)_$E(%M,%B+1,3)
+ S:%M?3A %M=$F("JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC ",%M)\4 I %M=0 G %CDNX
+ S:%Y<100 %Y=%Y+1900 S %B=%Y-1841 I %B<0 K %DAT Q
+ I %D>$P("31,"_(28+$S(%Y#100:%Y#4=0,1:%Y#400=0))_",31,30,31,30,31,31,30,31,30,31",",",%M) K %DAT G %CDNX
+ S %DAT=%B*365+(%B\4)-(%B+40\100)+(%B+240\400)+$P("0,31,59,90,120,151,181,212,243,273,304,334",",",%M)+%D
+ I %M>2 S %DAT=%DAT+$S(%Y#100:%Y#4=0,1:%Y\100#4=0)
+%CDNX K %B,%M,%D,%Y
+ Q
+DELTA S %DAT=$H-$P(%DT,"-",2)+$P(%DT,"+",2) Q
+CURDAT D DAT S %Y=$P(%DAT,"/",3)
+ I %D="" S %D=%M,%M=$P(%DAT,"/",1)
+ Q
+ ;
+TIM ;
+T S %TM=$P($H,",",2)
+TS NEW (%TM,%TIM,%TIM0,%TIMS,%TIM1) ;
+ I %TM'?1N.N!(%TM>86399) K %TIM Q
+ S %M=%TM#3600\60,%S=%TM#60,%TIM=%TM\3600,%TIM=(%TIM\10)_(%TIM#10)_":"_(%M\10)_(%M#10)
+ S %TIM1=%TIM,%A=$S(%TM<43200:"AM",1:"PM") I $P(%TIM,":",1)>12 S %TIM1=$P(%TIM,":",1)-12_":"_$P(%TIM,":",2,99)
+ S %TIM0=$E(%TIM,1,2)_$E(%TIM,4,5)
+ S %TIM1=%TIM1_" "_%A
+ S %TIMS=%TIM_":"_(%S\10)_(%S#10)
+ K %A,%M,%S Q
+ Q
+ ;
+TN NEW (%TM,%TIM) ;
+ D:%TM["AM"!(%TM["PM") %CH
+ I %TM'?1N.N1":"2N.":".N!(%TM>23)!($P(%TM,":",2)>59)!($P(%TM,":",3)>59) K %TIM Q
+ S %TIM=%TM*60+$P(%TM,":",2)*60+$P(%TM,":",3)
+ Q
+%CH I %TM'?1N.N1":"2N.":".N." "1"AM",%TM'?1N.N1":"2N.":".N." "1"PM" S %TM="" Q
+ S %T1=$P(%TM,":",1),%LTM=$L(%TM),%AP=$E(%TM,%LTM-1,%LTM)
+ S %T2=$P($P($E(%TM,1,%LTM-2)," ",1),":",2,3) I %T2'[":" S %T2=%T2_":00"
+ S:(%AP="PM")&(%T1<12) %T1=%T1+12 S:(%AP="AM")&(%T1=12) %T1=0 S %TM=%T1_":"_%T2
+ Q
+
+%ZKR
+%ZKR ;DGR;03MAR84;KERMIT V1.1; Executive
+ ;PRX;25Jul89 02:06;Copyright (c) 1989 PRx, Inc.
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+SETUP ;
+ ;B 1 K  S $ZE="ERR^%ZKR" D CURRENT^%IS U 0:(RM:"") ;** M/11 V5
+ ;K  S FF="#",BS=$C(8),RO=$C(8,32,8),RM=79,SL=24 ;** STD
+ ;** enable user interrupts, set up error trapper ;** STD
+ B 1 K (XID,XDEV) D INIT ;** DSM V3
+ S SITE="M^" S:$D(^%SYSQ("SITE")) SITE=^("SITE") ;** MedRx
+ S:$D(^%ZKRX("SITE"))#10 SITE=^("SITE")
+ D INITPAR S SRV=0,TTY=0,PROMPT="Kermit-"_$P(SITE,"^",1)_">"
+ W *27,"[H",*27,"[J"
+ W @FF,!,"Welcome to Kermit-M version ",^%ZKRX("VERSION")
+ I SITE'="M^" W !!,"System:" F I=1:1:2 W "  ",$P(SITE,"^",I)
+ I $ZVER["DSM" BREAK 2
+ W !!,"Enter HELP for instructions",!
+START ;
+ D ^%ZKRT20 G XIT:E!'VI,@(CSS(1))
+RESTART ;
+ S $ZE="ERR^%ZKR" ;** M/11 V5
+ ;reset error handler ;** STD
+ ;K (FF,BS,RO,RM,SL,B,C,S,TTY,FDX,RPSIZ,SPSIZ,RTO,STO,MAXTRY,DELAY,PAUSE,SSOH,RSOH,SEOL,SPADN,SPAD,SQA,CESC,PAR,BAUD,KAF,FW,DEBUG,SPN,RPN,BCNT,EFB,XID,XDEV,SITE,SERVER,PASSTHRU,SRV,PROMPT)
+ W @FF G START
+BYE ;
+ I 'TTY W !,"? No remote Kermit to log out" G START
+ S SPT="G",SDAT="L",SPN=0 ;D SPACK,RACK E  U 0 W !,"Error - BYE command not effected" G START
+ D RCMD I E U 0 W !,"Error - BYE command not effected" G START
+ U 0 W " Remote Kermit has been logged out" G XIT
+CONNECT ;
+ I $S('$D(CMD(2)):0,CMD(2)="":0,1:1) S A=$S($D(^%ZKRX("LINE",CMD(2))):^(CMD(2)),1:CMD(2)) C:$S('TTY:0,TTY=+A:0,1:1) TTY S TTY=+A
+ D ^%ZKRC G START
+FINISH ;
+ I 'TTY W !,"? No remote Kermit server to shut down" G START
+ S SPT="G",SDAT="F",SPN=0 ;D SPACK,RACK E  U 0 W !,"Error - FINISH command not effected" G START
+ D RCMD I E U 0 W !,"Error - FINISH command not effected" G START
+ U 0 W " Remote Kermit server has been shut down" G START
+EXIT G XIT
+GET ;
+ I 'TTY W !,"? No remote Kermit from which to GET files" G START
+ S SDAT=CMD(2),SPT="R",SPN=0 D SPACK G RECEIVE
+HELP ;
+ S GREF="^%ZKRX(""HELP""" F I=2:1:VI S GREF=GREF_","""_CSS(I)_""""
+ S GREF=GREF_",0)" I '$D(@GREF) W !,"? Kermit: no help on that topic" G HX
+ ;W ! S $Y=0 F I=1:1:^(0) W !,^(I) I $Y+2>SL W !,"Press any key for more..." R *A:600 W $C(13),$J("",25),$C(13) S $X=0,$Y=0 ;** M/11 V5
+ W # F I=1:1:^(0) W !,^(I) I $Y+2>SL W !,"Press any key for more..." R *A:600 W $C(13),$J("",25),$C(13) ;** DSM V3
+HX K GREF,I W ! G START
+MUMPS G START^%ZKRM
+DIRECTOR ;
+ S FSPEC=$S('$D(CMD(2)):"*.*",CMD(2)="":"*.*",1:CMD(2))
+ W ! D %DIR^%ZKRM W !
+ G START
+PUSH D ^%PUSH
+ G START
+CLS ;
+ W *27,"[H",*27,"[2J" G START
+TYPE ;
+ S FSPEC=CMD(2) D GETFIL I E W " ?",FSPEC K FSPEC G START  ; get files 
+ S IO=$I,IOT="TRM",IOF="#",IOSL=24,IOST="T"
+ D %SFI^%ZKRMI G START
+DELETE ;
+ S FSPEC=CMD(2) D GETFIL I E W " ?",FSPEC K FSPEC G START ; get files
+ D %ERA^%ZKRMF G START
+UCI ;
+ D ^%ZUCI
+ G START
+SYSTAT ;
+ D ^%STA
+ G START
+DIAL ;
+ D DIAL^%ZKRP
+ I 'E D ^%ZKRC ;connect
+ G START
+HANGUP ;
+ D HANGUP^%ZKRP
+ G START
+KALL ;
+ D KALL^%ZKRP
+ I 'E D ^%ZKRC ;connect
+ G START
+QUIT ;
+ G XIT
+RECEIVE ;
+ U 0 W !,"Starting RECEIVE command...",! U TTY
+ D TTYON I 'E D ^%ZKRR,TTYOFF
+ I TTY U 0 W !,"** Done with RECEIVE command"
+ G START
+RESET ;
+ G SETUP
+SEND ;
+ S FSPEC=CMD(2) D GETFIL I E W !,"? ",FSPEC K FSPEC G START
+ U 0 W !,"Starting SEND command...",! U TTY
+ ;** turn off echo ;** STD
+ D TTYON I 'E H DELAY D ^%ZKRS,TTYOFF
+ I TTY U 0 W !,"** Done with SEND command"
+ G START
+SERVER ;
+ U 0 W !!,"Entering SERVER mode",!,"Enter the BYE command to stop the server and EXIT",!,"Enter the FINISH command to stop the server and return to the command level",!
+ D TTYON G START:E,^%ZKRSRV
+SET ;
+ D ^%ZKRSET G START
+SHOW ;
+ I $D(CSS(2)),CSS(2)'="" D ^%ZKRSHO G START
+ D SHOW^%ZKRUM G START
+STATISTI ;
+ W !!,"Most recent transmission: " W $S('EFB:"** none yet",EFB<0:"** aborted",1:BCNT_" bytes, "_(EFB/10)_" cps thruput"),!
+ G START
+XIT C:TTY TTY K (XID,XDEV) S $ZE="" U 0 W !,"** All done with Kermit-M" Q
+ERR ;
+ B 0 ;** M/11
+ ;** disable user interrupts ;** STD
+ D TTYOFF
+ S %MSG="ERR^%ZKR --> "_$ZE S:'$D(%LOG) %LOG="KERMIT"  D ^%ZKRLOG
+ I 'KAF,$D(F1),$D(F2),F1]"",F2]"",$D(^%ZKR(F1,F2)),$P(^(F2),"",3)="" K ^(F2) S ^%MSG="Deleted aborted file: "_F1_"."_F2 D ^%ZKRLOG
+ L
+ I $ZE["<INRPT>" U 0 W !,"(Interrupt received - restarting)" S $ZE="ERR^%ZKR" B 1 G START ;** M/11
+ ;** if user interrupt, renable them and return to start ;** STD
+ W !,"** Fatal MUMPS error : ",$ZE B 1 ;** M/11
+ ;** report a real error, enable user interrupts ;** STD
+ I SRV G SRVERR
+ Q
+GETFIL G GETFIL^%ZKRUM
+INITPAR G INITPAR^%ZKRUM
+TTYON ;
+ ;S E=0 U TTY:(0:"S") I TTY D ^%ZKRTC S E=POP K POP I E W *7," Can't set up that port correctly" ;** M/11 V5
+ S E=0 U TTY:(::::1) I TTY D ^%ZKRTC S E=POP K POP I E W *7," Can't set up that port correctly" ;** DSM V3
+ ;** turn off echo, set line parameters ;** STD
+ Q
+TTYOFF ;
+ ;U TTY:("":"") U 0 ;** M/11 V5
+ U TTY:(::::1) U 0 ;** DSM V3
+ ;** turn echo on, direct I/O to local terminal ;** STD
+ Q
+SPACK G SPACK^%ZKRUP
+RACK D RPACK^%ZKRUP I $S(E:0,RPT'="Y":0,SPN'=RPN:0,1:1)
+ Q
+ ; initialize vars
+INIT S FF="#",BS=$C(8),RO="$C(8,32,8)",RM=80,SL=24,B="\",C=",",S=";"
+ S SITE="M" S:$D(^%SYSQ("SITE")) SITE=$P(^("SITE"),"^",1) ;** MedRx
+ Q
+SRVERR S SPT="E",SDAT="Mumps Error: "_$ZE D SPACK
+ H
+RCMD S TRY=0
+RC S TRY=TRY+1 I TRY>MAXTRY S E=1 Q
+ D SPACK,RACK E  G RC:RPT'="E",RACKER
+ S E=0 Q
+RACKER U 0 W !,"Error - "_RDAT_" - aborting",! S E=1 Q
+
+%ZKRC
+%ZKRC ;MSM;04Sep87;KERMIT V1.2; Talk-through to another machine
+ ;MSM;09Apr89 15:42;Copyright (c) 1989 PRx, Inc.
+ G START
+R X a U TTY R X:1 U 0 W X S I=0 I LOG U LOG W X
+ G:X="" L
+ X b U 0 R X:0 I X'="" G:X[C KESC U TTY W X S I=0 G E
+ G R
+L X c U 0 R X#1:1 I X'="" G:X[C KESC U TTY W X S I=0 G E
+ H 0 S I=I+1 I I>60 U 0 W WARN S I=0
+L1 X d U TTY R X#1:0 U 0 W X S I=0 I LOG U LOG W X
+ G L:X="",R
+E I X=$C(27) X e U 0 R X:1 U TTY W X G R
+ I X=$C(127) X f U TTY R X#3:1 U 0 W X S I=0 I LOG U LOG W X ;G L1
+ I X=$C(13) G R
+ F J=1:1:100 X g U 0 R X#1:0 Q:X=""  G:X[C KESC U TTY W X
+ I J>1 G R
+ X h U TTY R X#1:1 U 0 W X S I=0 I LOG U LOG W X
+ G L
+KESC I $L(X)>1 U TTY W $E(X,1,$F(X,C)-2) X i U TTY R X:1 U 0 W X I LOG U LOG W X
+ Q
+ ;
+%KOM S X=0 D PASS,NOECHO,NOESC
+ S X=TTY D PASS,NOECHO,NOESC
+ S C=$C(CESC)
+ D R
+ S X=0 D NOPASS,ECHO
+ S X=TTY D NOPASS,ECHO
+ Q
+START I 'TTY W !,"? No line specified" Q
+ I TTY=$I W !,"? Can't connect to your own line" S TTY=0 Q
+ O TTY::0 E  W !,"? Can't get that line now" Q  ;** M/11
+ ;** OWN the line, timeout if it's unavailable ;** STD
+ D ^%ZKRTC I POP W !,"? Illegal line parameters specified" Q  ;** M/11 V5
+ ;** Set speed, parity, 7 or 8-bit data ;** STD
+ ;
+ U 0 W !!,*27,"[7m [Connecting to Remote; Enter CTRL/",$C(CESC+64)," followed by 'C' to get back to Kermit-M] ",*27,"[m",!
+ ;
+ ;I FDX U 0:("":"IS") U TTY:("":"IS":$C(10)) ;** M/11 V5
+ ;E  U 0:("":"I") U TTY:("":"IS":$C(10)) ;** M/11 V5
+ ;** keyboard reads: image mode (no special chars.) ;** STD
+ ;** port reads : image mode, also terminate on LF ;** STD
+ ;
+OUT ; 
+ I PASSTHRU,CESC=%CESC,'LOG D ^%ZKRDSMC G CESC ;** use DSM route-thru
+ D DBG
+ D %KOM
+CESC ;
+ U 0 W !,"->"
+ S X=0 D PASS,NOECHO,NOESC
+ U 0 R *A:RTO
+ S X=0 D NOPASS,ECHO
+ G:A=CESC SESC S X=$C(A)
+ G DONE:"Cc"[X,SHOW:"Ss"[X,CHELP:"Hh?"[X,LOG:"Ll"[X,QUIT:"Qq"[X
+ ;G ,PAUSE:"Pp"[X,RESUME:"Rr"[X
+ G PUSH:"Pp"[X
+ G EESC
+EPROMPT W *13,"  ",*13 Q
+ ;
+DBG F I=$A("a"):1:$A("i") S @$C(I)=$S(DEBUG:"U 0 W """_$C(I)_"""",1:"")
+ Q
+DONE U 0 W *13,*27,"[7m End of connection; you still own the line ",*27,"[m" W !!
+ ;U 0:("":"") U TTY:("":"") ;** M/11 V5
+ ;U 0:(0:0) U TTY:(0:0) ;** M/11 V4
+ ;** turn on both echoes ;** STD
+ ;U 0 W *-1 U TTY W *-1 ;** M/11 V5
+ ;** discard any type-ahead ;** STD
+ U 0:(:::::8388608) U TTY:(:::::8388608) ;DSM V3 (passall off)
+ U 0:(:::::1) U TTY:(:::::1) ;DSM V3 (echo on)
+ U 0 Q
+SHOW ;-D AST W !,"You're connected to TTY number ",TTY," ; ",$S(FDX:"full",1:"half")," duplex ; baud rate ",BAUD,!,! D AST W !
+ ;G OUT
+ W *13,*27,"[7m"," Connected to line: ",TTY
+ I LOG'="" W " Logging to: ",LOG
+ I $E(LOG)=" " W " Paused "
+ W " ",*27,"[m",!
+ G OUT
+CHELP U 0 W *27,"[7m"
+ W *13," The following characters can follow the CTRL/"_$C(CESC+64)_":",?76
+ W !,?76
+ W !?3,"C -- Close the connection",?76
+ W !?3,"L -- Log to a printer",?76
+ W !?3,"Q -- Quit Logging to printer",?76
+ ;W !?3,"P -- Pause Logging",?76
+ ;W !?3,"R -- Resume Logging",?76
+ W !?3,"S -- Show the status of the connection",?76
+ W !?3,"P -- Push to a new local mumps environment",?76
+ W !?3,"? -- Show these options",?76
+ W !?3,"Another CTRL/",$C(CESC+64)," will be transmitted to the other machine",?76
+ W !?3,"Anything else will be ignored",?76
+ W !?76,*27,"[m"
+ W ! G OUT
+ ;
+LOG ;
+ I LOG U 0 W *13,"Already logging to ",LOG,", use 'Q' to quit." G OUT
+ I LOG'="" G RESUME
+ W *13,"Log Device" W:LOGDEV'="" " <",LOGDEV W "> "
+ R A,! S:A="" A=LOGDEV
+ I "^Q"[A G OUT
+ I A=0!(A=$I) W "You can't log to your own device!",! G LOG
+ OPEN A::0 E  W "Device not available.",! G LOG
+ S (LOGDEV,LOG,LOGOPEN)=A
+ G OUT
+ ;
+QUIT I LOG="" U 0 W *13,"Log file is not open." G OUT
+ CLOSE LOG
+ S LOG=""
+ D EPROMPT
+ G OUT
+ ;
+PUSH D ^%PUSH
+ G OUT
+ ;
+PAUSE I LOG="" U 0 W *13,"Log file is not open." G OUT
+ S LOG=" "_LOG
+ D EPROMPT
+ G OUT
+ ;
+RESUME I LOG="" U 0 W *13,"Log file is not open." G OUT
+ I LOG'?1" ".N U 0 W *13,"Log has not been paused." G OUT
+ S LOG=$E(LOG,2,99)
+ D EPROMPT
+ G OUT
+ ;
+SESC U TTY W *A G OUT
+ ;
+EESC U 0 W !,"Illegal character following link 'escape' - ignored: ",A,",",! G OUT
+ ;
+AST W ! F I=1:1:RM\6 W "******"
+ Q
+ ;
+ECHO U X:(0:::::1) Q
+NOECHO U X:(0::::1) Q
+PASS U X:(0::::8388608::::"") Q
+NOPASS U X:(0:::::8388608:::$C(13)) Q
+ESC U X:(0::::64) Q
+NOESC U X:(0:::::64) Q
+
+%ZKRDSMC
+%ZKRDSMC ;MSM;15Mar86;KERMIT V1.1; Use DSM Route-Through Table
+ ;PRX;28Oct88 22:15;(c) Copyright 1986,1987 PRx, Inc. Concord, MA
+%SETHOST ;4-Jul-85 ;DSM 3.1 UTILITIES ;TERMINAL ROUTE-THROUGH ;JBH
+ ;MSM;15Mar86; Convert for use with Kermit-M
+ D GETCESC
+ S ST=$V(44),MAXTTY=$V(ST+462)#256,RTAB=$V(ST+426)+32
+ I TTY=$I!(TTY<3) S POP=1 Q
+ I TTY>20,TTY<63 S POP=1 Q
+ I TTY>MAXTTY G S POP=1 Q
+ C TTY
+ O TTY:(::::512):0 I '$T S POP=1 Q
+ U TTY W $C(127) U 0
+ S DEV=TTY D GETDDB S DDBS=DDB
+ S DEV=$I D GETDDB S DDBM=DDB
+ F RTAB=RTAB:4 G:$V(RTAB)=65535 NOROOM I '$V(RTAB) S POP=1 Q
+ ; starting route-through
+ ;S $ZT="DSCON"
+ B 0 ; prevent gotcha's
+ V RTAB::DDBM,RTAB+2::DDBS,DDBS+2::$V(DDBS+2)#4096+4096+8192,DDBM+2::$V(DDBM+2)#4096+4096
+LOOP S %X=$X,%Y=$Y R *A:15 I A'=%CESC D MESS G LOOP ; wait for exit char
+END V DDBS+2::$V(DDBS+2)#4096,DDBM+2::$V(DDBM+2)#4096
+ V RTAB::0,RTAB+2::0 ; End of route-through session
+ Q
+DSCON V DDBS+2::$V(DDBS+2)#4096,DDBM+2::$V(DDBM+2)#4096
+ U 0 W !!,"Error: ",$ZE,!! Q
+GETDDB I DEV<64 S DDB=DEV-1*$V(ST+68)+$V(ST+10)+4 Q
+ S DDB=DEV-64*$V(ST+68)+$V(ST+20)+4 Q
+MESS I %X=$X,%Y=$Y W *27,"7",*27,"[7;5m",*27,"[1;70H Kermit ",*27,"[m",*27,"8"
+ Q
+GETCESC ;MSM;02Oct87; - Get current Passthru Exit Character
+ I $P($ZVER," ",3)'<4.1 S %CESC=$$SETHOST^%GETDSM Q  ;MSM;28Oct88
+ D KIOD
+ S %CESC=$V(376,KIOD)
+ Q
+SETCESC ;
+ I $P($ZVER," ",3)="3.3" W !,"Function not available." Q
+ D KIOD
+ VIEW 376:KIOD:%CESC
+ Q
+KIOD S ST=$VIEW(44),KIOD=$VIEW(ST+132) ;get MM for KIOD module
+
+%ZKRLOG
+%ZKRLOG ;MSM;18Mar86;KERMIT V1.1; System Message Logger (KERMIT)
+ ;MSM;03Jul86 00:00; (c) Copyright 1986 PRx, Inc., Concord, MA
+ ; (%LOG,%MSG) log message
+ I '$D(%LOG) S %LOG="KERMIT" ; default
+ I '$D(^%LOG(%LOG)) D RESET
+ S %DT=+$H,%TM=$P($H,",",2) D %CDS^%KH,%CTS^%KH
+ L ^%LOG(%LOG):5 E  Q  ; (error)
+ S %M=^%LOG(%LOG,0)+1,^(0)=%M
+ S ^%LOG(%LOG,%M)=%DAT1_" "_%TIM_"  "_%MSG
+ I $D(^%LOG("DEV")) S %DEVIZE=$I ZU ^("DEV") W !,"%LOG ",%LOG," ",^%LOG(%LOG,%M) ZU %DEVIZE K %DEVIZE
+ L
+ Q
+ -
+RESET L ^%LOG(%LOG):5 E  Q  ; (error)
+ K ^%LOG(%LOG)
+ S ^%LOG(%LOG,0)=0 Q
+
+%ZKRM
+%ZKRM ;DGR;03MAR84;KERMIT V1.1; Kermit <--> MUMPS interface - main options
+ ;PRX;20Jul87 15:04;(c) Copyright 1986,1987 PRx, Inc. Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+ W !,"Must enter via the MUMPS command in Kermit-M" Q
+START ;
+ S $ZE="ERR^%ZKRM" K ^%ZKRZ($J) W @FF
+ S OPTS=";Help;Directory;Erase;Rename;Copy;Input;Output;Xit"
+MOPT ;
+ U 0 W !!,"Kermit-M file system -- MAIN options",!! F I=2:1:9 S X=$P(OPTS,S,I) W "(",$E(X),")",$E(X,2,99) I I<9 W "; "
+ W !!,"Option (? for help) : X => " D READ G MOPT:E,XIT:A="" S:$E(A)="?" A="H" S:$E(A)?1L A=$C($A(A)-32)_$E(A,2,99) F I=2:1:$L(A) I $E(A,I)?1U S A=$E(A,1,I-1)_$C($A(A,I)+32)_$E(A,I+1,99)
+ S F=$F(OPTS,S_A) I F<2 W *7," No such option" G MOPT
+ W @FF G @("MOPT"_$E(A))
+MOPTH S HREF="""MOPT""" D HELP G MOPT
+MOPTD D DIR G MOPT
+MOPTE D ERA^%ZKRMF G MOPT
+MOPTR D REN^%ZKRMF G MOPT
+MOPTC D COP^%ZKRMF G MOPT
+MOPTO D ^%ZKRMO G MOPT
+MOPTI D ^%ZKRMI G MOPT
+MOPTX ;
+XIT ;
+ I $D(IO) U 0 C:$I'=IO IO
+ K ^%ZKRZ($J)
+ G RESTART^%ZKR
+DIR ;
+ W !,"DIRECTORY of files",! D GFSPEC I E Q
+%DIR ;print directory of FSPEC
+ D GETFIL S FILE=$O(^%ZKRZ($J,"FILE","")) I FILE="" W " ** no files match this specification" K FILE Q
+ W !!,"** Directory of files ",FSPEC," on " D ^%D W " at " D TIM W !!,"name",?15,"quote",?25,"created",?50,"# of bytes",!
+ S TSIZE=0
+ S FILE="" F I=0:1 S FILE=$O(^%ZKRZ($J,"FILE",FILE)) Q:FILE=""  W !,FILE S F1=$P(FILE,"."),F2=$P(FILE,".",2),X=^%ZKR(F1,F2) W ?15,$P(X,B,2) S DATIM=$P(X,B,4) D DATIM W ?25,DATIM,?50,$J($P(X,B,5),10) S TSIZE=TSIZE+$P(X,B,5)
+ W !,"Total of ",I," files,  ",TSIZE+512\1024,"K bytes."
+ K TSIZE,FILE,DATIM,F1,F2,X Q
+TIM ;
+ S X=$P($H,",",2) W $S(X>43199:X\3600-12,1:X\3600),":" S XX=X#3600\60_"" S:$L(XX)=1 XX="0"_XX W XX,$S(X>43199:" pm",1:" am") K X,XX Q
+ Q
+DATIM G DATIM^%ZKRMU
+GETFIL D GETFIL^%ZKRMU Q
+GFSPEC D GFSPEC^%ZKRMU Q
+GFILE D GFILE^%ZKRMU Q
+HELP S HREF="^%ZKRX(""MHELP"","_HREF_")" I '$D(@HREF) W *7," Sorry, no help on that topic" Q
+ W @FF S SUB=0 F I=0:0 S SUB=$O(@HREF@(SUB)) Q:SUB'?1.N  W !,^(SUB)
+ W !!,"Press <RETURN> when done reading..." D READ W @FF
+ Q
+READ R A:120 S E=$S(A="":0,"<#@^>"[$E(A):1,1:0)
+ W:E " Can't do that here." Q
+ERR ;
+ B 0 ;** M/11
+ ;** disable user interrupts ;** STD
+ K ^%ZKRZ($J)
+ B 1 ;** M/11
+ ;** enable user interrupts ;** STD
+ G START:$ZE["<INRPT>" W !,"** Fatal MUMPS error : ",$ZE Q  ;** M/11
+ ;** restart on user interrupt, otherwise report error and quit ;** STD
+
+%ZKRMF
+%ZKRMF ;DGR;03MAR84;KERMIT V1.1; MUMPS interface -- process file-oriented options
+ ;MSM;11Sep86 11:54;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;MSM;11Sep86; Add %ERA label
+ERA ;
+ W !,"ERASE files",! D GFSPEC Q:E  D GETFIL I E W FSPEC Q
+%ERA W *7,!,"** Erase ",FSPEC,", are you sure (Y or N)? N ==> " D READ I A'="Y" W " [no change]" Q
+ W !!,"Deleting files that match ",FSPEC,"..." D KILL
+ W !!,"** done"
+ Q
+REN ;
+ S KILL=1 G RC
+COP ;
+ S KILL=0 G RC
+RC ;
+ W !!,$S(KILL:"RENAME",1:"COPY")," files",!!,"Enter the set of files to be ",$S(KILL:"rename",1:"copi"),"ed::",! D GFSPEC Q:E  I FSPEC="*.*" W *7,!!,"?? can't specify all files" G RC
+ D GETFIL I E W FSPEC Q
+ S OFN=$P(FSPEC,"."),OFT=$P(FSPEC,".",2),OFNW=$F(OFN,"*")-2,OFTW=$F(OFT,"*")-2
+ W !!,$S(KILL:"RENAME",1:"COPY")," ",FSPEC," to what files?",! D GFSPEC I E Q
+ S NFN=$P(FSPEC,"."),NFT=$P(FSPEC,".",2),NFNW=$F(NFN,"*")-2,NFTW=$F(NFT,"*")-2
+ I $S(NFNW>0&(OFNW>0):0,NFNW=OFNW:0,1:1) W *7,!!,"** ?? -- old & new filespecs do not have the same format" G RC
+ I $S(OFN'=NFN:0,OFT'=NFT:0,1:1) W *7,!!,"** ?? -- old & new filespecs must be different" G RC
+ W !!,"Moving files..." S FILE="" F I=0:1 S FILE=$O(^%ZKRZ($J,"FILE",FILE)) Q:FILE=""  D MOVE
+ I KILL W !!,"Deleting old files..." D KILL
+ W !!,"** Done"
+ Q
+MOVE S OF1=$P(FILE,"."),OF2=$P(FILE,".",2,9),NF1=$S(NFNW<0:NFN,1:$E(NFN,1,NFNW)_$E(OF1,OFNW+1,99)),NF2=$S(NFTW<0:NFT,1:$E(NFT,1,NFTW)_$E(OF2,OFTW+1,99)) W !,OF1_"."_OF2_" --> "_NF1_"."_NF2_"..."
+ I $S($L(NF1)>8:1,$L(NF2)>3:1,1:0) W *7," ?? new file name is too long - no change" K ^%ZKRZ($J,"FILE",FILE) Q
+ I $D(^%ZKR(NF1,NF2)) W *7,!,NF1,".",NF2," is already on file.  Overwrite? N => " D READ I A'="Y" W " [no change]" Q
+ S ^%ZKR(NF1,NF2)=^%ZKR(OF1,OF2) S SUB="" F I=0:0 S SUB=$O(^%ZKR(OF1,OF2,SUB)) Q:SUB=""  S X=^(SUB),^%ZKR(NF1,NF2,SUB)=X
+ W " ** Done"
+ Q
+KILL S FILE="" F I=0:1 S FILE=$O(^%ZKRZ($J,"FILE",FILE)) Q:FILE=""  K ^%ZKR($P(FILE,"."),$P(FILE,".",2,9)) W:I#5=0 ! W ?(I#5*16),FILE
+ Q
+GETFIL D GETFIL^%ZKRMU Q
+GFSPEC D GFSPEC^%ZKRMU Q
+READ R A:120 S E=$S(A="":0,"<#@"[$E(A):1,1:0)
+ W:E " Can't do that here." Q
+
+%ZKRMFIO
+%ZKRMFIO ;DGR;03MAR84;KERMIT V1.1;Kermit <--> MUMPS interface -  file i/o utilities
+ ;MSM;12Nov86 00:27;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+KIN ;
+ G KIC:LIN'?.ANP,KIQ:LIN[FQA S C=LIN D KINL S CL=CL_FQA_"M"_FQA_"J",CC=CC+4 Q
+KIQ S F=$F(LIN,FQA) I F<2 S C=LIN D KINL S CL=CL_FQA_"M"_FQA_"J",CC=CC+4 Q
+ S C=$E(LIN,1,F-2),LIN=$E(LIN,F,255) D KINL S CL=CL_FQA_FQA,CC=CC+2 G KIQ
+KINL S X=251-CC I $L(C)<X S CL=CL_C,CC=CC+$L(C) Q
+ S ^%ZKR(F1,F2,F3)=CL_$E(C,0,X),C=$E(C,X+1,255),F3=F3+1,CL="",BCNT=BCNT+CC,CC=1 G KINL
+KIC F I=1:1:$L(LIN) S C=$E(LIN,I),C=$S(C=FQA:C_C,C?1C:FQA_$C($A(C)+64),1:C) D KINC1
+ S C=FQA_"M" D KINC1 S C=FQA_"J" D KINC1
+ Q
+KINC1 I CC>250 S ^%ZKR(F1,F2,F3)=CL,CL="",BCNT=BCNT+CC,CC=1,F3=F3+1
+ S CL=CL_C,CC=CC+$L(C)
+ Q
+KOUT ;
+ S LIN=""
+KOS Q:F3=""  I CL="" D KOG I F3="" Q
+ S F=$F(CL,FQA) I 'F S LIN=LIN_CL,CL="" G KOS
+ S LIN=LIN_$E(CL,1,F-2),X=$E(CL,F),CL=$E(CL,F+1,255) D:CL="" KOG I X="M",$E(CL,1,2)=(FQA_"J") S CL=$E(CL,3,255) Q
+ S LIN=LIN_$S(X=FQA:FQA,X?1U:$C($A(X)-64),X="?":$C(127),1:"") G KOS
+KOG S F3=$O(^%ZKR(F1,F2,F3)) Q:F3=""  S CL=^(F3) Q
+FOPENW ;
+ S E=0 I '$D(FILE) S E=1 Q
+ S F1=$P(FILE,"."),F2=$P(FILE,".",2,9) I $S(F1="":1,F2="":1,$D(^%ZKR(F1,F2)):1,1:0) S E=1 K F1,F2 Q
+ S FQA=$S($D(FQA):FQA,1:"#"),CL="",(F3,CC)=1,BCNT=0
+ B 0 S OZE=$ZE,$ZE="FERRW^%ZKRMFIO" ;** M/11
+ ;** disable interrupts, set up error trapper ;** STD
+ D WLOCK
+ S ^%ZKR(F1,F2)="0\"_FQA_B_$H
+ B 1 ;** M/11
+ ;** enable interrupts ;** STD
+ Q
+FCLOSEW ;
+ S E=0 I $S('$D(F1):1,'$D(F2):1,F1="":1,F2="":1,'$D(CL):1,'$D(F3):1,'$D(^%ZKR(F1,F2))#10:1,1:0) S E=1 Q
+ B 0 ;** M/11
+ ;** disable user iterrupts ;** STD
+ I CL]"" S ^%ZKR(F1,F2,F3)=CL,CL="",BCNT=BCNT+CC,CC=1,F3=F3+1
+ S $P(^%ZKR(F1,F2),B,4,5)=$H_B_BCNT
+ D ULOCK
+ S $ZE=OZE K OZE B 1 ;** M/11
+ ;** restore previous error trapper, enable interrupts ;** STD
+ K F1,F2,F3,BCNT,CL,CC,FQA Q
+FERRW ;
+ B 0 I $ZE'["<INRPT>" G @OZE ;** M/11
+ ;** disable interrupts, report real errors ;** STD
+ W *7,!!,"Interrupted while writing to ",FILE," -- this file is not complete" D FCLOSEW H 2 G START^%ZKRM
+ Q
+FOPENR ;
+ S E=0 I '$D(FILE) S E=1 Q
+ S F1=$P(FILE,"."),F2=$P(FILE,".",2,9) I F1=""!(F2="") S E=1 K F1,F2 Q
+ S F3=$O(^%ZKR(F1,F2,0)) I F3="" S E=1 K F1,F2,F3 Q
+ D RLOCK
+ S FQA=$P(^%ZKR(F1,F2),B,2),CL=^%ZKR(F1,F2,F3),CC=1
+ Q
+FCLOSER ;
+ D ULOCK
+ K F1,F2,F3,CL,CC,FQA Q
+FKILL ;
+ S E=0 I '$D(FILE) S E=1 Q
+ S X1=$P(FILE,"."),X2=$P(FILE,".",2,9) I $S(X1="":1,X2="":1,1:0) S E=1 K X1,X2 Q
+ K ^%ZKR(X1,X2),X1,X2
+ Q
+RLOCK L ^%ZKR(FILE,$J) Q
+WLOCK L ^%ZKR(FILE) Q
+ULOCK L  Q
+
+%ZKRMI
+%ZKRMI ;DGR;03MAR84;KERMIT V1.1; Kermit <--> MUMPS interface - Input Kermit -> MUMPS
+ ;MSM;12Nov86 00:31;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+IOPT ;
+ W !!,"Input options (Kermit-M file system --> MUMPS data structures)",! F I=1:1:5 W !?5,I,") ",$P("Sequential file in;Routine in (.RTN files);Routine in (.ROU file);Global in;Sequential global in",S,I)
+IO1 W !!,"Your choice (? for help) : X => " D READ G IO1:E Q:"Xx^>"[A  I "?Hh"[$E(A) S HREF="""IOPT""" D HELP^%ZKRM G IOPT
+ I A?1N1"?",$E(A)>0,$E(A<6) S HREF="""IOPT"","""_$P("SFI;RIM;RIR;GI;SGI",S,+A)_"""" D HELP^%ZKRM G IOPT
+ I $S(A'?1N:1,A<1:1,A>5:1,1:0) W *7," ? no such option" G IO1
+ W @FF D @$P("SFI;RIM;RIR;GI;SGI",S,A) G IOPT
+SFI ;
+ W !!,"Input Kermit-M files to a sequential device",! D GFSPEC Q:E  D GETFIL I E W FSPEC Q
+SFI1 ;W !,"Write to" D ^%IS I POP Q  ;** M/11
+ S %QTY=2,%DEF=$I D ^%IOS S IO=%IOD,IOT=%DTY,IOST="T",IOF="#",IOSL=66 ;** DSM-11
+ ;?I "TRM\SDP\MT"'[(B_IOT_B) W *7," I can't deal with that type of device" G SFI1
+ ;set IO as $I on which to list, IOT as device type, then OPEN it with correct parameters ;** STD
+ ;if IOT="TRM" also set up IOST (subtype), IOF (form feed), IOSL (page length) ;** STD
+%SFI ; sequential file export (getfile first),IO,IOT,IOST,IOSL,IOF open IO
+ S TRM=IOT="TRM",PTR=$S('TRM:0,1:IOST?1"P".E)
+ U IO S FILE="" F J=0:1 S FILE=$O(^%ZKRZ($J,"FILE",FILE)) Q:FILE=""  D FOPENR D:'E SFIL D FCLOSER
+ I PTR W @IOF
+ I 'TRM U IO W $C(26),! I IOT="MT" W *3
+ U 0 I $I'=IO W !,"** Done for this set of files" C IO ;** M/11
+ ;** if not listing on local screen, message & close device ;** STD
+ K TRM,PTR,IO,IOT,IOST,IOF,IOSL,IOPAR
+ Q
+SFIL I TRM S X=^%ZKR(F1,F2),DATIM=$P(X,B,4) D DATIM W:PTR @IOF W !!,"Kermit file : ",FILE," received at ",DATIM," ; ",$P(X,B,5)," bytes",!!
+ U 0 I $I'=IO W !,"starting ",FILE,"..." U IO ;** M/11
+ ;** if not listing on local screen, show progress ;** STD
+ F I=0:0 D KOUT W:PTR&($Y+3>IOSL) @IOF W LIN,! I F3="" Q
+ U 0 I $I'=IO W "done" U IO ;** M/11
+ ;** if not listing on local screen, show progress ;** STD
+ Q
+RIM G RIM^%ZKRMIR
+RIR G RIR^%ZKRMIR
+GI ;
+ W !!,"Global input from a Kermit-M file",!
+GI1 D GFILE Q:E  D FOPENR I E W *7," [file undefined or empty]" G GI1
+ D GICMT ;4/9/86 POPKES;
+ S GNAM="" W !,"Starting global input..."
+GIF D KOUT G:LIN="" GIFX I $E(LIN)'="^" W *7,!,"ERROR - no global reference where one was expected",!,"No more input from file" G GIFX
+ S REF=LIN I $P(REF,"(")'=GNAM S GNAM=$P(REF,"(") W !,GNAM,"..."
+ I F3="" W *7,!,"ERROR - last reference had no data!" G GIFX
+ D KOUT S @REF=LIN G:F3]"" GIF W !,"** done" D FCLOSER ;MSM "\"?
+GIFX W !,"** All done" K FILE,REF,GNAM
+ Q
+SGI ;
+ W !!,"Sequential global input from a Kermit-M file",!
+SGI1 D GFILE Q:E  D FOPENR I E W *7," [file undefined or empty]" G SGI1
+SGI2 W !,"Enter the root of the global subtree under which to file:" D GRT Q:E  I $D(@(GRF(1)))\10 W *7,!!,"** that subtree already has descendents, try again",! G SGI2
+ W !,"Starting input..."
+ F GI=1:1 D KOUT S @GRF(1)@(GI)=LIN W:GI#100=0 "." I F3="" D FCLOSER W "** done" Q
+ K GI Q
+DATIM ;
+ Q:DATIM'?1.6N1","1.6N  S Y=$P(DATIM,",",2) S TIM=$S(Y>43199:Y\3600-12,1:Y\3600)_":" S YY=Y#3600\60_"" S:$L(YY)=1 YY="0"_YY S TIM=TIM_YY_$S(Y>43199:" pm",1:" am") K Y,YY
+ ;S DATIM=$ZD(+DATIM,2)_", "_TIM K TIM ;** ISM-11
+ S %DT=+DATIM D %CDS^%H S DATIM=%DAT1_", "_TIM K TIM,%DT,%DAT,%DAT1 ;** DSM-11
+ Q
+KOUT G KOUT^%ZKRMFIO
+FOPENR G FOPENR^%ZKRMFIO
+FCLOSER G FCLOSER^%ZKRMFIO
+GFILE G GFILE^%ZKRMU
+GETFIL G GETFIL^%ZKRMU
+GFSPEC G GFSPEC^%ZKRMU
+GRT G GRT^%ZKRMU
+READ R A:120 S E=$S(A="":0,"<#@^>"[$E(A):1,1:0)
+ W:E " Can't do that here." Q
+GICMT ;4/9/86 POPKES;get comment information from header
+ D KOUT W !,"comment=",LIN
+ D KOUT W "  [",LIN,"]"
+ Q
+
+%ZKRMIR
+%ZKRMIR ;DGR;03MAR84;KERMIT 1.1A; MUMPS interface - Input routines
+ ;MSM;02Jan90 14:42;Copyright (c) 1989 PRx, Inc.
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+ ;MSM;11Jun87; Allow Filespecs for .ROU input]
+ ;MSM;02Jan89; Convert Tabs to Spaces
+RIM ;
+ W !!,"Routine input from .RTN files",! D GFSPEC Q:E  I $P(FSPEC,".",2)'="RTN" W *7," MUST have filetype .RTN" G RIM
+ D GETFIL I E W FSPEC Q
+ S FILE="",ALLQRY=0,NOQRY=0
+ F I=0:0 S FILE=$O(^%ZKRZ($J,"FILE",FILE)) Q:FILE=""  S ROU=$P(FILE,".") D RCHECK I 'E D FOPENR,RFILE,FCLOSER
+ K ^%ZKRZ($J,"ROU"),RI,FILE W !,"** done" Q
+RIR ;
+ W !!,"Routine input from .ROU files",! D GFSPEC Q:E  I $P(FSPEC,".",2)'="ROU" W *7," MUST have filetipe .ROU" G RIR
+ D GETFIL I E W FSPEC Q
+ S FILE="",ALLQRY=0
+ F I0=0:0 S FILE=$O(^%ZKRZ($J,"FILE",FILE)) Q:FILE=""  D RIR1
+ W !,"*** All Done ***",!
+ Q
+OLDRIR ;
+ W !!,"Routine input from a .ROU file",! D GFILE Q:E  I $P(FILE,".",2)'="ROU" W *7," MUST have filetype .ROU" G RIR
+ D RIR1 I E G RIR
+ Q
+RIR1 D FOPENR I E W *7," [file undefined or empty]" Q
+ D KOUT W !,"File description: ",LIN D KOUT W !,"Written on: ",LIN
+ S NOQRY=ALLQRY
+ F I=0:0 D KOUT Q:LIN=""  S ROU=LIN D RCHECK D:E RIRSK D:'E RFILE
+ D FCLOSER K ^%ZKRZ($J,"ROU"),RI W !,"** done"
+ Q
+RIRSK W " skipping ",ROU,"..." F I=0:0 D KOUT I LIN="" Q
+ Q
+RFILE ;
+ I $D(debug) S $ZT=""
+ W !,"now filing routine ",ROU,"..."
+ K ^%ZKRZ($J,"ROU")
+ F RI=1:1 D KOUT Q:LIN=""  D:LIN[$C(9) TAB S ^%ZKRZ($J,"ROU",RI)=LIN
+ ;X "ZR  F RI=1:1 S X=$D(^%ZKRZ($J,""ROU"",RI)) ZI:X ^(RI) I 'X ZS @ROU Q" ;** M/11
+ ;X "ZR  F RI=1 S X=$D(^%ZKRZ($J,""ROU"",1)) ZI ^(1)"
+ X "ZR  F RI=1:1 S X=$D(^%ZKRZ($J,""ROU"",RI)) X ""I X ZI ^(RI)"" I 'X ZS @ROU Q" ;** M/11
+ ;** load into routine buffer and save on disk ;** STD
+ ;S ^UTILITY("ROU",ROU)="" ;** M/11
+ ;** update global directory ;** STD
+ W "done" Q
+RCHECK ;
+ S E=0 I '$D(^ (ROU)) Q  ;** DSM
+ I NOQRY Q
+ W !,"Routine ",ROU," exists.  Overwrite? [No/Yes/Go/All] <Yes> " D READ
+ S E=$S("\N\No\NO\no\"[(B_A_B):1,"\Y\YES\yes\Yes\G\GO\go\A\ALL\All\all\\"[(B_A_B):0,1:2)
+ I A["?" W !,"No - Dont file, Yes - File it, Go - This set of routines, All - Whole Filespec! " G RCHECK
+ I $E(A)="a"!($E(A)="A") S ALLQRY=1,NOQRY=1
+ I $E(A)="g"!($E(A)="G") S NOQRY=1
+ I E=2 W *7," ??" G RCHECK ;** DSM V3
+ ;S E=0 I $D(^UTILITY("ROU",ROU)) W *7,!,"Routine ",ROU," exists.  Overwrite?  [Yes/No/Go/All] <No> " D READ S E=$S("N\No\NO\no"[(B_A_B):1,"Y\YES\yes\Yes"[(B_A_B):0,1:2) I E=2 W *7," ??" G RCHECK ;** M/11
+ ;** check if routine already exists ;** STD
+ Q
+TAB S LIN=$P(LIN,$C(9),1)_" "_$P(LIN,$C(9),2) Q
+KOUT G KOUT^%ZKRMFIO
+FOPENR G FOPENR^%ZKRMFIO
+FCLOSER G FCLOSER^%ZKRMFIO
+GFILE G GFILE^%ZKRMU
+GETFIL G GETFIL^%ZKRMU
+GFSPEC G GFSPEC^%ZKRMU
+READ R A:120 S E=$S(A="":0,"<#@^>"[$E(A):1,1:0)
+ W:E " Can't do that here." Q
+
+%ZKRMO
+%ZKRMO ;DGR;03MAR84;KERMIT V1.1; MUMPS interface - Output MUMPS-->Kermit
+ ;PRX;20Sep87 20:45;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+OOPT ;
+ W !!,"Output options (MUMPS data structures --> Kermit-M file system)",! F I=1:1:5 W !?5,I,") ",$P("Sequential file out;Routine out (.RTN files);Routine out (.ROU file);Global out;Sequential global out",S,I)
+OO1 W !!,"Your choice (? for help) : X => " D READ G OO1:E Q:"Xx^>"[A  I "?Hh"[$E(A) S HREF="""OOPT""" D HELP^%ZKRM G OOPT
+ I A?1N1"?",$E(A)>0,$E(A<6) S HREF="""OOPT"","""_$P("SFO;ROM;ROR;GO;SGO",S,+A)_"""" D HELP^%ZKRM G OOPT
+ I $S(A'?1N:1,A<1:1,A>5:1,1:0) W *7," ? no such option" G OO1
+ W @FF D @$P("SFO;ROM;ROR;GO;SGO",S,A) G OOPT
+ Q
+SFO ;
+ W !!,"Write a sequential MUMPS file to a Kermit-M file",!
+SFO1 ;W !,"Read from" D ^%IS I POP Q  ;** M/11
+ S %QTY=1 D ^%IOS Q:'$D(%IOD)  S IO=%IOD,IOT=%DTY,IOST="T" ;DSM-11
+ I "TRM\SDP\MT"'[(B_IOT_B) W *7," I can't deal with that type of device" G SFO1
+ ;set IO as $I from which to read, IOT as device type, IOST as subtype, then OPEN it with correct parameters ;** STD
+ S TRM=IOT="TRM"
+SFOF W !,"Write to which Kermit-M file?" D GFILE G:E SFOX D FOPENW I E W *7," ?? that file is already defined" G SFOF
+ U 0 I TRM,IO'=$I W !,"Enter your text lines at terminal #",IO,!
+ I TRM U IO W !!!,"Enter lines of text; enter <CR> only when done",!
+ E  U 0 W !,"Writing to file ",FILE,"..." U IO
+ U IO F I=0:0 W:TRM !,">" R LIN D SFEOF Q:E  D KIN
+ D FCLOSEW
+ I TRM W !!,"The above text is now in file ",FILE
+ E  U 0 W "** done"
+SFOX U 0 I $D(IO),IO'=$I C IO
+ K TRM,FILE Q
+SFEOF S E=0 I IOT="TRM" S E=$S(LIN="":1,1:0) Q
+ I IOT="SDP" S E=$S(LIN=$C(26):1,1:0) Q
+ I IOT="MT" S E=$S(LIN=$C(26):1,$ZA16384#2:1,1:0) Q
+ S E=1
+ Q
+ROM G ROM^%ZKRMOR
+ROR G ROR^%ZKRMOR
+GO ;
+ W !!,"Global output to a Kermit file",!
+GOR D GROOT I 'GRF Q
+GOF W !!,"Write into what Kermit-M file?",! D GFILE Q:E  D FOPENW I E W *7," ?? that file is already defined" G GOF
+ D HEAD F GI=1:1:GRF S GR=GRF(GI) D GOW
+ D FCLOSEW K GI,GR,GRF,DEF,L,M,REF,SUB W *7,!,"** All done" Q
+GOW W !,"Starting ",GR,"..." I '$D(@GR) W *7," ** [undefined]" Q
+ S L=$S(GR["(":1,1:0),M=L,REF(L)=GR,L(L)=$L(GR)-1 D GOVIS:$D(@GR)#10 S M=L+1 D GODOWN
+ Q
+GODOWN S SUB(L)="" F I=0:0 S SUB(L)=$O(@REF(L)@(SUB(L))) Q:SUB(L)=""  S REF(M)=$S('L:REF(L)_"("""_SUB(L)_""")",1:$E(REF(L),1,L(L))_","""_SUB(L)_""")"),L(M)=$L(REF(M))-1,DEF=$D(@REF(M)) D:DEF#10 GOVIS I DEF\10 S L=M,M=M+1 D GODOWN S M=L,L=L-1
+ Q
+GOVIS S LIN=REF(M) D KIN S LIN=@(REF(M)) D KIN Q
+ Q
+SGO ;
+ W !!,"Write one level of one or more globals to a Kermit file",!
+SGOR D GROOT I 'GRF Q
+SGOF W !!,"Write into what Kermit-M file?",! D GFILE Q:E  D FOPENW I E W *7," ?? that file is already defined" G SGO
+ W " writing..." F GI=1:1:GRF S GR=GRF(GI) D SGOW
+ D FCLOSEW K GI,GR,GRF,SUB W *7,!,"** All done" Q
+SGOW W !,"Starting ",GR,"..." I $D(@GR)\10=0 W *7," ** [undefined]" Q
+ S SUB="" F I=0:0 S SUB=$O(@GR@(SUB)) Q:SUB=""  I $D(@GR@(SUB))#10 S LIN=@GR@(SUB) D KIN
+ Q
+GROOT G GROOT^%ZKRMU
+GFILE G GFILE^%ZKRMU
+FOPENW G FOPENW^%ZKRMFIO
+FCLOSEW G FCLOSEW^%ZKRMFIO
+KIN G KIN^%ZKRMFIO
+DATIM G DATIM^%ZKRMU
+READ R A:120 S E=$S(A="":0,"<#@"[$E(A):1,1:0)
+ W:E " Can't do that here." Q
+HEAD ;
+ W !!,"Please enter a free-text description of this file: " D READ
+ W " writing..." S LIN=A D KIN S DATIM=$H D DATIM S LIN=DATIM D KIN K DATIM
+ Q
+
+%ZKRMOR
+%ZKRMOR ;DGR;03MAR84;KERMIT V1.1; MUMPS interface - Output routines
+ ;MSM;12Nov86 13:48;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+ ;MSM;29Jul86; Fix # at end of line problem bug
+ ;MSM;10Sep86; Fix # problem for .ROU
+ROM ;
+ W !!,"Routine output to Kermit-M files (.RTN)",!,"Please specify the set of routines to write:"
+ D RSET G ROMX:'RCT W !,"Writing routines to Kermit files now..."
+ S ZL="ZL @A F J=1:1 S X=$T(+J) Q:X=""""  S ^%ZKRZ($J,""ROM"",J)=X",A=0 ;** M/11
+ ;** SET ZL=an Xecutable string to load a routine named in var. A into scratch global;** STD
+ROM1 S A=$O(^%ZKRZ($J,"RSET",A)) I A="" W !,"All done for this set of routines" G ROMX
+ W !,A,"..." K ^%ZKRZ($J,"ROM") X ZL
+ I J>1 S FILE=A_".RTN" D FOPENW I E W *7,FILE," is already defined - NOT overwritten" G ROM1
+ F J=1:1 Q:'$D(^%ZKRZ($J,"ROM",J))  S LIN=^(J) D KIN
+ D FCLOSEW W "done" ;MSM;29Jul86
+ G ROM1
+ROMX K RCT,ZL,^%ZKRZ($J,"ROM"),^("RSET")
+ Q
+ROR ;
+ W !!,"Routine output to a Kermit-M file (.ROU)",!,"Please specify the set of routines to write:"
+ D RSET G RORX:'RCT
+RORF W !!,"Write these routines to what Kermit-M file?",! D GFILE Q:E
+%ROR I $P(FILE,".",2,3)'="ROU" W *7," ?? must have file type of .ROU" G RORF
+ D FOPENW I E W *7," ?? that file is already defined" G RORF
+ S ZL="ZL @A F J=1:1 S X=$T(+J) Q:X=""""  S ^%ZKRZ($J,""ROR"",J)=X",A=0 ;** M/11
+ ;** SET ZL=an Xecutable string to load a routine named in var. A into scratch global;** STD
+ D HEAD S A=0
+ROR1 S A=$O(^%ZKRZ($J,"RSET",A)) I A="" S LIN="" D KIN D FCLOSEW W !,"All done for this set of routines" G RORX
+ W !,A,"..." K ^%ZKRZ($J,"ROR") S LIN=A D KIN X ZL
+ F J=1:1 Q:'$D(^%ZKRZ($J,"ROR",J))  S LIN=^(J) D KIN ;MSM;10Sep86
+ S LIN="" D KIN ;POPKES;10/20/86
+ W "done"
+ G ROR1
+RORX K RCT,ZL,^%ZKRZ($J,"ROR"),^("RSET")
+ Q
+RSET G RSET^%ZKRMUR
+GFILE G GFILE^%ZKRMU
+FOPENW G FOPENW^%ZKRMFIO
+FCLOSEW G FCLOSEW^%ZKRMFIO
+KIN G KIN^%ZKRMFIO
+DATIM G DATIM^%ZKRMU
+READ R A:120 S E=$S(A="":0,"<#@"[$E(A):1,1:0)
+ W:E " Can't do that here." Q
+HEAD ;
+ W !!,"Please enter a free-text description of this file: " D READ
+ W " writing..." S LIN=A D KIN S DATIM=$H D DATIM S LIN=DATIM D KIN K DATIM
+ Q
+
+%ZKRMU
+%ZKRMU ;DGR;03MAR84;KERMIT V1.1; MUMPS interface - utility parts
+ ;MSM;03Aug86 22:02; (c) Copyright 1986 PRx, Inc., Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+DATIM ;
+ Q:DATIM'?1.6N1","1.6N  S Y=$P(DATIM,",",2) S TIM=Y\3600_":" S YY=Y#3600\60 S:$L(YY)=1 YY="0"_YY S TIM=TIM_YY K Y,YY
+ ;S DATIM=$ZD(+DATIM,2) ;** M/11 V5
+ S %DT=+DATIM D %CDS^%H S DATIM=%DAT1 ;** DSM V3
+ ;** set DATIM to readable date, like '2 APR 83' ;** STD
+ S DATIM=$J(DATIM,9)_", "_TIM K TIM
+ Q
+GFSPEC ;
+ W !,"-- File specification : " D READ S:A="" E=1 Q:E  S FN=$P(A,"."),FT=$P(A,".",2) I $S($L(FN)>8:1,$L(FT)>3:1,FN="":1,FT="":1,FN'?.1"%".8UN.1"*":1,FT'?.3UN.1"*":1,1:0) W *7," ** like TEST.DAT, or T*.D*, or, *.RTN" G GFSPEC
+ E  S FSPEC=A
+ K FN,FT Q
+GETFIL ;
+ K ^%ZKRZ($J,"FILE") S (E,CT)=0,FN=$P(FSPEC,"."),FT=$P(FSPEC,".",2)
+ S FNL=$L(FN),FTL=$L(FT),FNW=$E(FN,FNL)="*",FTW=$E(FT,FTL)="*"
+ I 'FNW S F1=FN D GF2 G GFX
+ S FN=$E(FN,0,FNL-1),F1=FN D:$S(F1="":0,'$D(^%ZKR(F1)):0,1:1) GF2 F I=0:0 S F1=$O(^%ZKR(F1)) Q:F1=""!($E(F1,0,FNL-1)'=FN)  D GF2
+ G GFX
+GF2 I 'FTW S F2=FT D:$D(^%ZKR(F1,F2)) GFSET Q
+ S FT=$E(FT,0,FTL-1),F2=FT D:$S(F2="":0,'$D(^%ZKR(F1,F2)):0,1:1) GFSET F I=0:0 S F2=$O(^%ZKR(F1,F2)) Q:F2=""!($E(F2,0,FTL-1)'=FT)  D GFSET
+ Q
+GFSET S ^%ZKRZ($J,"FILE",F1_"."_F2)="",CT=CT+1 Q
+GFX I '$D(^%ZKRZ($J,"FILE")) S E=1,FSPEC="File(s) not found for "_FSPEC
+ E  S ^%ZKRZ($J,"FILE")=CT W " --> ",CT," file",$S(CT=1:"",1:"s")," meet",$S(CT=1:"s",1:"")," the specification"
+ K FN,FT,FNW,FTW,FNL,FTL,F1,F2,I,CT Q
+GFILE ;
+ W !,"- File specification : " D READ S:"^>"[A E=1 Q:E  I A'?1.8UN1"."1.3UN,A'?1"%".7UN1"."1.3UN W *7," Enter a single file name, like TEST.DAT" G GFILE
+ S FILE=A
+ Q
+GROOT ;
+ K GRF S GRF=0 W !,"Enter global references, one at a time:",!
+GR1 W !,"Global ^" D READ Q:E  I "^>"[A S E=1 Q
+ I $E(A)="?" D GRH G GR1
+ D VERGRF I E W *7," [ syntax ]" G GR1
+ S GRF=GRF+1,GRF(GRF)=A K X1,X2 G GR1
+ Q
+GRH W ! F I=2:1 S X=$T(GRH+I) Q:$P(X," ")]""  W !?5,$P(X,";",2,99)
+ W ! Q
+ ;Enter a full global reference, including ending parentheses (if any).
+ ;For example:
+ ;
+ ; ^A   -- or --   ^A("ONE",2,"three")
+ ;
+ ;Each reference will be processed in the order in which you enter it.
+ ;It is possible to list the same subtree more than once in the list.
+ ;
+ ;Press <RETURN> to end the list.  To abort an incorrect list so that
+ ;it is not processed, press CTRL/C.
+GRT ;
+ W !,"Enter a global reference:",!
+GRT1 W !,"Global ^" D READ Q:E  I "^>"[A S E=1 Q
+ I $E(A)="?" D GRTH G GRT1
+ D VERGRF I E W *7," [ syntax ]" G GRT1
+ S GRF=1,GRF(1)=A Q
+GRTH W ! F I=2:1 S X=$T(GRTH+I) Q:$P(X," ")]""  W !?5,$P(X,";",2,99)
+ W ! Q
+ ;Enter a full global reference, including ending parentheses (if any).
+ ;For example:
+ ;
+ ; ^A   -- or --   ^A("ONE",2,"three")
+ ;
+READ R A:120 S E=$S(A="":0,"<#@"[$E(A):1,1:0)
+ Q
+VERGRF ;
+ S E=0 S:$E(A)'="^" A="^"_A S X1=$P(A,"("),X2=$P(A,"(",2,255)  I $S(X1?1"^"1.8AN:0,X1?1"^%".7AN:0,1:1) S E=1 Q
+ I $S(X2=""&(A'["("):0,X2=""&(A'[")"):1,$E(X2,$L(X2))'=")":1,1:0) S E=1 Q
+ I X2]"" S X2=$E(X2,0,$L(X2)-1) F I=1:1:$L(X2,",") S X1=$P(X2,",",I) I $S(+X1=X1:0,$E(X1)=""""&($E(X1,$L(X1))=""""):0,1:1) S E=1 Q
+ Q
+
+%ZKRMUR
+%ZKRMUR ;DGR;03MAR84;KERMIT V1.1; MUMPS interface - util - pick a routine set
+ ;MSM;03Aug86 22:04; (c) Copyright 1986 PRx, Inc., Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+RSET ;
+REF ;R !,"Refresh routine directory in ^UTILITY? No=> " D READ G REF:E,HELP2:$E(A)="?" I A?1"Y".E D ^%ROU ;** M/11
+ ;** rebuild routine directory if appropriate ;** STD
+ K ^%ZKRZ($J,"RSET") S RCT=0,SEL=1,E=0
+ROU R !,"Routine: " D READ G ROU:E I A="" W ! G XIT
+ I A["?" D @$S(A="?L":"DISP",1:"HELP") G ROU
+ S SEL=1 I A?1"'".E S SEL=0,A=$E(A,2,99)
+ I A?.E1"*" S A=$E(A,1,$L(A)-1),X=A S:X="" X=0 D SING,MULT G ROU
+ I A["-" D RANGE G ROU
+ D SING I E W *7," I don't have that routine on file"
+ G ROU
+SING S E=0 I A]"",$D(^ (A)) S X=A
+ ;S E=0 I A]"",$D(^UTILITY("ROU",A)) S X=A
+ E  S E=1 Q
+S I SEL,'$D(^%ZKRZ($J,"RSET",X)) S ^(X)="",RCT=RCT+1 Q
+ I 'SEL,$D(^%ZKRZ($J,"RSET",X)) K ^(X) S RCT=RCT-1
+ Q
+MULT ;
+ S X=$O(^ (X)) Q:X=""!($E(X,1,$L(A))'=A)
+ ;S X=$O(^UTILITY("ROU",X)) Q:X=""!($E(X,1,$L(A))'=A)
+ D S G MULT
+ Q
+RANGE S X=$P(A,"-",1),Y=$P(A,"-",2) I X]Y W " ???" Q
+ I $D(^ (X)) D S
+ ;I $D(^UTILITY("ROU",X)) D S
+R2 S X=$O(^ (X)) Q:X=""  Q:X]Y  D S G R2
+ ;S X=$O(^UTILITY("ROU",X)) Q:X=""  Q:X]Y  D S G R2
+ Q
+XIT K A,X,Y,SEL S ^%ZKRZ($J,"RSET",0)=RCT W RCT," routine",$S(RCT=1:" was",1:"s were")," selected",!
+ Q
+READ R A S E=0 ;S A=$ZU(A),E=$S(A="":0,"^<>#@"[$E(A,1):1,1:0)
+ W:E " Can't do that here." Q
+HELP W !!,"Choose routines as in these examples:"
+ W !,"  RNAM",?18,"one routine"
+ W !,"  RNAM1-RNAM2",?18,"range of routines"
+ W !,"  CD*",?18,"all routines beginning with CD"
+ W !,"  *",?18,"all routines"
+ W !,"  'RNAM",?18,"exclude this routine from those already selected"
+ W !,"  'RNAM1-RNAM2",?18,"exclude this range of routines from those already selected"
+ W !,"  'CD*",?18,"exclude all routines beginning with CD from the routines",!?18,"already selected"
+ W !!,"Enter '?L' to get a list of routines selected so far"
+ W ! Q
+DISP W "  ",$S('RCT:"** no",1:RCT)," routine",$S(RCT=1:" has",1:"s have")," been selected thus far",$S('RCT:" **",1:":") I RCT S X=0,E=1 F Y=1:1 W ! F A=0:1:7 S X=$O(^%ZKRZ($J,"RSET",X)) G:X="" DISP1 W ?(A*10),X
+DISP1 Q
+HELP2 W !,"It may take time (if there are a lot of routines), but it ensures that the",!,"routine directory is accurate." G REF
+
+%ZKRP
+%ZKRP ;MSM;10Sep86;Kermit V1.1; Kermit Phone Facility
+ ;PRX;16Sep87 01:58;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;
+DIAL S PHNUM=CMD(2),SITE="",E=0
+ I PHNUM?3A,$D(^%ZKRX("SITE",PHNUM)) S SITE=$P(^(PHNUM),B,1),PHNUM=$P(^(PHNUM),B,2)
+ S PHNUM=$P(PHNUM,",",1)
+ I PHNUM'?1NP.NP W !,"? Invalid Site or Phone Number" S E=1 Q
+ I TTY=0 W !,"? No line to dial on" S E=1 Q
+ D SETUP^%ZKRPMC
+ U TTY D ENTER^%ZKRPMC U 0
+ I MSTAT="ATT" W !,"? Already connected" Q
+ I MSTAT'="CMD" W !,"? Problem with modem" S E=1 Q
+ W !,"Dialing " W:SITE'="" SITE W "..."
+ U TTY D DIAL^%ZKRPMC U 0
+ I MSTAT="ERR" W !,"? Problem with modem" S E=1 Q
+ I MSTAT="CMD" W !,"? No connection" S E=1 Q
+ Q
+ ;
+HANGUP D HANGUP^%ZKRPMC
+ Q
+ ;
+KALL ;
+ D DIAL
+ I E Q
+ D KALL^%KSERVER
+ Q
+
+%ZKRPC
+ZKRPC ;msm;20nov89; send a file to pc
+ ;PRX;20Nov89 19:36;Copyright (c) 1989 PRx, Inc.
+SEND ;(TTY,FSPEC)
+ S SRV=1
+ D INIT^%ZKR,INITPAR^%ZKR
+ D GETFIL^%ZKR I E Q  ;get file list
+ U TTY W *27,"[5|KERMIT RECEIVE",*27,"\"
+ D TTYON^%ZKR H 2
+ D ^%ZKRS ;send file
+ Q
+
+%ZKRPHN
+%ZKRPHN ;MSM;10Sep86;Kermit V1.1; Kermit Phone Facility
+ ;MSM;10Sep86 22:51;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;
+DIAL S PHNUM=CMD(2),SITE="",E=0
+ I PHNUM?3A,$D(^%ZKRX("SITE",PHNUM)) S SITE=$P(^(PHNUM),B,1),PHNUM=$P(^(PHNUM),B,2)
+ S PHNUM=$P(PHNUM,",",1)
+ I PHNUM'?1NP.NP W !,"? Invalid Site or Phone Number" S E=1 Q
+ I TTY=0 W !,"? No line to dial on" S E=1 Q
+ D SETUP^%ZKRPMC
+ U TTY D ENTER^%ZKRPMC U 0
+ I MSTAT="ATT" W !,"? Already connected" Q
+ I MSTAT'="CMD" W !,"? Problem with modem" S E=1 Q
+ W !,"Dialing " W:SITE'="" SITE W "..."
+ U TTY D DIAL^%ZKRPMC U 0
+ I MSTAT="ERR" W !,"? Problem with modem" S E=1 Q
+ I MSTAT="CMD" W !,"? No connection" S E=1 Q
+ Q
+ ;
+HANGUP D HANGUP^%ZKRPMC
+ Q
+
+%ZKRPMC
+%ZKRPMC ;MSM;15Mar86;KERMIT V1.1; Kermit Phone Stuff - Micro Com
+ ;MSM;03Jul86 00:02; (c) Copyright 1986 PRx, Inc., Concord, MA
+ ;
+SETUP S PASSALL=8388608,ECHO=1,ESCMODE=64
+ S CRLF=$C(13,10),IMOK=CRLF_"!",MSTAT="UNK",MCMD="",MTMO=1
+USE U TTY:(0::::ECHO+PASSALL:ESCMODE)
+ Q
+ ;
+LOG Q:'$D(PHONEDBG)
+ S %MSG="Recieve: '"
+ F I=1:1:$L(A) S %=$E(A,I) S:%?1C %="^"_$C($A(%)+64) S %MSG=%MSG_%
+ S %MSG=%MSG_"'"
+LEG NEW %LOG S %LOG="PHONE" D ^%LOG
+ Q
+LES S %MSG="Status: "_MSTAT G LEG
+ -
+START S %MSG=":START" D LEG
+ D USE F I=1:1:60 U TTY R A#60:1 H:A[$C(3)  G:'$T CMD D LOG I DEBUG U 0 W A
+ S MSTAT="ACT" D LES Q  ; line is active
+CMD U TTY W *20,*13 ; wake up
+ U TTY R A#60:1 H:A[$C(3)  D LOG I DEBUG U 0 W A
+ I A'[IMOK D RESET
+ D ENTER Q
+ ;
+ENTER S %MSG=":ENTER" D LEG
+ U TTY W *20,"SE 20",*13,"E",*13 ; enter connect state
+ U TTY R A#60:1 H:A[$C(3)  D LOG I DEBUG U 0 W A
+ ;S ANS=$P(A,CRLF,2,99)
+ I A["CONNECT " S MSTAT="ATT" D LES Q
+ I A["NO CONNECT" S MSTAT="CMD" D LES Q
+ S E=1,MSTAT="ERR"
+ Q
+RESET S %MSG=":RESET" D LEG
+ U TTY W "45",*13,*20,*13,"SCE ON",*13,"SE 20",*13,"SCE OFF",*13
+ U TTY R A#60:1 H:A[$C(3)  D LOG I DEBUG U 0 W A
+ I A[IMOK S MSTAT="UNK" D LES Q
+ S MSTAT="ERR" D LES Q
+ ;
+DOCMD S ANS=""
+ I "CMD,ATT"'[MSTAT D LES D START I "CMD,ATT"'[MSTAT Q
+ S %MSG=":DOCMD "_MCMD D LEG
+ U TTY W *20,MCMD,*13 ; send command
+ U TTY R A#60:1 H:A[$C(3)  D LOG S ANS=A
+ U TTY R A#1:MTMO H:A[$C(3)  D LOG S ANS=ANS_A
+ U TTY R A#60:1 H:A[$C(3)  D LOG S ANS=ANS_A
+ I DEBUG U 0 W ANS
+ ;I $P(ANS,CRLF,1,2)'[MCMD S MSTAT="ERR" D LES Q
+ S ANS=$P(ANS,CRLF,2,99)
+ ;I $P(ANS,CRLF,1)="!"_MCMD S ANS=$P(ANS,CRLF,2,99)
+ S MSTAT=$S(ANS["CONNECT ":"ATT",1:"CMD") D LES
+ Q
+ ; HANGUP() -> ANS
+HANGUP S %MSG=":HANGUP" D LEG
+ S MCMD="H",MTMO=1 D DOCMD Q:MSTAT="ERR"
+ I ANS'["NO CONNECT" S MSTAT="UNK" D LES D DOCMD
+ Q
+ ;DIAL(PHNUM) -> ANS
+DIAL S %MSG=":DIAL "_PHNUM D LEG
+ S MSTAT="UNK" D LES,ENTER,LES I MSTAT'="CMD" S ERR="Already Connected.",%MSG="Error: "_ERR D LEG Q
+ S MCMD="D "_PHNUM,MTMO=60 D DOCMD Q:MSTAT="ERR"
+ I ANS'["CONNECT" S MSTAT="UNK" D LES D DOCMD
+ Q
+
+%ZKRR
+%ZKRR ;DGR;03MAR84;KERMIT V1.1; Kermit - receive files
+ ;MSM;03Aug86 22:05; (c) Copyright 1986 PRx, Inc., Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+ S (TRY,OLDTRY,SPN)=0
+R ;
+ S TRY=TRY+1 I TRY>MAXTRY G A
+ D RPACK I E D NAK G R
+ G A:RPT'="S"
+RI ;
+ S SPN=RPN D RPAR S SPT="Y",SDAT=$C(RPSIZ+32)_$C(STO+32)_"   "_SQA D SPACK,BUMP S OLDTRY=0 K F1,F2 G RF
+RF ;
+ S TRY=TRY+1 I TRY>MAXTRY G A
+ D RPACK I E D NAK G RF
+ G A:"SZFB"'[RPT,@("RF"_RPT)
+RFS S OLDTRY=OLDTRY+1 G A:OLDTRY>MAXTRY D PREV G A:SPN'=RPN,RI
+RFZ D PREV G A:SPN'=RPN D ACK G RF
+RFF I SPN'=RPN D NAK G RF
+ S FILE=RDAT D FOPEN K FILE I E S SPT="E",SDAT=$E(E,2,99) D SPACK Q
+ S %MSG="Receiving file : "_F1_"."_F2 I SRV D ^%ZKRLOG
+ I TTY,'SRV U 0 W !,%MSG,"..." U TTY
+ S OLDTRY=TRY D ACK,BUMP G RD
+RFB I SPN'=RPN D NAK G RF
+ D ACK S E=0 Q
+ Q
+RD ;
+ S TRY=TRY+1 I TRY>MAXTRY G A
+ D RPACK I E D NAK G RD
+ G A:"DFZ"'[RPT,@("RD"_RPT)
+RDD I SPN'=RPN S OLDTRY=OLDTRY+1 G A:OLDTRY>MAXTRY D PREV G A:SPN'=RPN D ACK,BUMP G RD
+ D PDATA,ACK S OLDTRY=TRY D BUMP G RD
+RDF S OLDTRY=OLDTRY+1 G A:OLDTRY>MAXTRY D PREV G A:SPN'=RPN D ACK,BUMP G RD
+RDZ G A:SPN'=RPN S ^%ZKR(F1,F2)=^%ZKR(F1,F2)_B_$H_B_BCNT S H2=$H D EFBAUD K H1,H2,F1,F2,F3 D ACK,BUMP
+ D ULOCK
+ I TTY,'SRV U 0 W "done" U TTY
+ G RF
+ Q
+A ;
+ I 'KAF,$D(F1),$D(F2),F1]"",F2]"",$D(^%ZKR(F1,F2)),$P(^(F2),B,3)="" K ^(F2)
+ K F1,F2,F3,BCNT
+ S %MSG="Aborting RECEIVE operation" I SRV D ^%ZKRLOG
+ I TTY,'SRV U 0 W !,%MSG U TTY
+ S E=1 Q
+UTIL ;
+BUMP S TRY=0,SPN=SPN+1#64 Q
+PREV S SPN=SPN-1#64 Q
+NAK S SPT="N",SDAT="" D SPACK Q
+ACK S SPT="Y",SDAT="" D SPACK S TRY=0 Q
+SPACK G SPACK^%ZKRUP
+RPACK I TTY,'SRV,RPN#8=1 U 0 W "." U TTY
+ G RPACK^%ZKRUP
+PDATA ;
+ S ^%ZKR(F1,F2,F3)=RDAT,BCNT=BCNT+$L(RDAT),F3=F3+1
+ Q
+RPAR G RPAR^%ZKRUM
+FOPEN ;
+ S E=0 I FILE'?.1"%"1.8UN1"."1.3UN S E="1 bad filespec" D LOGERR Q
+ S F1=$P(FILE,"."),F2=$P(FILE,".",2)
+ I $D(^%ZKR(F1,F2)),FW S E="1 file already defined" D LOGERR K F1,F2 Q
+ I $D(^%ZKR(F1,F2)) D FRENAME
+ D WLOCK
+ K ^%ZKR(F1,F2) S ^%ZKR(F1,F2)=B_RQA_B_$H,H1=$H,EFB=-1,BCNT=0,F3=1
+ Q
+EFBAUD S EFB=BCNT*10\(H2-H1*86400+$P(H2,",",2)-$P(H1,",",2)) Q
+WLOCK L ^%ZKR(FILE) Q
+ULOCK L  Q
+LOGERR S %MSG="Recieve error "_$E(E,2,99) D:SRV ^%ZKRLOG Q
+FRENAME F I=1:1 S F2=$E($J("000"_I,6),4,6) Q:'$D(^%ZKR(F1,F2))
+ S %MSG="Recieve renameing "_FILE_" to "_F1_"."_F2 I SRV D ^%ZKRLOG
+ S FILE=F1_"."_F2
+ Q
+
+%ZKRS
+%ZKRS ;DGR;03MAR84;KERMIT V1.1;Kermit - send a group of files
+ ;MSM;03Aug86 22:06; (c) Copyright 1986 PRx, Inc., Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+ S (SPN,TRY)=0,RPT=""
+S ;
+ S TRY=TRY+1 I TRY>MAXTRY G A
+ S SPT="S",SDAT=$C(RPSIZ+32)_$C(STO+32)_"   "_SQA D SPACK,RACK E  G S:RPT'="E",RACKER
+ D RPAR,BUMP G NXTFIL
+SF ;
+ S TRY=TRY+1 I TRY>MAXTRY G A
+ S SPT="F",SDAT=FILE D SPACK,RACK E  G SF:RPT'="E",RACKER
+ D BUMP,BDATA G SD:SDAT]"",SZ
+SD ;
+ S TRY=TRY+1 I TRY>MAXTRY G A
+ S SPT="D" D SPACK,RACK E  G SD:RPT'="E",RACKER
+ D BUMP,BDATA G SD:SDAT]"",SZ
+SZ ;
+ S TRY=TRY+1 I TRY>MAXTRY G A
+ S SPT="Z",SDAT="" D SPACK,RACK E  G SZ:RPT'="E",RACKER
+ D ULOCK
+ S H2=$H D EFBAUD
+ I TTY,'SRV U 0 W "done" U TTY
+ D BUMP G NXTFIL
+SB ;
+ S TRY=TRY+1 I TRY>MAXTRY G A
+ S SPT="B",SDAT="" D SPACK,RACK E  G SB:RPT'="E",RACKER
+ D BUMP S E=0 Q
+A ;
+ S E=1 Q
+NXTFIL ;
+ S:'$D(FILE) FILE="" S FILE=$O(^%ZKRZ($J,"FILE",FILE)) I FILE="" G SB
+ D RLOCK
+ S F1=$P(FILE,"."),F2=$P(FILE,".",2) S F3=$O(^%ZKR(F1,F2,0)) G NXTFIL:F3="" S CL=^(F3),LL=$L(CL),CC=1,FQA=$P(^%ZKR(F1,F2),B,2),BCNT=$P(^(F2),B,5),H1=$H,EFB=-1
+ S %MSG="Sending file : "_FILE I SRV D ^%ZKRLOG
+ I TTY,'SRV U 0 W !,%MSG,"..." U TTY
+ U TTY
+ G SF
+RACKER ;
+ S %MSG="Error - "_RDAT_" - transfer aborted" I SRV D ^%ZKRLOG
+ I TTY,'SRV U 0 W !,%MSG U TTY
+ S E=1 Q
+UTIL ;
+RACK D RPACK I $S(E:0,RPT'="Y":0,SPN'=RPN:0,1:1)
+ Q
+BUMP S TRY=0,SPN=SPN+1#64 Q
+SPACK I TTY,SPN#8=1,'SRV U 0 W "." U TTY
+ U TTY G SPACK^%ZKRUP
+RPACK G RPACK^%ZKRUP
+BDATA ;
+ S SDAT="" I F3="" Q
+ I CC>LL D BGLIN I F3="" Q
+ S NC=SPSIZ-7 I SQA'=FQA G BD2
+BD1 S F=$F(CL,FQA,CC) G:F BD11 I LL-CC<NC S SDAT=SDAT_$E(CL,CC,LL),NC=NC-LL+CC+1 D BGLIN G:F3]"" BD1 Q
+ S X=CC+NC,SDAT=SDAT_$E(CL,CC,X-1),CC=X
+ Q
+BD11 S X=F-CC+1 I X'>NC S SDAT=SDAT_$E(CL,CC,F),NC=NC-X,CC=F+1 G BD1:NC Q
+ S X=CC+NC-1,SDAT=SDAT_$E(CL,CC,X-1),CC=X
+ Q
+BD2 S C=$E(CL,CC),CC=CC+1 I C="" D BGLIN G:F3]"" BD2 Q
+ I C=SQA S SDAT=SDAT_SQA_SQA,NC=NC-2 G:NC>0 BD2 Q
+ I C'=FQA S SDAT=SDAT_C,NC=NC-1 G:NC>0 BD2 Q
+ S C=$E(CL,CC),CC=CC+1 I C="" ABORT
+ I C=FQA S SDAT=SDAT_FQA,NC=NC-1 G:NC>0 BD2 Q
+ S SDAT=SDAT_SQA_C,NC=NC-2 G:NC>0 BD2 Q
+ Q
+BGLIN S F3=$O(^%ZKR(F1,F2,F3)) I F3]"" S CL=^(F3),LL=$L(CL),CC=1
+ Q
+RPAR G RPAR^%ZKRUM
+EFBAUD S EFB=BCNT*10\(H2-H1*86400+$P(H2,",",2)-$P(H1,",",2)) Q
+RLOCK L ^%ZKR(FILE,$J) Q
+ULOCK L  Q
+
+%ZKRSET
+%ZKRSET ;DGR;03MAR84;KERMIT V1.1; Kermit - set Kermit parameters (SET command)
+ ;MSM;18Aug86 20:25;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+SET ;
+ D @("S"_$E(CSS(2),1,3)) Q
+SABO S KAF=CMD(3)="KEEP" Q
+SBAU S BAUD=CMD(3) Q
+SDEB S DEBUG=CMD(3)="ON" Q
+SDEL S DELAY=CMD(3) Q
+SDUP S FDX=CMD(3)="FULL" Q
+SESC S CESC=$A(CMD(3),2)-64 Q
+SFIL S FW=CMD(3)="ON" Q
+SLIN I '$D(CMD(3)) C:TTY TTY S TTY=0 U 0 W " Ok - no line is assigned" Q
+ I $S(CMD(3)'?1.N:0,CMD(3)'<4&(CMD(3)'>19):1,CMD(3)'<64&(CMD(3)'>143):1,1:0) S A=CMD(3) G SLIN1 ;** M/11 or DSM-11
+ I '$D(^%ZKRX("LINE",CMD(3))) W !,"? No such line" Q
+ S A=+^(CMD(3))
+SLIN1 ;O A(0:""):0 E  W !,"? Can't get that line now" Q  ;** M/11 V5
+ O A::3 E  W !,"? Can't get that line now" Q  ;** DSM V3
+ ;Open the port if possible, else error message and QUIT ;** STD
+ S TTY=A W " Line ",TTY," is now assigned"
+ Q
+SPAR ;
+ I $E(CMD(3))="M" W !,"? Can't set MARK parity in M/11 V5" Q  ;** M/11 V5
+ I $E(CMD(3))="S" W !,"? Use NONE in M/11 V5" Q  ;** M/11 V5
+ S PAR=$E(CMD(3)) Q
+SPAS S PASSTHRU=CMD(3)="ON"
+ I $ZVER'["3.1"&PASSTHRU W !,"? Can't set PASSTHRU on non-DSM V3.1"  ;** DSMV3.1 S PASSTHRU=0
+ Q
+SPAU S PAUSE=CMD(3) Q
+SREC G @("SR1"_$E(CMD(3),1,3))
+SR1PAC S RPSIZ=CMD(4) Q
+SR1STA S RSOH=$A(CMD(4),2)-64 Q
+SR1TIM S RTO=CMD(4) Q
+SRET S MAXTRY=CMD(3)+1 Q
+SSEN G @("SS1"_$E(CMD(3),1,3))
+SS1END S SEOL=$A(CMD(4),2)-64 Q
+SS1PAC S SPSIZ=CMD(4) Q
+SS1QUO S SQA=CMD(4),SQB=$A(CMD(4)),SQB=$E("000",0,3-$L(SQB))_SQB Q
+SS1STA S SSOH=$A(CMD(4),2)-64 Q
+SS1TIM S STO=CMD(4) Q
+
+%ZKRSHO
+%ZKRSHO ;MSM;10Sep86;Kermit V1.1; Show Commands
+ ;MSM;10Sep86 21:42;(c) Copyright 1986 PRx, Inc. Concord, MA
+ G @CSS(2)
+SITES S X=""
+ F I=1:1 S X=$O(^%ZKRX("SITE",X)) Q:X=""  S PHONE=$P(^(X),B,2) W !,?2,X,?10,$P(^(X),B,1),?75-$L(PHONE),PHONE
+ K PHONE
+ Q
+
+%ZKRSRV
+%ZKRSRV ;DGR;03MAR84;KERMIT V1.1; Kermit - Server executive
+ ;PRX;15Sep87 22:29;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+ S SPN=0
+ S NAKS=0
+SRV ;
+ S SPN=0
+ S $ZE="ERR^%ZKR"
+ D RPACK I E D NAK S NAKS=NAKS+1 HALT:NAKS>100  G SRV
+ I "SRGIC"'[RPT D NAK G SRV
+ S NAKS=0
+ G @("SRV"_RPT)
+SRVI ;
+ D RPAR^%ZKRUM S TRY=0,RPN=0
+ S SPT="Y",SDAT=$C(RPSIZ+32)_$C(STO+32)_"   "_SQA D SPACK G SRV
+SRVC G SRVGH ;
+ S SDAT="Unrecognized 'Host' Command "_RDAT G SRVERR
+SRVS ;
+ D RI^%ZKRR G SRV
+SRVR ;
+ S FN=$P(RDAT,"."),FT=$P(RDAT,".",2) I $S($L(FN)>8:1,$L(FT)>3:1,FN="":1,FT="":1,FN'?.1"%".8UN.1"*":1,FT'?.3UN.1"*":1,1:0) K FN,FT SDAT="Illegal filespec : "_RDAT G SRVERR
+ K FN,FT S FSPEC=RDAT D GETFIL K FSPEC I E S SDAT="No file(s) match "_RDAT G SRVERR
+ D ^%ZKRS G SRV
+SRVG ;
+ S C=$E(RDAT) I "LFHU"'[C S SDAT="Unrecognized 'Generic' command "_RDAT G SRVERR
+ G @("SRVG"_C)
+SRVGF I '$D(SERVER) D ACK U 0 W !,"Server shut down by local Kermit's FINISH command" G START^%ZKR
+SRVGL D ACK U 0 W !,"Session terminated by local Kermit's BYE command" C:TTY'=$I TTY K (XID,XDEV) Q  ;MSM;05Mar86;
+SRVGU D SERVER^%MCDBT ; do disk block tally
+ S SPT="Y",SDAT=MESSAGE D SPACK G SRV
+REPLY S TRY=0
+REP S TRY=TRY+1 I TRY>MAXTRY G A
+ D SPACK,RACK E  G REP:RPT'="E",RACKER
+ G SRV
+SRVGH S FOO=0,SPT="X",SDAT="" D SPACK,RACK E  G SD:RPT'="E",RACKER
+ S SPN=1,SDAT="#M#JThe What's up doc?:#M#J#M#J                "
+SD S TRY=TRY+1 I TRY>MAXTRY G A
+ S SPT="D" D SPACK,RACK E  G MORE:RPT'="E",RACKER
+ D BUMP,BDATA G SD:SDAT]"",SZ
+SZ S TRY=TRY+1 I TRY>MAXTRY G A
+ S SPT="Z",SDAT="" D SPACK,RACK E  G SZ:RPT'="E",RACKER
+ D BUMP
+SB ;
+ S TRY=TRY+1 I TRY>MAXTRY G A
+ S SPT="B",SDAT="" D SPACK,RACK E  G SB:RPT'="E",RACKER
+ S SPN=0,RPN=0,E=0
+ G SRV
+A S E=1 Q
+NAK S SPT="N",SDAT="" D SPACK Q
+ACK S SPT="Y",SDAT="" D SPACK S TRY=0 Q
+SPACK G SPACK^%ZKRUP
+RPACK G RPACK^%ZKRUP
+GETFIL D GETFIL^%ZKRUM Q
+RACK D RPACK I $S(E:0,RPT'="Y":0,SPN'=RPN:0,1:1)
+ Q
+RACKER S:'$D(RDAT) RDAT="<UNDEF>" S ERR="Error - "_RDAT_" - aborting"
+ S ^%ZKRX("ERR")=ERR
+ U 0 W !,ERR,! U TTY
+ S E=1 Q
+BUMP S TRY=0,SPN=SPN+1#64 Q
+BDATA S FOO=FOO+1,SDAT="" S:FOO=1 SDAT="#M#JSystem status:#M#J" Q:FOO>9
+ F II=1:1:FOO S SDAT=SDAT_FOO
+ S SDAT=SDAT_"#M#J" S:FOO=4 SDAT="#M#J FROGPIG-MS sucks!#M#J#M#J    " Q
+SRVERR S %MSG="Server: "_SDAT D ^%ZKRLOG
+ S SPT="E" D SPACK G SRV
+
+%ZKRT20
+%ZKRT20 ;DGR;03MAR84;KERMIT V1.1; Kermit - command parser
+ ;MSM;01May89 20:01;Copyright (c) 1989 PRx, Inc.
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+ ;MSM;01May89; Fix Long Standing Bug <UNDEF>RCS+2^%ZKRT20
+ ;U 0:(RM:"":$C(27)) ;** M/11 V5
+ U 0:(RM:::::64+1) ;** DSM V3
+ ;Make sure 'Escape' is read with READ * ;** STD
+ D INIT
+RCOM W !
+RC1 W PROMPT F I=1:1:CI-1 W CMD(I)," " ;MSM
+ I CI W CMD(CI) I CI=VI W " " S A=32
+RCS S LA=A R *A:600 G TO:'$T,CR:A=13,ESC:A=27,QM:A=63,DEL:A=127,CTRLU:A=21,CTRLC:A=3 ;MSM;03Jan86
+ I A>96,A<123 S A=A-32
+ I A>32 S:LA=32!'LA&(A-40) CI=CI+1,CMD(CI)="" S C=$C(A),CMD(CI)=CMD(CI)_C
+ I A<32 S A=LA ;MSM
+ G RCS
+TO W !,"? No response for 10 minutes" D INIT G XIT
+CR ;
+ S:LA'=32 A=32 S E=0 F EI=VI+1:1:CI D VER I E D VERMSG,INIT G RCOM
+ S GI=VI D BCREF I $D(@CREF)#10=0 W:CI'=0 !,"? Incomplete" D INIT G RCOM ;MSM;04Mar86
+XIT ;
+ K CI,EI,GI,A,C,LA,QREF,CREF,GREF,KW,LSS,SS
+ ;U 0:(RM:"") ;** M/11 V5
+ U 0:(0:::::1) ;** DSM V3
+ ;reset terminal protocol if necessary ;** STD
+ Q
+ESC ;
+ S A=27
+ I LA=32!'LA W *7 S A=LA G RCS
+ S E=0 F EI=VI+1:1:CI-1 D VER I E D VERMSG,INIT G RCOM
+ S EI=CI D VER I 'E G ESC1
+ I E=1 D VERMSG,INIT G RCOM
+ W *7 S A=LA G RCS
+ESC1 I CSS(VI)[CMD(VI) S X=$F(CSS(VI),CMD(VI)) W $E(CSS(VI),X,99)," " S CMD(VI)=CSS(VI)
+ S A=32 D BGREF G:$D(@GREF)#10=0 RCS S X=$P(CMD(VI)," ")_" ("_(@GREF)_")",X=$E(X,$F(X,CMD(VI)),255),CMD(VI)=CMD(VI)_X W $S($E(X)=" ":$E(X,2,255),1:X)," " G RCS
+QM ;
+ S E=0 F EI=VI+1:1:CI-1 D VER I E D VERMSG,INIT G QMX
+ I LA=32,CI S EI=CI D VER I E D VERMSG,INIT G QMX
+ D BQREF I $D(@(QREF_",1)")) F I=1:1 G QMX:'$D(@(QREF_","_I_")")) W !?3,@(QREF_","_I_")")
+ K KW S KW=0,LSS=$S('LA:"",LA=32:"",1:CMD(CI)),SS=LSS S GI=VI D BCREF I VI,SS]"",$D(@CREF@(SS)) S KW=1,KW(1)=SS
+ F I=1:1 S SS=$O(@CREF@(SS)) Q:SS=""  Q:$E(SS,0,$L(LSS))'=LSS  S KW=KW+1,KW(KW)=SS
+ I VI,LSS="",$D(@CREF)#10 W "  confirm with carriage return" G QMX:'KW W !,"   or, enter"
+ I KW W " one of the following:",! S X=2 F I=1:1:KW S L=$L(KW(I))+1 X $S(L+X>RM:"W ! S X=2",1:"") W ?X,KW(I) S X=L\10+1*10+X
+ E  W " confirm with carriage return"
+QMX K QREF,CREF,KW,LSS,SS,EI,GI,X,L S A=LA G RCOM
+DEL S A=32 G RCS:'CI I LA=32 S:VI VI=VI-1 S A=$A($E(CMD(CI)),$L(CMD(CI))) W @RO G RCS
+ S CMD(CI)=$E(CMD(CI),0,$L(CMD(CI))-1) I '$L(CMD(CI)) K CMD(CI) S:CI CI=CI-1,A=32 W @RO G RCS
+ S A=$A($E(CMD(CI)),$L(CMD(CI))) W @RO G RCS
+CTRLU W *13,$J("",$X),$C(13) D INIT G RC1
+CTRLC D INIT Q
+INIT K CMD,CSS S (CI,VI,E,A)=0 Q
+VER G VER^%ZKRT20A
+BCREF S CREF="^%ZKRX(""COMMAND""" F I=1:1:GI S CREF=CREF_","""_CSS(I)_""""
+ S CREF=CREF_")" Q
+BQREF S QREF="^%ZKRX(""?""" F I=1:1:VI S QREF=QREF_","""_CSS(I)_""""
+ Q
+BGREF S GREF="^%ZKRX(""GUIDE""" F I=1:1:VI S GREF=GREF_","""_CSS(I)_""""
+ S GREF=GREF_")" Q
+VERMSG G VERMSG^%ZKRT20A
+
+%ZKRT20A
+%ZKRT20A ;DGR;03MAR84;KERMIT V1.1; Kermit - command parser - overflow
+ ;MSM;10Sep86 21:58;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+ ;MSM;10Sep86; Add SITE variable
+VER S E=0 Q:CMD(EI)=""  S GI=EI-1 D BCREF S A=$P(CMD(EI)," "),SS=$O(@CREF@("~")) I $E(SS)="~" D @("V"_$E(SS,2,9)) S:'E VI=EI,CSS(EI)=SS Q
+ I $D(@CREF@(A)) S VI=EI,CSS(EI)=A Q
+ S SS=A F I=1:1 S LSS=SS,SS=$O(@CREF@(SS)) Q:SS=""!($E(SS,1,$L(A))'=A)
+ I I=2 S VI=EI,CSS(EI)=LSS Q
+ S E=$S(I=1:1,1:2) Q
+VERMSG W " ",$S(E=1:"? Does not match switch or keyword",E=2:"? Ambiguous",1:"") Q
+VCTRL I A'?1"^".1UP!($A(A,2)>95!($A(A,2)<65)) W !,"? Enter a control character like '^A' or '^]'" S E=3
+ Q
+VFSPEC I A'?1.8UN1"."1.3UN,A'?1"%".7UN1"."1.3UN W !,"? Illegal file spec" S E=3
+ Q
+VFSPECW S FN=$P(A,"."),FT=$P(A,".",2) I $S($L(FN)>8:1,$L(FT)>3:1,FN="":1,FT="":1,FN'?.1"%".8UN.1"*":1,FT'?.3UN.1"*":1,1:0) W !,"? Illegal file spec" S E=3
+ K FN,FT,X Q
+VPLEN I +A'=A!(A<10)!(A>94) W !,"? packet length from 10 thru 94" S E=3
+ Q
+VQUOTE S A=$A(A) I $S(A<33:1,A>126:1,A>62&(A<96):1,1:0) W !,"? a character from '!' -> '>' or '`' -> '~'" S E=3
+ E  S A=$C(A)
+ Q
+VRFSPEC Q
+VSEC I +A'=A!(A<0) W !,"? Illegal number of seconds" S E=3
+ Q
+VTRY I +A1'=A!(A<0) W !,"? retries, 0 or more" S E=3
+ Q
+VTTY I $S(A'?1.N:0,A'<4&(A'>19):1,A'<64&(A'>143):1,1:0) Q  ;** M/11,DSM-11
+ I '$D(^%ZKRX("LINE",A)) W !,"? No such line" S E=3
+ Q
+VSITE I A'?3A Q
+ I '$D(^%ZKRX("SITE",A)) W !,"? Unknown site" S E=3
+ S SITE=A
+ Q
+VPHNUM I A'?1NP.NP Q
+ S PHNUM=A
+ Q
+BCREF S CREF="^%ZKRX(""COMMAND""" F I=1:1:GI S CREF=CREF_","""_CSS(I)_""""
+ S CREF=CREF_")" Q
+
+%ZKRTC
+%ZKRTC ;DGR;03MAR84;KERMIT V1.1; Set Terminal Characteristics (DH11 or DZ11).
+ ;MSM;03Aug86 22:12; (c) Copyright 1986 PRx, Inc., Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+ ;** M/11 V5 -- entire routine
+ U 0 S %DV=$S(TTY:TTY,1:$I) D CN G:POP XIT D GET
+ I $D(PAR) S %A=PAR D CP G:POP XIT
+ I $D(BAUD) S %A=BAUD D CS G:POP XIT
+ I $D(STC) S %A=STC D CH G:POP XIT
+ I $D(BIN) S %A=BIN D CB G:POP XIT
+ D SET C %DV O %DV U %DV,0
+XIT K %A,%DDBASE,%NOECHO,%I,%DV,%O,%PAR,%PAREN,%S,%LPAR,%CONDIO,%SPD,%DZ,%X,%STSIZ,%STALL,%STOP,%CHRLEN,%BIN
+ Q
+GET ;
+ I %DZ S %S="50,75,110,134.5,150,300,600,1200,1800,2000,2400,3600,4800,7200,9600,19200" ;** DZ
+ E  S %S="0,50,75,110,134.5,150,200,300,600,1200,1800,2400,4800,9600,Ext A,Ext B" ;** DH
+ F %I=1:1:16 S %S($P(%S,",",%I))=%I-1
+ Q  ;** DSM V3
+ S %DDBASE=%DV-64*70+$V($V(44)+20)
+ S %LPAR=$V(%DDBASE+6)
+ I %DZ S %SPD=%LPAR256#16,%PAR=%LPAR128#2,%CHRLEN=%LPAR8#4,%PAREN=%LPAR64#2 ;** DZ
+ E  S %SPD=%LPAR64#16,%PAR=%LPAR32#2,%CHRLEN=%LPAR#4,%PAREN=%LPAR16#2 ;** DH
+ S %CONDIO=$V(%DDBASE+20),%BIN=%CONDIO4#2,%NOECHO=%CONDIO2#2
+ S %STSIZ=$V(%DDBASE+18),%STALL=%STSIZ256
+ Q
+SET Q  ; DSM V3
+ S %STOP=0 ;1 stop bit
+ I %DZ S %LPAR=%LPAR4096*4096+(%SPD*256)+(%PAR*128)+(%PAREN*64)+(%STOP*32)+(%CHRLEN*8)+(%LPAR#8)
+ E  S %LPAR=%SPD*1024+(%SPD*64)+(%PAR*32)+(%PAREN*16)+(%STOP*4)+%CHRLEN ;** DH
+ S %CONDIO=%CONDIO8*8+(%NOECHO*2)+(%BIN*4)+(%CONDIO#2)
+ S %STSIZ=%STALL*256+(%STSIZ#256)
+ V %DDBASE+6::%LPAR,%DDBASE+20::%CONDIO,%DDBASE+18::%STSIZ Q
+ Q
+CN S POP=%DV<64!(%DV>111) S POP=0 S:'POP %DZ=%DV>95 Q
+CS S POP='$D(%S(%A)) S:'POP %SPD=%S(%A) Q
+CP S POP='(%A?1U&("NEO"[%A)) S:'POP %PAREN="EO"[%A,%CHRLEN=$S(%A="N":3,1:2),%PAR="NE"'[%A Q
+CH S POP='(%A?.N&(%A<64)) S:'POP %STALL=%A Q
+CB S POP='(%A?1N&("01"[%A)) S:'POP %BIN=%A Q
+
+%ZKRTCIS
+%ZKRTCIS ;DGR;03MAR84;KERMIT V1.1;Kermit - Set Terminal Characteristics (DH11 or DZ11). ** M/11 V5
+ ;MSM;12Nov86 00:25;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+ U 0 S %DV=$S(TTY:TTY,1:$I) D CN G:POP XIT D GET
+ I $D(PAR) S %A=PAR D CP G:POP XIT
+ I $D(BAUD) S %A=BAUD D CS G:POP XIT
+ I $D(STC) S %A=STC D CH G:POP XIT
+ I $D(BIN) S %A=BIN D CB G:POP XIT
+ D SET C %DV O %DV U %DV,0
+XIT K %A,%DDBASE,%NOECHO,%I,%DV,%O,%PAR,%PAREN,%S,%LPAR,%CONDIO,%SPD,%DZ,%X,%STSIZ,%STALL,%STOP,%CHRLEN,%BIN
+ Q
+GET I %DZ S %S="50,75,110,134.5,150,300,600,1200,1800,2000,2400,3600,4800,7200,9600,19200" ;** DZ
+ E  S %S="0,50,75,110,134.5,150,200,300,600,1200,1800,2400,4800,9600,Ext A,Ext B" ;** DH
+ F %I=1:1:16 S %S($P(%S,",",%I))=%I-1
+ S %DDBASE=%DV-64*70+$V($V(44)+20)
+ S %LPAR=$V(%DDBASE+6)
+ I %DZ S %SPD=%LPAR256#16,%PAR=%LPAR128#2,%CHRLEN=%LPAR8#4,%PAREN=%LPAR64#2 ;** DZ
+ E  S %SPD=%LPAR64#16,%PAR=%LPAR32#2,%CHRLEN=%LPAR#4,%PAREN=%LPAR16#2 ;** DH
+ S %CONDIO=$V(%DDBASE+20),%BIN=%CONDIO4#2,%NOECHO=%CONDIO2#2
+ S %STSIZ=$V(%DDBASE+18),%STALL=%STSIZ256
+ Q
+SET S %STOP=0 ;1 stop bit
+ I %DZ S %LPAR=%LPAR4096*4096+(%SPD*256)+(%PAR*128)+(%PAREN*64)+(%STOP*32)+(%CHRLEN*8)+(%LPAR#8)
+ E  S %LPAR=%SPD*1024+(%SPD*64)+(%PAR*32)+(%PAREN*16)+(%STOP*4)+%CHRLEN ;** DH
+ S %CONDIO=%CONDIO8*8+(%NOECHO*2)+(%BIN*4)+(%CONDIO#2)
+ S %STSIZ=%STALL*256+(%STSIZ#256)
+ V %DDBASE+6::%LPAR,%DDBASE+20::%CONDIO,%DDBASE+18::%STSIZ Q
+ Q
+CN S POP=%DV<64!(%DV>111) S:'POP %DZ=%DV>95 Q
+CS S POP='$D(%S(%A)) S:'POP %SPD=%S(%A) Q
+CP S POP='(%A?1U&("NEO"[%A)) S:'POP %PAREN="EO"[%A,%CHRLEN=$S(%A="N":3,1:2),%PAR="NE"'[%A Q
+CH S POP='(%A?.N&(%A<64)) S:'POP %STALL=%A Q
+CB S POP='(%A?1N&("01"[%A)) S:'POP %BIN=%A Q
+
+%ZKRUM
+%ZKRUM ;DGR;03MAR84;KERMIT V1.1; Kermit - utility parts - miscellanous
+ ;PRX;02Oct87 21:28;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+RPAR ;
+ S X=$A(RDAT)-32 I X<SPSIZ S SPSIZ=X
+ S RTO=$A(RDAT,2)-32,SPADN=$A(RDAT,3)-32,SPAD=$A(RDAT,4) S SPAD=$S(SPAD=63:127,1:SPAD-64)
+ S SEOL=$A(RDAT,5)-32 I SEOL<1 S SEOL=13
+ S RQA=$E(RDAT,6) S:RQA=" "!(RQA="") RQA="#"
+ I RTO<1 S RTO=16 ;MSM
+ Q
+GETFIL ;
+ K ^%ZKRZ($J,"FILE") S E=0,FN=$P(FSPEC,"."),FT=$P(FSPEC,".",2)
+ S FNL=$L(FN),FTL=$L(FT),FNW=$E(FN,FNL)="*",FTW=$E(FT,FTL)="*"
+ I 'FNW S F1=FN D GF2 G GFX
+ S FN=$E(FN,0,FNL-1),F1=FN D:$S(F1="":0,'$D(^%ZKR(F1)):0,1:1) GF2 F I=0:0 S F1=$O(^%ZKR(F1)) Q:F1=""!($E(F1,0,FNL-1)'=FN)  D GF2
+ G GFX
+GF2 I 'FTW S F2=FT D:$D(^%ZKR(F1,F2)) GFSET Q
+ S FT=$E(FT,0,FTL-1),F2=FT D:$S(F2="":0,'$D(^%ZKR(F1,F2)):0,1:1) GFSET F I=0:0 S F2=$O(^%ZKR(F1,F2)) Q:F2=""!($E(F2,0,FTL-1)'=FT)  D GFSET
+ Q
+GFSET S ^%ZKRZ($J,"FILE",F1_"."_F2)="" Q
+GFX I '$D(^%ZKRZ($J,"FILE")) S E=1,FSPEC="File(s) not found for "_FSPEC
+ K FN,FT,FNW,FTW,FNL,FTL,F1,F2,I Q
+INITPAR ;
+ S FDX=1,RPSIZ=94,SPSIZ=94,RTO=16,STO=0 ;MSM
+ S MAXTRY=8,DELAY=1,PAUSE=0,PASSTHRU=$ZVER["DSM"&($ZVER'["3.0")
+ S (SSOH,RSOH)=1,SEOL=13,(SPADN,SPAD)=0
+ S SQA="#"
+ S %CESC=29 I PASSTHRU D GETCESC^%ZKRDSMC
+ S CESC=%CESC,PAR="N",BAUD=9600 ;MSM
+ S KAF=1,FW=0
+ S DEBUG=0
+ S (SPN,RPN)=0
+ S (BCNT,EFB)=0
+ S %LOG="KERMIT"
+ S LOG="",LOGDEV="" I $D(^%ZKRX("DEFAULT","LOG")) S LOGDEV=^("LOG")
+ Q
+SHOW ;
+ W !!,"This is Kermit-M Version ",^%ZKRX("VERSION")
+ W !,"Line assigned : ",$S(TTY:TTY,1:"local terminal")," ; we are ",$S(TTY:"local",1:"remote")
+ W !,"Connections are ",$S(FDX:"full",1:"half")," duplex, ",$S(PAR="N":"no",PAR="E":"even",PAR="O":"odd",PAR="M":"mark",PAR="S":"space")," parity, ",BAUD," baud"
+ I $ZVER["DSM"&($ZVER["3.1") W ", DSM Passthru ",$S(PASSTHRU:"on",1:"off")
+ W !,"We will receive packets of at most ",RPSIZ," characters"
+ W !,"We will send packets of at most ",SPSIZ," characters"
+ W !,"Maximum number of tries is ",MAXTRY," ; receiver timeout after ",RTO," seconds"
+ W !,"Delay ",DELAY," seconds before sending the first 'send intialize' packet"
+ W !,"Pause ",PAUSE," seconds before sending each packet"
+ W !,"We send CTRL/",$C(SSOH+64)," as a packet header, and expect CTRL/",$C(RSOH+64)
+ W !,"We send CTRL/",$C(SEOL+64)," at the end of each packet; we do not require a packet terminator"
+ W !,"Our 'escape' character for remote connection is CTRL/",$C(CESC+64)
+ W !,"Partially-received files are ",$S(KAF:"kept",1:"discarded")," if transmission is aborted"
+ W !,"The file-warning flag is ",$S(FW:"on",1:"off")
+ W !,"We quote control characters with ",SQA," when sending files"
+ W ! Q
+
+%ZKRUP
+%ZKRUP ;DGR;03MAR84;KERMIT V1.1; Kermit - utility parts - packets
+ ;MSM;21Apr89 10:11;Copyright (c) 1989 PRx, Inc.
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+SPACK ;
+ U TTY:(::::1) I PAUSE H PAUSE
+ F I=1:1:SPADN W *SPAD
+ S CHKSUM=0 F I=1:1:$L(SDAT) S CHKSUM=CHKSUM+$A(SDAT,I)
+ S CHKSUM=CHKSUM+$L(SDAT)+67+SPN+$A(SPT)
+ S CHKSUM=CHKSUM\64#4+CHKSUM#64
+ S A=$C(SSOH)_$C($L(SDAT)+35)_$C(SPN+32)_SPT_SDAT_$C(CHKSUM+32)_$C(SEOL)
+ I DEBUG ZU 1 U:TTY 0 W !,"Sending packet : ",A U TTY
+ W A Q
+RPACK ;
+ U TTY:(::::1)
+ S E=0 F I=0:0 R *A:RTO G RTO:'$T Q:A=RSOH
+ R *A:RTO G RTO:'$T,RPACK:A=RSOH S RPLEN=A-32,CHKSUM=A
+ I RPLEN<1 S E=1 Q:'DEBUG  ZU 1 U:TTY 0 W !,"(packet length error)" U TTY Q
+ R A#RPLEN:RTO G RTO:'$T
+ S RPN=$A(A)-32,RPT=$E(A,2),CHKSUM=CHKSUM+$A(A)+$A(A,2)
+ S RDAT=$E(A,3,RPLEN-1)
+ F I=1:1:$L(RDAT) S CHKSUM=CHKSUM+$A(RDAT,I)
+ S CHKSUM=CHKSUM\64#4+CHKSUM#64 I CHKSUM'=($A(A,RPLEN)-32) S E=1
+ I DEBUG ZU 1 U:TTY 0 W !,"Received packet # ",RPN," of type ",RPT," ; Data : ",RDAT," ; Checksum : ",$A(A,RPLEN)-32 W:E !,"** Checksum error - wanted ",CHKSUM U TTY
+ Q
+RTO S E=1 Q:'DEBUG  ZU 1 U:TTY 0 W !,"(receiver timed out)" U TTY Q
+
+%ZKRX
+%ZKRX ;MSM;13Nov86;KERMIT 1.1A; Callable Entry Points
+ Q
+KIN G KIN^%ZKRMFIO
+KOUT G KOUT^%ZKRMFIO
+FOPENR G FOPENR^%ZKRMFIO
+FOPENW G FOPENW^%ZKRMFIO
+FCLOSER G FCLOSER^%ZKRMFIO
+FCLOSEW G FCLOSEW^%ZKRMFIO
+INIT D INIT^%ZKR,INITPAR^%ZKR Q
+ROR G %ROR^%ZKRXOR
+
+%ZKRXO
+%ZKRMO ;13Nov86;KERMIT V1.1A; Callable MUMPS interface - Output MUMPS-->Kermit
+ ;MSM;13Nov86 14:59;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ;Copyright (c) 1984 New York State College of Veterinary Medicine
+OOPT ;
+ W !!,"Output options (MUMPS data structures --> Kermit-M file system)",! F I=1:1:5 W !?5,I,") ",$P("Sequential file out;Routine out (.RTN files);Routine out (.ROU file);Global out;Sequential global out",S,I)
+OO1 W !!,"Your choice (? for help) : X => " D READ G OO1:E Q:"Xx^>"[A  I "?Hh"[$E(A) S HREF="""OOPT""" D HELP^%ZKRM G OOPT
+ I A?1N1"?",$E(A)>0,$E(A<6) S HREF="""OOPT"","""_$P("SFO;ROM;ROR;GO;SGO",S,+A)_"""" D HELP^%ZKRM G OOPT
+ I $S(A'?1N:1,A<1:1,A>5:1,1:0) W *7," ? no such option" G OO1
+ W @FF D @$P("SFO;ROM;ROR;GO;SGO",S,A) G OOPT
+ Q
+SFO ;
+ W !!,"Write a sequential MUMPS file to a Kermit-M file",!
+SFO1 ;W !,"Read from" D ^%IS I POP Q  ;** M/11
+ S %QTY=1 D ^%IOS I '$D(%IOD) Q  S IO=%IOD,IOT=%DTY,IOST="T" ;DSM-11
+ I "TRM\SDP\MT"'[(B_IOT_B) W *7," I can't deal with that type of device" G SFO1
+ ;set IO as $I from which to read, IOT as device type, IOST as subtype, then OPEN it with correct parameters ;** STD
+ S TRM=IOT="TRM"
+SFOF W !,"Write to which Kermit-M file?" D GFILE G:E SFOX D FOPENW I E W *7," ?? that file is already defined" G SFOF
+ U 0 I TRM,IO'=$I W !,"Enter your text lines at terminal #",IO,!
+ I TRM U IO W !!!,"Enter lines of text; enter <CR> only when done",!
+ E  U 0 W !,"Writing to file ",FILE,"..." U IO
+ U IO F I=0:0 W:TRM !,">" R LIN D SFEOF Q:E  D KIN
+ D FCLOSEW
+ I TRM W !!,"The above text is now in file ",FILE
+ E  U 0 W "** done"
+SFOX U 0 I $D(IO),IO'=$I C IO
+ K TRM,FILE Q
+SFEOF S E=0 I IOT="TRM" S E=$S(LIN="":1,1:0) Q
+ I IOT="SDP" S E=$S(LIN=$C(26):1,1:0) Q
+ I IOT="MT" S E=$S(LIN=$C(26):1,$ZA\16384#2:1,1:0) Q
+ S E=1
+ Q
+ROM G ROM^%ZKRMOR
+ROR G ROR^%ZKRMOR
+GO ;
+ W !!,"Global output to a Kermit file",!
+GOR D GROOT I 'GRF Q
+GOF W !!,"Write into what Kermit-M file?",! D GFILE Q:E  D FOPENW I E W *7," ?? that file is already defined" G GOF
+ D HEAD F GI=1:1:GRF S GR=GRF(GI) D GOW
+ D FCLOSEW K GI,GR,GRF,DEF,L,M,REF,SUB W *7,!,"** All done" Q
+GOW W !,"Starting ",GR,"..." I '$D(@GR) W *7," ** [undefined]" Q
+ S L=$S(GR["(":1,1:0),M=L,REF(L)=GR,L(L)=$L(GR)-1 D GOVIS:$D(@GR)#10 S M=L+1 D GODOWN
+ Q
+GODOWN S SUB(L)="" F I=0:0 S SUB(L)=$O(@REF(L)@(SUB(L))) Q:SUB(L)=""  S REF(M)=$S('L:REF(L)_"("""_SUB(L)_""")",1:$E(REF(L),1,L(L))_","""_SUB(L)_""")"),L(M)=$L(REF(M))-1,DEF=$D(@REF(M)) D:DEF#10 GOVIS I DEF\10 S L=M,M=M+1 D GODOWN S M=L,L=L-1
+ Q
+GOVIS S LIN=REF(M) D KIN S LIN=@(REF(M)) D KIN Q
+ Q
+SGO ;
+ W !!,"Write one level of one or more globals to a Kermit file",!
+SGOR D GROOT I 'GRF Q
+SGOF W !!,"Write into what Kermit-M file?",! D GFILE Q:E  D FOPENW I E W *7," ?? that file is already defined" G SGO
+ W " writing..." F GI=1:1:GRF S GR=GRF(GI) D SGOW
+ D FCLOSEW K GI,GR,GRF,SUB W *7,!,"** All done" Q
+SGOW W !,"Starting ",GR,"..." I $D(@GR)\10=0 W *7," ** [undefined]" Q
+ S SUB="" F I=0:0 S SUB=$O(@GR@(SUB)) Q:SUB=""  I $D(@GR@(SUB))#10 S LIN=@GR@(SUB) D KIN
+ Q
+GROOT G GROOT^%ZKRMU
+GFILE G GFILE^%ZKRMU
+FOPENW G FOPENW^%ZKRMFIO
+FCLOSEW G FCLOSEW^%ZKRMFIO
+KIN G KIN^%ZKRMFIO
+DATIM G DATIM^%ZKRMU
+READ R A:120 S E=$S(A="":0,"<#@"[$E(A):1,1:0)
+ W:E " Can't do that here." Q
+HEAD ;
+ W !!,"Please enter a free-text description of this file: " D READ
+ W " writing..." S LIN=A D KIN S DATIM=$H D DATIM S LIN=DATIM D KIN K DATIM
+ Q
+
+%ZKRXOR
+%ZKRXOR ;MSM;12Nov86;KERMIT V1.1; Callable MUMPS interface - Output routines
+ ;MSM;13Nov86 12:45;(c) Copyright 1986 PRx, Inc. Concord, MA
+ROM ;
+ W !!,"Routine output to Kermit-M files (.RTN)",!,"Please specify the set of routines to write:"
+ D RSET G ROMX:'RCT W !,"Writing routines to Kermit files now..."
+ S ZL="ZL @A F J=1:1 S X=$T(+J) Q:X=""""  S ^%ZKRZ($J,""ROM"",J)=X",A=0 ;** M/11
+ ;** SET ZL=an Xecutable string to load a routine named in var. A into scratch global;** STD
+ROM1 S A=$O(^%ZKRZ($J,"RSET",A)) I A="" W !,"All done for this set of routines" G ROMX
+ W !,A,"..." K ^%ZKRZ($J,"ROM") X ZL
+ I J>1 S FILE=A_".RTN" D FOPENW I E W *7,FILE," is already defined - NOT overwritten" G ROM1
+ F J=1:1 Q:'$D(^%ZKRZ($J,"ROM",J))  S LIN=^(J) D KIN
+ D FCLOSEW W "done" ;MSM;29Jul86
+ G ROM1
+ROMX K RCT,ZL,^%ZKRZ($J,"ROM"),^("RSET")
+ Q
+ROR ;
+ W !!,"Routine output to a Kermit-M file (.ROU)",!,"Please specify the set of routines to write:"
+ D RSET G RORX:'RCT
+RORF W !!,"Write these routines to what Kermit-M file?",! D GFILE Q:E
+ ; *** Entrypoint for writing routines to kermit
+ ;
+%ROR ;(FILE, COMMENT, ^%ZKRZ($J,"RSET") )
+ I $P(FILE,".",2,3)'="ROU" S E="1must have file type of .ROU" Q
+ D FOPENW I E S E="1that file is already defined" Q
+ S ZL="ZL @A F J=1:1 S X=$T(+J) Q:X=""""  S ^%ZKRZ($J,""ROR"",J)=X",A=0 ;** M/11
+ ;** SET ZL=an Xecutable string to load a routine named in var. A into scratch global;** STD
+ D HEAD S A=0
+ROR1 S A=$O(^%ZKRZ($J,"RSET",A)) I A="" S LIN="" D KIN D FCLOSEW W !,"done." G RORX
+ W !,A,"..." K ^%ZKRZ($J,"ROR") S LIN=A D KIN X ZL
+ F J=1:1 Q:'$D(^%ZKRZ($J,"ROR",J))  S LIN=^(J) D KIN ;MSM;10Sep86
+ S LIN="" D KIN ;POPKES;10/20/86
+ W "done"
+ G ROR1
+RORX K RCT,ZL,^%ZKRZ($J,"ROR"),^("RSET")
+ Q
+RSET G RSET^%ZKRMUR
+GFILE G GFILE^%ZKRMU
+FOPENW G FOPENW^%ZKRMFIO
+FCLOSEW G FCLOSEW^%ZKRMFIO
+KIN G KIN^%ZKRMFIO
+DATIM G DATIM^%ZKRMU
+READ R A:120 S E=$S(A="":0,"<#@"[$E(A):1,1:0)
+ W:E " Can't do that here." Q
+HEAD ;
+ ;W !!,"Please enter a free-text description of this file: " D READ
+ S A=COMMENT
+ W " writing..." S LIN=A D KIN S DATIM=$H D DATIM S LIN=DATIM D KIN K DATIM
+ Q
+
+%ZKRZJ
+%ZKRZJ ;MSM;13Mar86;KERMIT V1.1; Send output from routine to Kermit File
+ ;PRX;13Nov86 16:17;(c) Copyright 1986 PRx, Inc. Concord, MA
+ ; Nonstandard: ZJOB/JOBCOMM
+ ; Inputs:  RTN, FILE
+ G START
+KIN S LEN=$L(LIN) S:$E(LIN,LEN-1,LEN)=$C(13,10) LIN=$E(LIN,1,LEN-2) G KIN^%ZKRMFIO
+START O 226::1 E  S E=1 Q  ;W !,"Reciever open failed." Q
+ ;W !,"Reciever opened",!
+ S ^%ZKRX("ZJOB")=RTN ; routine to invoke
+ O 227::1 E  S E=1 Q
+ ZJ ZJ^%ZKRZJ E  S E=1 Q  ; start job
+ C 227
+ K ^%ZKR($P(FILE,".",1),$P(FILE,".",2)) ; kill file (not best way!)
+ S LIN="",B="\",R=0
+ D FOPENW^%ZKRMFIO I E Q  W !,"Could not open file.",! Q
+ ;W !,"Reading jobcom:",!
+ F I=0:1 U 226 R X:60 Q:'$T!(X[$C(26))  S LIN=LIN_X I $A(LIN,$L(LIN))=10 D KIN S LIN="",R=R+1
+ S LIN=$P(LIN,$C(26),1)
+ I $L(LIN) D KIN
+ K ^%ZKRX("ZJOB") 
+ ;W !,I,":",R," records."
+ D FCLOSEW^%ZKRMFIO ; close file
+ C 226
+ Q
+ZJ ; start of background job
+ ;W !,"Background job # ",$J,!
+ O 227::10 E  Q  ;W !,"Could not open transmitter." Q
+ U 227
+ D @^%ZKRX("ZJOB")
+ W *26
+ C 227
+ Q  ; done
+
+

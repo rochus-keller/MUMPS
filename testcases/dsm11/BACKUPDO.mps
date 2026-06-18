@@ -1,0 +1,36 @@
+BACKUPDO        Q  ;DSM11 UTILITIES; COPYRIGHT 1980 DEC
+DOBACKS ;
+        S N=1,E=0
+        G BACKNTH
+BACNEXT S $ZT="FIXUP^BACKUPDO"
+        D BACFIX
+        G BKDONE:N'<NUM S N=N+1,MTCNT=1
+BACKNTH S DSKNO="DISK "_N G SETUP^BACKSET
+BACFIX  ;
+        I E C:UU>46 UU C 63 O 63
+        U 0 V ST+70::$V(ST+70)#H+(WT*H)
+        G BASL:ID="" S MM=$V(ST+86)
+        I 'FR S DE=FDE,L=FL,D=FD_FU D DISMNT
+        I 'ME I 'TR S DE=TDE,L="",D=TD_TU D DISMNT
+BFRET   W ! Q
+BASL    ;
+        G BFRET:ME
+        Q:$V(TDE)\16384'=1
+        V TDE+2::0,TDE::$V(TDE)#16384+16384
+        S L="",D=TD_TU D DMSG G BFRET
+DISMNT  Q:$V(DE)\16384'=1
+        V DE::$V(DE)#16384
+        V DE+2::0
+DMSG    W:'$D(UNATTN) "DISK ",D,"  --  DISMOUNTED",!
+        Q
+FIXUP   ;
+        S E=6 U 0 I $D(UNATTN) S MSG="! UNEXPECTED ERROR: "_$ZE D HD^BACKUP
+        I '$D(UNATTN) W !,"!! UNEXPECTED ERROR:",!,?4,$ZE,!
+        G FIXA
+BKDONE  ;
+        I 'E,JSW=2 S JSW=-2
+FIXA    D BACFIX
+        G ABO^BACKUPPR
+BACFAIL ;
+        U 0 I '$D(UNATTN) W:E=1 !,"** BACKUP TERMINATED BY OPR **",!
+        G FIXA

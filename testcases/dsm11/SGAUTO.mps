@@ -1,0 +1,28 @@
+SGAUTO  ;16-Apr-83 ;UTILITIES ;SYSGEN ;CONVERTS AUTOCONFIG FILE TO CONFIGURATION FORMAT ;JHM
+        S ^SYS(ID,"PROCESSOR")=$P(^SYS(0,"AUTO","PROCESSOR"),"-",2)
+        K ^SYS(ID,"DISKTYPE"),^("CONTROLLER")
+        S LIST="RK11,RK611,RL11,RH11,MSCP",DEVTYP="DISK" D DEFINE
+        S LIST="RH11,TS11,TU80,TM11,TSV05,TMSCP",^SYS(ID,"MT")=0,DEVTYP="TAPE" D DEFINE
+        S LIST="DL11,DH11,DHV11,DHU11,DZ11,DMC11,DEUNA,DEQNA,DUP11,DUV11,DPV11,DZV11,LP11,RX02,TU58,DM11-BB",DEVTYP="COM"
+        F I=1:1:$L(LIST,",") S ^SYS(ID,"CONTROLLER",$P(LIST,",",I))=0
+        D DEFINE
+        S ^SYS(ID,"MEMORY SIZE","K BYTES")=^SYS(0,"AUTO","OPTIONS","MEMORY")
+        G EXIT
+DEFINE  F I=1:1:$L(LIST,",") S DEV=$P(LIST,",",I) I $D(^SYS(0,"AUTO",DEV)) S NO=^(DEV) F CON=1:1:NO S CONINF=^SYS(0,"AUTO",DEV,CON)
+D @DEVTYP
+        Q
+DISK    S UNIT="" F J=1:1 S UNIT=$O(^SYS(0,"AUTO",DEV,CON,UNIT)) Q:UNIT=""  D
+        .S UNTYP=^(UNIT) I $E(UNTYP)="R" S:'$D(^SYS(ID,"DISKTYPE",UNTYP)) ^(UNTYP)=0 S ^(UNTYP)=^(UNTYP)+1
+        Q
+TAPE    I (DEV="RH11")!(DEV="TMSCP") S UNIT="" F J=1:1 S UNIT=$O(^SYS(0,"AUTO",DEV,CON,UNIT)) Q:UNIT=""  S UNTYP=^(UNIT) D SETAPE
+        E  S UNTYP=DEV D SETAPE
+        Q
+COM     S ^SYS(ID,"CONTROLLER",DEV)=NO,^(DEV,CON-1,"VECTOR")=+CONINF,^("CSR")=$P(CONINF,",",2)
+        Q
+SETAPE  S UNTYP=$S(UNTYP="TM11":"TS03",1:UNTYP) Q:$E(UNTYP)'="T"
+        S UNT=^SYS(ID,"MT"),^("MT")=^("MT")+1,^SYS(ID,"MT",UNT,"TYPE")=UNTYP
+        S ^("VECTOR")=$P(CONINF,","),^("CSR")=$P(CONINF,",",2) Q:UNTYP'="TS03"
+        W !,"Autoconfigure can not determine the number of TS03/TU10 tape units "
+        W !,"on your system.  If you have more than one drive, you will have to "
+        W !,"edit the SYSGEN configuration to include the extra drives",! Q
+EXIT    K DEV,CON,UNTYP,NO,UNIT,LIST,DEVTYP,CONINF,UNT Q
