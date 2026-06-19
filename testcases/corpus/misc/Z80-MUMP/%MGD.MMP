@@ -1,0 +1,18 @@
+%MGD ;JML
+ ;List Global Directory from ^UTIL.
+ W !!!,?25,"Global Directory",! S X="Y"
+READ I $D(^UTIL("GBL")) R !,"Refresh directory? : Yes       : ",X S:X="" X="Y"
+ I "??"[X W !!,?5,"'Y'es or 'N'o (only 1st character checked).",! G READ
+ I $E(X,1)="Y" D CDIR^%MGSET
+ S S="" W !!
+ F I=0:1 S S=$O(^UTIL("GBL",S)) Q:S=""  W:'(I#8) ! W ?I#8*9,S
+ W ! Q
+ ;
+CDIR W !,"Collecting Directory now..."
+ O 2:("A":"SCRATCH.DAT") C 2:1 O 2:("A":"SCRATCH.DAT")
+ U 2 V 2 W !,"*EOF*",! C 2:0
+ K ^UTIL("GBL") O 2:("A":"SCRATCH.DAT")
+ U 2 F I=1:1 R L Q:L="*EOF*"  S R="" F J=1:1 S C=$E(L,J) S:" "'[C R=R_C I " "[C S:R'="" ^UTIL("GBL",R)=0,R="" Q:C=""
+ C 2:1
+ Q
+2 F I=1:1 R L Q:L="*EOF*"  S R="" F J=1:1 S C=$E(L,J) S:" "'[C R=R_C I " "[C S:R'="" ^UTIL("GBL",R)=0,R="" Q

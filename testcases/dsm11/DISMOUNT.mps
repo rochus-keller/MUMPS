@@ -38,8 +38,7 @@ STR     F I=1:1 Q:'$D(STR(I))  I ANS=STR(I) S STR=I Q
         S ADR=STSIZ*STR+STBL
 STR1    D QUIET^SYSWAIT
         I %FAIL'=0 W "Important system processes still active - try again.",! G DONE
-        I STR'=-1 S %JON="" F I=1:1 S %JON=$P(%JO,",",I) Q:%JON=""  I $V(149,%JON)\32=STR W "Job #",%JON," is logged into ",ANS G DE
-ND1
+        I STR'=-1 S %JON="" F I=1:1 S %JON=$P(%JO,",",I) Q:%JON=""  I $V(149,%JON)\32=STR W "Job #",%JON," is logged into ",ANS G DEND1
         I $V(ST+410)#2,$V(ST+54)#256=128,$V(ST+410)\256#2=0 S TYU=$V(ST+266)#256\4 D TYU I %ER W "Journaling" G DEND2
         I $V($V(ST+8)+2)#256=255 G SDP
         S TYU=$V($V(ST+10)+$V(ST+68)+17)\4 D TYU I %ER W "Spooling" G DEND2

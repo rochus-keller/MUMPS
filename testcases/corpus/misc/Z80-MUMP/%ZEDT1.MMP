@@ -1,0 +1,85 @@
+%ZEDT1 ;John Lewkowicz - NYS Coleg of Veterinary Medicine
+ ;Program Editor - extension of %ZEDT
+BREAK D GLNM I L1<1!'$D(^(L1)) W *7," BAD line." Q
+ S LNM=L1,CL=^(LNM)
+EDB1 W !,?5,"Break after characters: " D READ G EDB1:E Q:A=""
+ S F=$F(CL,A) I 'F W *7," Can't find." G EDB1
+ D GINC S NLN=LNM+INC,^(LNM)=$E(CL,0,F-1),^(NLN)=$E(CL,F,255) S:NLN>EL EL=NLN,^(0)=EL
+ Q
+EDC0 W !,?5,"Change every: " D READ G EDC0:E Q:A=""  S X=A
+EDC1 W !,?5,"        With: " D READ G EDC1:E D LVER G EDC1:E
+EDC2 S L=$N(^(L)) G EDC9:L<0!(L>L2) S LNM=L,CL=^(L),I=""
+EDC3 S F=$F(CL,X) I 'F S CL=I_CL W:CL'=^(L) !,L D:CL'=^(L) DISP S ^(L)=CL G EDC2
+ S I=I_$E(CL,0,F-1-$L(X))_A,CL=$E(CL,F,255) G EDC3
+EDC9 K L,F,X W ! Q
+ERASE ;
+ D GLNM Q:L1<0  D SET
+ I L1'=L2 W !,"ERASE lines "_L1_" thru "_L2_" Are you sure? N ==> " D READ I A'="Y"&(A'="y") W " [NO CHANGE]" Q
+ F I=1:1 S L=$N(^(L)) Q:L<0!(L>L2)  K ^(L)
+ER10 I '$D(^(EL)) S L=-1,EL=0 F I=1:1 S L=$N(^(L)) Q:L<0  S EL=L
+ S LNM=$N(^(L2)) S:LNM<0 LNM=EL S ^(0)=EL
+ W " ** DONE." S RNF=1 Q
+MOVE ;
+ D GLNM Q:L1<0  D SET S LA=L1,LB=L2,LC=L
+MV1 W !,"Move lines ",LA,"-",LB," After Line: " D READ G MV1:E Q:"."[A
+ D GLNM I L1<0 W " BAD line." G MV1
+ S LNM=L1 D GINC S NLN=$S('LNM!$D(^(LNM)):LNM+INC,1:LNM)
+MV2 S LC=$N(^(LC)) I LC<0!(LC>LB) S L2=LNM-.00001 S:LNM>EL EL=LNM G ER10
+ W !,NLN,?6,^(LC)
+ S LNM=NLN,^(LNM)=^(LC) K ^(LC) D:L1<EL GINC S NLN=LNM+INC G MV2
+XFER ;
+ D GLNM Q:L1<0
+XF1 W !,"Transfer lines from routine ^" D READ G XF1:E Q:"."[A  S RN=A
+XF2 W !,?5,"From Label: " D READ G XF2:E Q:"."[A  S LA=$P(A,"+",1),PA=$P(A,"+",2)
+XF3 W !,?5,"  To Label: " D READ G XF3:E Q:"."[A  S LB=$P(A,"+",1),PB=$P(A,"+",2)
+XF4 W !,"After Line: ",L1,"  : " D READ G XF4:E I A'="" D GLNM I L1<0 S L1="" G XF4
+ S LNM=L1 D GINC S NLN=$S('LNM!$D(^(LNM)):LNM+INC,1:LNM)
+ S GINC=$E($T(GINC+1),2,255),N="",SP=" ",J=-1
+ S X="ZL @RN F II=0:1 S A=$T(@LA+II) Q:A=N!(J'<PB)  S:J'<0 J=J+1 S:$P(A,SP,1)=LB J=0 I II'<PA S LNM=NLN,^(LNM)=A W !,NLN,?6,A X:L1<EL GINC S NLN=NLN+INC"
+ X X S $ZE="" S:LNM>EL EL=LNM,^(0)=EL W ! K GINC,X
+XF5 Q
+VIEW ;
+ W !,"View routine: " D READ G VIEW:E Q:"."[A
+ S N="",SP=" ",MORE="W ! I $Y>20 R ""More: Y ==> "",A W #"
+ X "ZR  ZL @A W # S A=N F I=1:1 S X=$T(+I) Q:X=N  X MORE Q:A=""N""!(A=""n"")  W $P(X,SP,1),?8,$P(X,SP,2,255)"
+ S $ZE=""
+ Q
+RNUM S EL=^(0),L1=0 Q:'EL  W " Renumbering..."
+ F I=1000:1 S L1=$N(^(L1)) Q:L1<0!(L1>EL)  S ^(I)=^(L1) K ^(L1)
+ F L1=1000:1:(I-1) S ^(L1-999)=^(L1) K ^(L1)
+ S EL=I-1000,^(0)=EL Q
+READ ;
+ R A S E=0
+ Q
+GLNM ;
+ I A="#" S A=LP1_"-"_LP2 W " ["_A_"]"
+ D UPPER S A=$S(A="":"L",A="A":"B-E",1:A),D=$S(A["-":"-",A[":":":",1:"-")
+ S LN=LNM,L=$P(A,D,1) D GLV X "S L1=$S(L<0:-1,1:L)" Q:L1<0
+ S LN=L1,L=$P(A,D,2) D:A[D GLV X "S L2=$S(L'>0:-1,1:L)" S:L2>L1 LP1=L1,LP2=L2
+ Q
+GLV S LP=$P(L,"+",2),L=$P(L,"+",1)
+ I L'?1"@".E X "S L=$S(L="""":LN,+L=L:L,L=""L"":LNM,L=""B"":0,L=""E"":EL,1:-1)" G GLV9
+ S LL=$E(L,2,99),L=0 F II=1:1 S L=$N(^(L)) Q:L<0  Q:$P(^(L)," ",1)=LL
+GLV9 I LP F II=1:1:LP S L=$N(^(L)) I L<0 S L=EL Q
+ K LL,II,LP Q
+GINC ;
+ S INC=1,L2=$N(^(LNM))-LNM I L2>0 F I=1:1 Q:L2>INC  S INC=INC/10
+ S:INC<1 RNF=1 Q
+LVER S E=0 Q:A?.ANP  W *7,!!,?10,"<CTRL> key",! S E=1 Q
+UPPER ;
+ F I=1:1 Q:A?.NUPC  S X=$A(A,I) I X>96,X<123 S A=$E(A,0,I-1)_$C(X-32)_$E(A,I+1,255)
+ K X,I Q
+DISP S LIN=CL G DI2:$D(PRG)
+DI1 W ?10,$E(LIN,1,70) S LIN=$E(LIN,71,255) Q:LIN=""  W ! G DI1
+DI2 W ?6,$P(LIN," ",1) S LIN=$P(LIN," ",2,255)
+DI3 W ?15,$E(LIN,1,64) S LIN=$E(LIN,65,255) Q:LIN=""  W ! G DI3
+SET S:L2<0 L2=L1 S L=$S('L1:.00001,1:L1-.00001)
+ Q
+MORE S E=0 W ! I $Y>20 W "More? YES ==> " D READ S:"Nn"[$E(A)&(A'="") A=".P" S:A?1".".E E=1 W # F I=1:1 Q:'$X  W $C(8),$C(32),$C(8)
+ Q
+XFERR ;
+ W *7,!,$ZE," BAD Routine or Line reference." G ZR10^%ZR
+S:A?1".".E E=1 W # F I=1:1 Q:'$X  W $C(8),$C(32),$C(8)
+ Q
+XFERR ;
+ W *7,!

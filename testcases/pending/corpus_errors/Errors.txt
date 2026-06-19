@@ -1,0 +1,4 @@
+- 14 Z80-MUMP files with truncated source lines
+- kermit/mpker.rou with $D(x)10 source issue ($D(x)10, %EDIT.MMP ZM : Z80-MUMP syntax)
+
+

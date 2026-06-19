@@ -23,8 +23,7 @@ CHK     D GETUCN G EN1:'UCN
         I I W !,"Type ? for HELP" S ^UTILITY($J)="%RSEL"
         W ! D ^%RSEL
         S RNAM="",SUM=0 K ^SYS(0,"ROUTINE MAP",SETNAM)
-        F RNUM=0:1 S RNAM=$O(^UTILITY($J,RNAM))  Q:RNAM=""  S ^SYS(0,"ROUTINE MAP",SETNAM,RNAM)="",SUM=$P(^[%UCI,%SYS] (RNAM),",",3)
-+63\64*64+SUM
+        F RNUM=0:1 S RNAM=$O(^UTILITY($J,RNAM))  Q:RNAM=""  S ^SYS(0,"ROUTINE MAP",SETNAM,RNAM)="",SUM=$P(^[%UCI,%SYS] (RNAM),",",3)+63\64*64+SUM
         I 'RNUM D SHOKIL G EN1
         S ^SYS(0,"ROUTINE MAP",SETNAM)=RNUM_","_%UCI_","_%SYS
         S SUM=RNUM+1\2*2*2+63\64*64+SUM

@@ -1,0 +1,55 @@
+%ZFN ;MATH FUNCTIONS SLC ; 03/26/80 ; ;12
+LN ;%LN=LN(%X)
+ S %F=%X,(%LN,%D)=0 Q:%X'>0
+LN2 IF %F'<1 S %F=.5*%F,%D=%D+1 G LN2
+LN3 IF %F<.5 S %F=2*%F,%D=%D-1 G LN3
+ S %F=(%F-.707107)/(%F+.707107),%LN=%F*%F
+ S %LN=+$J((((.598979*%LN+.961471)*%LN+2.88539)*%F+%D-.5)*.693147,1,6)
+ K %D,%F Q
+ ;
+EXP ;%E=%EXP(%X)
+ S %E=0,%B=1.4427*%X\1+1 Q:%B>90
+ S %E=.693147*%B-%X,%A=.00132988-(.000141316*%E)
+ S %A=((%A*%E-.00830136)*%E+.0416574)*%E
+ S %E=(((%A-.166665)*%E+.5)*%E-1)*%E+1,%A=2
+ IF %B'>0 S %A=.5,%B=-%B
+ F %I=1:1:%B S %E=%A*%E
+ S %E=+$J(%E,1,6) K %A,%B,%I Q
+ ;
+PWR ;%P=%X^%Y
+ S %P=1 Q:%Y=0  S %E=0,%G=%X,%H=%Y
+ IF %X<0,%Y\1=%Y S %P=1-(2*%Y)+(4*(%Y/2)\1),%X=-%X
+ IF %X D LN S %X=%Y*%LN D EXP
+ S %P=%P*%E,%X=%G,%Y=%H
+ IF %Y>1,%X#1+(%Y#1)=0 S %P=$J(%P,1,0) ;INTEGERS
+ K %G,%H,%E,%LN Q
+ ;
+SIN ;%Y=SIN(%X) (%X IN RADIANS)
+ S F2=%X G C
+COS ;%Y=COS(%X) (%X IN RADIANS)
+ S F2=%X+1.570796
+C IF F2<-1.570796 S F2=3.14159265-F2
+ IF F2>3.14159265 S F2=F2-6.2831853 G C
+ S F4=F2,%Y=F2,F8=1,F6=-1
+ F F5=3:2:11 S F8=F8*(F5-1)*F5,F4=F4*F2*F2,%Y=F4/F8*F6+%Y,F6=-F6
+ S %Y=+$J(%Y,1,5)
+ K F2,F4,F5,F6,F8 Q
+ ;
+DTR ;DEGREES TO RADIANS
+	S %X=%X/57.29577951 Q
+ ;
+RTD ;RADIANS TO DEGREES
+ S %X=%X*57.29577951 Q
+ ;
+SQRT ;%Y=SQRT(%X)
+ S %Y=0 Q:%X'>0  S %Y=%X+1/2
+L S %F=%Y,%Y=%X/%F+%F/2 G L:%Y<%F
+ Q
+P R !,"X: ",%X Q:%X=""  R ?8,"  TO THE Y: ",%Y D PWR W ?25," IS ",%P G P
+XX R !,"X:",%X Q:%X=""  D SIN W ?15," SINE=",%Y D COS W "  COS=",%Y
+ D EXP W "  EXP=",%E D LN W "  LN=",%LN D SQRT W "  SQRT=",%Y G XX
+ ;
+TAB F X=0:.5:13 S %X=X D SIN S %X=-X/10 D EXP W !?%Y*%E*20+25,"*"
+EXP=",%E D LN W "  LN=",%LN D SQRT W "  SQRT=",%Y G XX
+ ;
+TAB F X=

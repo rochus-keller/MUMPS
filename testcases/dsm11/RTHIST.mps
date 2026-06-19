@@ -24,8 +24,7 @@ TIM     W !,"How long, in minutes, do you wish each logging session to last ? "
         S TIM=+TIM I TIM'>0!(TIM>480) W !?5,"Enter a time of up to 480 minutes.",! G TIM
         S SUB=0 F I=1:1 Q:$O(^RTH(SUB))=""  S SUB=$O(^RTH(SUB))
 LAB     W !,"Enter Label field: " R LAB,! G:LAB="^" TIM
-        I LAB="?" W !,"The label field will be printed with the histogram report at the top.",!,"Press <RETURN> if you do not want a
-label field.",! G LAB
+        I LAB="?" W !,"The label field will be printed with the histogram report at the top.",!,"Press <RETURN> if you do not want alabel field.",! G LAB
         W !,"The first session will be filed as #",SUB+1
 READY   R !,"Ready to proceed <Y> ",ANS G:ANS="^"!(ANS="N") LAB I ANS'="",ANS'="Y" G READY
         S CONF=$ZV_", "_^SYS(0,"RUNNING")

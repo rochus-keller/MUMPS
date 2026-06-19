@@ -16,8 +16,7 @@
         I '(%X?1A.AN!(%X?1"%".AN)) D %IV G %ASK
         I %MI K ^UTILITY($J,%X) G %ASK
         I '$D(%PGC) S %DCF=$D(@("^"_%X)) W:'%DCF !,*7,?8,"No such global" G:'%DCF %ASK
-        I $D(%PGC) S GL=%X,%DCF=$D(@("^"_"["_""""_FUCI_""""_","_""""_FSYS_""""_"]"_%X)) W:'%DCF !,*7,?8,"No such global" G:'%DCF %AS
-K D:%PGC %WAN
+        I $D(%PGC) S GL=%X,%DCF=$D(@("^"_"["_""""_FUCI_""""_","_""""_FSYS_""""_"]"_%X)) W:'%DCF !,*7,?8,"No such global" G:'%DCF %ASK D:%PGC %WAN
         S ^UTILITY($J,%X)="" G %ASK
 %GET    S %BLK=%DIR O 63::0 E  W !?5,"View Buffer busy" Q
         W !,"Searching directory..."

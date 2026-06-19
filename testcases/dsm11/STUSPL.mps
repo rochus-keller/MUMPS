@@ -39,6 +39,5 @@ SETDDB  D CHECK I %FAIL Q
         Q
 CHECK   S %FAIL=0,%STSPL=0,ST=$V(44),OFT=$V(ST+136) I 'OFT W !,"Spooling not in system." Q
         S OFTNUM=$V(0,OFT)#256,OFTSIZ=$V(1,OFT)
-        F I=1:1:OFTNUM I $V(I-1*OFTSIZ+2,OFT) W !,"Spool file #",$V(I-1*OFTSIZ+2,OFT)#256," is in use by job #",$V(I-1*OFTSIZ+4,OFT)
-#256/2 S %FAIL=1
+        F I=1:1:OFTNUM I $V(I-1*OFTSIZ+2,OFT) W !,"Spool file #",$V(I-1*OFTSIZ+2,OFT)#256," is in use by job #",$V(I-1*OFTSIZ+4,OFT)#256/2 S %FAIL=1
         Q

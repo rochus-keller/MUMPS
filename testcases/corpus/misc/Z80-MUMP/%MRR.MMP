@@ -1,0 +1,22 @@
+%MRR ;John Lewkowicz - NYS College of Veterinary Medicine
+ W #,?20,"Restore routines saved with %MRS",!!
+R1 R !,"Restore from Drive (A-H): ",DRV Q:DRV=""
+ I "??"[DRV W "  Drive ID like 'A' or 'B' etc." G R1
+ I DRV'?1U!("ABCDEFGH"'[DRV) W " ??" Q
+RC R !,"Comments too ?: Yes   : ",COM S:COM="" COM="Y"
+ I "??"[COM W "  'N'o if you don't want to restore comments." G RC
+ S COM=$S(COM="":1,"Yy"[$E(COM,1):1,1:0)
+R2 R !,"Name of SAVE file: ",NAM Q:NAM=""  I "??"[NAM W "  1-6 characters" G R2
+R3 R !,"Restore to Drive: ",SD I "??"[SD W "  Drive ID like 'A' or 'B' etc." G R3
+ I SD'?1U!("ABCDEFGH"'[SD) W " ??" G R3
+ ZO (SD:)
+ S NAM=NAM_".SAV" O 2:(DRV:NAM) U 2 R L,A U 0 W !!,?10,L,!,?10,A
+ R !,"ALL routines will be restored. Press RETURN when ready: ",A
+ S X1=$P($T(X1),";",2,99) X X1 C 2:0
+ I COM W !!,"Restoring comments now..."
+ I COM S NAM=$P(NAM,".",1)_".SAC" O 2:(DRV:NAM) U 2 R L U 0 W !!,L,! F I=1:1 U 2 R L Q:L="*EOF*"  S G=$P(L,"=",1),R=$P(L,"=",2,99),@G=R
+ C 2:0
+R4 ZO ("A":)
+ Q
+X1 ;U 2 F I=0:1 R R Q:R="*EOF*"  ZR  F J=1:1 R L ZI:L'="" L I L="" ZS @R U 0 W:'(I#8) ! W ?I#8*10,R S:'$D(^UTIL("ROU",R)) ^UTIL("ROU",R)=0 U 2 Q
+ Q:R="*EOF*"  ZR  F J=1:1 R L ZI:L'="" L I L="" ZS @R U 0 W:'(I#8) ! W ?I#8*10,R S:'$D(^UTIL("ROU",R)) ^UTIL("ROU",R)=0 U 2 Q

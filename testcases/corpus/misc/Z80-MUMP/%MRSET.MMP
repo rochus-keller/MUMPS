@@ -1,0 +1,30 @@
+%MRSET ;John Lewkowicz - NYS College of Veterinary Medicine
+ ;Select a set of routines, saved in ^UTIL(ROU)=1
+DIR ;Get a directory of all routine names & put in scratch CP/M file
+ I '$D(^UTIL("ROU")) D CDIR G DIR3
+DIR1 R !,"Refresh Directory: NO  : ",A I A="?"!(A="??") D LDIR G DIR1
+ I A'=""&("Yy"[$E(A,1)) D CDIR G DIR3
+DIR2 I $D(^UTIL("ROU")) R !,"Use OLD list of Routines: N  : ",A
+ Q:A'=""&("Yy"[$E(A,1))  I A'="","??"[A D:A="?" LSEL D:A="??" LDIR G DIR2
+ S S="" F I=1:1 S S=$O(^UTIL("ROU",S)) Q:S=""  S ^(S)=0
+DIR3 R !,"Routine: ",R Q:R=""  I "??"[R D:R="?" LSEL D:R="??" LDIR G DIR3
+ I $D(^UTIL("ROU",R)) S ^(R)=1 W "   done." G DIR3
+ I R'["*" W " ??" G DIR3
+ S S="",N=0,R=$E(R,0,$F(R,"*")-2),L=$L(R)
+ F I=1:1 S S=$O(^UTIL("ROU",S)) Q:S=""  I $E(S,0,L)=R S ^(S)=1,N=N+1
+ W "   ",N," routines selected." G DIR3
+CDIR W !,"Collecting Directory now..."
+ O 2:("A":"SCRATCH.DAT") C 2:1 O 2:("A":"SCRATCH.DAT")
+ U 2 V 3 W !,"*EOF*",! C 2:0
+ K ^UTIL("ROU") O 2:("A":"SCRATCH.DAT")
+ U 2 F I=1:1 R L Q:L="*EOF*"  S R="" F J=1:1 S C=$E(L,J) S:" "'[C R=R_C I " "[C S:R'="" ^UTIL("ROU",R)=0,R="" Q:C=""
+ C 2:1
+ Q
+LDIR W !,?25,"Routine Directory",!
+ S S="" F I=0:1 S S=$O(^UTIL("ROU",S)) Q:S=""  W:'(I#8) ! W ?I#8*9,S
+ W ! Q
+LSEL W !,?25,"Selected Routines",!
+ S S="",N=0 F I=0:1 S S=$O(^UTIL("ROU",S)) Q:S=""  I ^(S) W:'(N#8) ! W ?N#8*9,S S N=N+1
+ W ! Q
+ !,?25,"Selected Routines",!
+ 

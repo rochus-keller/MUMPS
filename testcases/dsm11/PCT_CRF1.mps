@@ -10,8 +10,7 @@ SB1     S X=$E(L,H),R=$E(L,H,H+2),H=H+1 G SB1:X=" " Q:X=";"!(X="")!(X'?1A)  F H=
         I (R="ZS ")!(R="ZL ")!(R="D ^")!(R="G ^") S G=G+4,K=(R="ZS "*4)+(R="ZL "*8)+(R="G ^"*16)+(R="D ^"*32)
         I R["ZJ" S G=4,K=64,X=$E(L,H+1,H+20),X=$P(X,"^",1) I X?1AN.AN S H=H+$L(X)
         S Y=1 I M="X",$E(L,H+1)'=Q S Y=0
-S1      I M="D"!(M="G") S (G,K)=0,X=$E(L,H+1,H+20),X=$P(X,"^",1) I $E(L,H+1)="^"!(X?1AN.AN) S G=4,K=$S(M="D":32,1:16) S:X?1AN.AN H=H
-+$L(X)
+S1      I M="D"!(M="G") S (G,K)=0,X=$E(L,H+1,H+20),X=$P(X,"^",1) I $E(L,H+1)="^"!(X?1AN.AN) S G=4,K=$S(M="D":32,1:16) S:X?1AN.AN H=H+$L(X)
 S2      S O=B,F=G,S=K,(E,X)=0 I $E(L,H+1)'="@" D T2 G S3
         S E=H+1,F=1,(S,O)=0 D T2 S X=(R="D ^")!(R="G ^")!'G+G
         F O=1,4 I X=O!(X=5) S Z=M S:Z="Z" Z=$E(R,1,2) S IND=Z_" "_$E(L,E,H-1) S ^UTILITY("CRF1",%JB,%I,O,$E(IND,1,63))=IND

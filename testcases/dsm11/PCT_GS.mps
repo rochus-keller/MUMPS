@@ -8,8 +8,7 @@
         I @%MTWLK U 0 W !,"Tape is write protected" G %DONE
         I @(%MTBOT_"=0") U 0 D %REW^%IOS I '$D(%REW) G %DONE
 %SET    S %CTC=0 S:((%DTY="MT")&(%MTM["V")) %CTC=1
-        U 0 S CHK=0 I %DTY="MT" R !,"Do you want to check for control characters ? < NO > ",CHK G CHKHLP:CHK="?",%DONE:CHK="^" S CHK
-=CHK?1"Y".E
+        U 0 S CHK=0 I %DTY="MT" R !,"Do you want to check for control characters ? < NO > ",CHK G CHKHLP:CHK="?",%DONE:CHK="^" S CHK=CHK?1"Y".E
 %HEAD   R !,"Header comment... ",%HEAD I %HEAD="^" G %DONE
         I %HEAD="?" W !,?5,"Enter any text to be used as a heading" G %HEAD
 %GSEL   D ^%GSEL G %ST:'$D(%GO) I '%GO G %HEAD
@@ -36,8 +35,7 @@ EOT     ;
 %E2     U 0 I $ZE?1"<INRPT".E W !?5,*7,"Unexpected interrupt",! G %EXIT
         W !,"$ZE = ",$ZE,"  $ZA = ",%ZA,!
 %EXIT   U 0 I $D(%IOD) C:%IOD'=$I %IOD
-        K %CT,%CTC,%DAT,%DAT1,%DATM,%DCF,%DTY,%GIO,%GO,%GSTO,%NAM,%REW,%TIM,%UCIN,%ZERS,AR,CHK,D,DD,EN,F,GLN,GLREF,I,II,IN,L,LCT,LNO
-,POS,S,ST,TEMP,V,VS,X,Y,ZA Q
+        K %CT,%CTC,%DAT,%DAT1,%DATM,%DCF,%DTY,%GIO,%GO,%GSTO,%NAM,%REW,%TIM,%UCIN,%ZERS,AR,CHK,D,DD,EN,F,GLN,GLREF,I,II,IN,L,LCT,LNO,POS,S,ST,TEMP,V,VS,X,Y,ZA Q
 CHKHLP  W !,?5,"Answer ""Y[ES]"" if you want to include a check for"
         W !,?5,"control characters in the global data. If  included"
         W !,?5,"each record containing control characters   will be"

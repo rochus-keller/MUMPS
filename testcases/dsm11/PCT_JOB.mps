@@ -31,8 +31,7 @@ LN      Q:%AD<0  Q:($V(%AD,%MM)#256=255)  S %LB=$V(%AD,%MM)#16
         S %LN=$V(%I+1,%MM)#256 W ?8
         F %I=%AD+%LB+2:1:%AD+%LB+%LN+1 S %X=$V(%I,%MM)#256 Q:%X=255!(%X>127)  W $C(%X)
         Q
-DMP     S $ZT="ERR^%JOB",PS=$V($V($V(44)+6)+(%JN*2))#16+1*1024,P=$V(138,%JN)-40960+2,TO=$V(396,%JN)-40960-1,FR=P+14 W !,"Symbol tabl
-e:",!
+DMP     S $ZT="ERR^%JOB",PS=$V($V($V(44)+6)+(%JN*2))#16+1*1024,P=$V(138,%JN)-40960+2,TO=$V(396,%JN)-40960-1,FR=P+14 W !,"Symbol table:",!
         I FR>PS W *7,"No variables in symbol table" Q
         D ENT^%VAR S L="" F I=1:1 S L=$O(^(L)) Q:L=""  W !,L,"=",^(L)
         W ! Q
@@ -51,15 +50,13 @@ D4      I LV>1,O(LV-1)=0 S LV=LV-1 G D4
 O       S P=P+1 F J=1:1:LV S O(J)=O(J)-1
         Q
 LOAD    I '$D(^UTILITY($J,"VAR",%JN)) W *7,!!,"  Previous symbol table data does not exist for job number ",%JN G %JOB
-        W !!,"Loading previous symbol table data" K (%JN) S %SBSCR=-1 F %INDEX=1:1 S %SBSCR=$N(^UTILITY($J,"VAR",%JN,%SBSCR)) Q:%SBS
-CR=-1  S @(%SBSCR_"=^(%SBSCR)")
+        W !!,"Loading previous symbol table data" K (%JN) S %SBSCR=-1 F %INDEX=1:1 S %SBSCR=$N(^UTILITY($J,"VAR",%JN,%SBSCR)) Q:%SBSCR=-1  S @(%SBSCR_"=^(%SBSCR)")
         K %INDEX,%SBSCR W !,"Done",! Q
 ERR     I $ZE'["INRPT" W !!,"**Error detected**",!,$ZE,! W  Q
         W *7,!,"  ***Interrupt***" S $ZT="" Q
 HELP    W !!,"Enter one of the following responses:",!,"  1.  A job number to get a look at what line is currently being executed."
         W !,"  2.  A job number followed by 'V' to get a look at what line is currently"
-        W !,"        being executed and a look at the symbol table for that job.",!,"  3.  A job number followed by '*' to get a loo
-k at what line is currently"
+        W !,"        being executed and a look at the symbol table for that job.",!,"  3.  A job number followed by '*' to get a look at what line is currently"
         W !,"        being executed and to load the variables from that job into the",!,"        current partition."
         W !,"  4.  A job number followed by 'P' to load previous symbol table data."
         W !,"  5.  Enter 'STA' to get a system status.",!,"  6.  Enter a '?' to get this help text.",!

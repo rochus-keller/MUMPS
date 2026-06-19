@@ -1,0 +1,25 @@
+%MRE ;John Lewkowicz - NYS College of Veterinary Medicine
+ ;Routine editor for micro
+ K  W !,"Routine to Edit: " D READ G %MRE:E Q:"X"[A  D UPPER
+ I ",*,RESTART,"[(","_A_",") S A=$S('$D(^%MRE):"",1:^%MRE) G %MRE:A="" W "  : ",A G EDIT
+ K ^%MRE S ^%MRE(0)=0 W "  Loading now..." S $ZE="NEW^%MRE" G XEQ
+NEW S ^%MRE(0)=0 W "...this is a NEW routine.",! G EDIT
+XEQ X "ZL @A F I=1:1 S X=$T(+I) S:X'="""" ^(I)=X I X="""" S ^(0)=I-1 Q" S $ZE="EDIT",
+EDIT S $ZE="",^%MRE=A,X=^%MRE(0),LP1="B",LP2="E",TTL="Routine "_A,RN=A,PRG=1
+EDITA D ^%ZEDT
+ I A?1";".E D UPPER S %LP1=LP1,%LP2=LP2,%TTL=TTL,LB=$E(A,2,99) K PRG S:'$D(^%C(RN,LB,0)) ^%C(RN,LB,0)=0 S TTL="COMMENTS FOR "_LB D ^%ZEDT S LP1=%LP1,LP2=%LP2,TTL=%TTL,PRG=1 K %LP1,%LP2,%TTL,LB S X=^%MRE(0) G EDITA
+ I A'="F" W !!,"DONE.",! Q
+ W !!,"Saving now..." S N=^(0)
+ X "ZR  S S=""0"" F I=1:1 S S=$O(^(S)) ZI:S'="""" ^(S) I S="""" ZS @$P(TTL,"" "",2) Q"
+ S:'$D(^UTIL("ROU",$P(TTL," ",2))) ^UTIL("ROU",$P(TTL," ",2))=0
+ W "Done.",! G %MRE
+UPPER F I=1:1 Q:A?.NUPC  S X=$E(A,I),X=$A(X) S:X>96&(X<123) A=$E(A,0,I-1)_$C(X-32)_$E(A,I+1,255)
+ Q
+READ ;
+ R A:120 S E=$S(A="":0,"<#?@^>"[$E(A,1):1,1:0)
+ I A="?" S A="?ROUT" D ^%ZEDTE W ! Q
+ I E W " Can't do that here."
+ Q
+AD ;
+ R A:120 S E=$S(A="":0,"<#?@^>"[$E(A,1):1,1:0)
+ 

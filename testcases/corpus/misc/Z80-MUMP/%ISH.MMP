@@ -1,0 +1,93 @@
+%ISH ;John Lewkowicz - NYS College of Veterinary Medicine
+ ;HELP text for ^%IS terminal definition.
+HELP W !!,"- - -",?37,"- - -",?73,"- - -"
+ G HELP01:$T(@DR)'=""
+ W !!,"NO further HELP available." G HEND
+HELP01 F I=0:1 S X=$T(@DR+I) Q:$P(X," ",1)'=""&I  W:'I @LH W !,$P(X,";",2) W:'I @HL,! I A="?" W !,?20,"<Enter ",@LH,"??",@HL," for more HELP>" Q
+HEND W !,"- - -",?37,"- - -",?73,"- - -",!!
+ Q
+TT ;Terminal type like "ADM3A" or "DM1521" or "?L" for a list of terminals.
+ ;Each terminal is coded, usually by a terminal model number. Use that code
+ ;   here.  You can enter a "?L" and the computer will display a list of
+ ;   defined terminals. If yours is in this list, pick it out and press
+ ;   the RETURN key to accept the displayed options.
+ ;If it is NOT in the displayed list, enter it here and lets get it defined.
+ ;
+ ;For most applications (including VMDP), the IMPORTANT entries are:
+ ;     1. Form Feed  -  clears screen between groups of questions.
+ ;     2. High & Low intensities - if supported by your terminal.
+ ;   All other parameters are used are optional and not often used.
+ ;
+ ;Enter a "^" or "X" character to QUIT.
+DES ;Free text description like "Volker-craig VC4404".
+BS ;The character code (decimal) for a BACKSPACE, usually a "*8".
+ ;Find out from your terminals manual what the BACK SPACE character(s) are.
+ ;   You will want to use the DECIMAL value for the character and put an
+ ;   asterisk ("*") in front of each character. Separate multiple characters
+ ;   with commas.
+FF ;The character(s) needed to Clear the Screen like: "#" or "*26,#".
+ ;The DECIMAL value of the character(s) needed to clear the screen. Note
+ ;   that the pounds sign ("#") has a decimal value of 12 and that if
+ ;   that (12) is the character nedded to clear the screen, use the "#"
+ ;   character only.  Otherwise it is necessary to enter BOTH the clear
+ ;   screen character AND a #'s sign (used internally by MUMPS to reset
+ ;   the line pointer).
+ ;
+ ;In summary, most CRT terminals can be cleared with either a:
+ ;
+ ;               "#"   -or-   "*26,#"
+RM ;The Right Margin of the screen like "79".
+ ;Right margin is the charactr position of the righmost character that can
+ ;   fit on one line. Since the numbering starts with character position "0",
+ ;   this value is usually 1 less than the number of characters that fit on
+ ;   one line. For most terminals this will have the value "79".
+SL ;Screen Length in lines like "23".
+ ;Address of the bottom line on the screen. Since the line numbering scheme
+ ;   starts at "0", this is the maximum number of lines that can be on the
+ ;   screen at any one time minus 1. For a screen that can hold 24 lines,
+ ;   you should enter the value "23".
+XY ;Cursor positioning command like   'W *27,"=",*DY+32,*DX+32' for an ADM3A.
+ ;This is a command line that is used to position the cursor to absolute
+ ;   screen position DX,DY on CRT terminals that support cursor positioning.
+ ;It (cursor positioning) is NOT used in most application packages (like the
+ ;   VMDP programs) and you can enter  W ""  here.
+ ;
+ ;If you want to include cursor positioning you must enter an executable
+ ;   MUMPS command line here using the values in DX and DY as the absolute
+ ;   X and Y coordinates.
+RO ;RUB OUT sequence like  "*8,*32,*8".
+ ;String of characters used to RUB OUT a character on either the CRT or on
+ ;   a Printer. Usually one of the following two sequences:
+ ;
+ ;     "*8,*32,*8"   CRT - Backspace, space, backspace
+ ;     "*8,*45"      Printer - Backspace,"-"
+HI ;CRT to BRIGHT intensity like "*27,*40".
+ ;For CRT's that support two intensities, you should enter the DECIMAL values
+ ;   of the characters necessay to turn the CRT to bright. For example, the
+ ;   ADM3A terminal needs an ESC and "(" characters to turn the CRT to bright.
+ ;   The EAS character has a decimal value of 27, and the "(" character a
+ ;   value of 40. You should enter here a "*27,*40" for an ADM3A CRT.
+ ;
+ ;If your terminal does NOT support two intensities, enter double quotes
+ ;   here ("").
+LO ;CRT to DIM intensity like "*27,*41".
+ ;For CRT's that support two intensitied, enter the sequence of characters
+ ;   that are necessary to turn the terminal to LOW intensity. For example,
+ ;   the ADM3A CRT requires an ESC character followed by a ")" character.
+ ;   Look up the decimal values for these two characters and enter them
+ ;   here, preceding each number with an asterisk and separating them with
+ ;   a comma ("*27,*41").
+ ;If your terminal does NOT support two intensities, enter a double quote
+ ;   ("") here.
+SV ;Enter "Y" or anything starting with "Y" to save th above data.
+ ;A check will be made on all of your entries at this time to insure that
+ ;   none will "crash" the system. If any will, you will be informed and
+ ;   can go back and correct them. This does NOT directly test the correct
+ ;   entry of each option but only insures that they won't hurt the programs.
+CD ;"Y" or "YES" if you want this definition to be installed.
+ ;If "Y"es, these will become the active terminal control characters used
+ ;   whenever MUMPS is running. Otherwise, the previous parameters will
+ ;   remain unchanged but you will have defined a new device type.
+END ;
+s running. Otherwise, the previous parameters will
+ ;   remain unchanged bu

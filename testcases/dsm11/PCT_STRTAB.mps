@@ -27,8 +27,7 @@ DSPLAY  D START W !?17,"Volume set",?29,"Disk type",?41,"No. of"
         ..W ?32,$P(STR(S,UT),":",1),?43,$P(STR(S,UT),":",2),!
         Q
 MAP     D START
-        S STU="" F I=1:1 S STU=$O(STR(STU)) Q:STU=""  S U="",MAP=0 F J=1:1 S U=$O(STR(STU,U)) Q:U=""  G:$P(STR(STU,U),":")=DDU GOTIT
- S MAP=$P(STR(STU,U),":",2)+MAP
+        S STU="" F I=1:1 S STU=$O(STR(STU)) Q:STU=""  S U="",MAP=0 F J=1:1 S U=$O(STR(STU,U)) Q:U=""  G:$P(STR(STU,U),":")=DDU GOTIT S MAP=$P(STR(STU,U),":",2)+MAP
         K STU,MAP G DONE
 GOTIT   S STU=STU_","_U
 DONE    K STR,U,I,J Q

@@ -1,0 +1,101 @@
+%ZIX ;JML NYSCVM
+ ;General purpose Index and Key Word storage & retrieval routine
+ K  D CURRENT^%IS S RECN=""
+ S IGN=" THE IS A TO FOR OR AND IT OF"
+ S DL="INIT;IN;INX;RECN;RECNX;TITLE;KEYS;TEXT;SAVE;END",DN="0010111110",DB="0;0;0;1;0;4;6;7;4;0",DP=1 D DRV
+ W @LH
+ Q
+INIT ;
+ W @FF,@LH,!,?25,"General Purpose Index File System",@HL,!!
+ S IN=""
+ Q
+IN ;Index Heading
+ D UPPER S A=UA I "X^"[A W !!,"All done, have a good day.",!! Q
+ I A'="?L" S X=$D(^%ZIX(A)) W:'X " --> NEW Heading." W !! S:'X ^%ZIX(A)=0 Q
+ S S="" W ! F I=1:1 S S=$O(^%ZIX(S)) Q:S=""  K:^(S)=0 ^(S) W:$D(^(S)) !,S," (",^(S)," entries)"
+ W ! S E="1 " Q
+INX ;
+ I IN="" S DP=0,E="1 "
+ Q
+RECN ;Number or Key Word(s)
+ D UPPER I UA="NEW" S A=^%ZIX(IN)+1,^%ZIX(IN)=A,DT=A,(TITLE,KEYS)="" Q
+ I A["?" D KEYSRC S E="1 " Q
+ S SAVE="Y"
+ G RECSRC:A'?1N.N I '$D(^%ZIX(IN,A)) S E="1NOT defined." Q
+ S TITLE=$P(^(A),DS,1),KEYS=$P(^(A),DS,2),DP=DP+4
+ S S1="0" W @FF,@LH,TITLE,!,?5,"[ ",KEYS," ]"
+ W ! F I=1:1 S S1=$O(^%ZIX(IN,A,S1)) Q:S1=""  W !,?5,^(S1)
+ W @HL,! Q
+RECSRC K N S N=0 I ^%ZIX(IN) F I=1:1 S X=$P(UA,",",I) Q:X=""  D SRC0
+ I 'N S E="1NO matches." Q
+ K N S E="1 " Q
+SRC0 S S1=$P(X," ",1),L=$L(S1),S1=$E(S1,0,L-1)_$C($A(S1,L)-1)_"|"
+ F Q=1:1 S S1=$O(^%ZIX(IN,S1)) Q:$E(S1,1,L)'=$P(X," ",1)  D SRC1
+ Q
+SRC1 S S2="" F J=1:1 S S2=$O(^%ZIX(IN,S1,S2)) Q:S2=""  S M=$P(^%ZIX(IN,S2),DS,2) D SRC2
+ Q
+SRC2 F K=2:1 S Z=$P(X," ",K) Q:Z=""  I M'[Z G SRC3
+ G SRC3:$D(N(S2)) S N=N+1,N(S2)=1
+ W !,S2,?5,$P(^%ZIX(IN,S2),DS,1),!,?5,"[ ",$P(^(S2),DS,2)," ]"
+SRC3 Q
+KEYSRC S N=0,S1=$P(UA,"?",1) Q:S1=""  S L=$L(S1),S1=$E(S1,0,L-1)_$C($A(S1,L)-1)_"|"
+ W !,@LH F Q=1:1 S S1=$O(^%ZIX(IN,S1)) Q:$E(S1,1,L)'=$E(UA,1,L)  W:'(N#4) ! W ?N#4*20,$E(S1,1,15) S N=N+1
+ W @HL W:N ! S E=$S(N:"1 ",1:"1NO Matches.")
+ Q
+RECNX ;
+ I RECN="" S DP=1,E="1 "
+ Q
+TITLE ;Title
+ Q:A'="*DELETE*"  S A=$S('($D(^%ZIX(IN,RECN))#2):"",1:$P(^(RECN),DS,2)) D:A'="" KILL
+ K ^%ZIX(IN,RECN) W "  Entry KILLED.",!!! S E="1 ",DP=4,RECN=""
+ Q
+KEYS ;Key(s)
+ Q:A'["*"
+ S X=TITLE_","_A,A=""
+ F I=1:1 S Y=$P(X,",",I) Q:$P(X,",",I,99)=""  I "*"'[Y S A=A_","_Y
+ S A=$E(A,2,255),DT=A
+ Q
+TEXT ;
+ S TTL=TITLE K PRG S:'$D(^%ZIX(IN,RECN,0)) ^%ZIX(IN,RECN,0)=0 D ^%ZEDT
+ S SAVE="" Q
+SAVE ;Reference OK (Y or N)
+ D UPPER I $E(UA,1)'="Y" S E="1 ",DP=5 Q
+ S A=KEYS D UPPER S KEYS=UA
+ S A=$S('($D(^%ZIX(IN,RECN))#2):"",1:^(RECN)) Q:TITLE_DS_KEYS=A  W "  Saving now..."
+ S A=$P(A,DS,2) D:A'="" KILL
+ F I=1:1 Q:KEYS'["  "  S KEYS=$P(KEYS,"  ",1)_" "_$P(KEYS,"  ",2,99)
+ F I=1:1 S X=$P(KEYS,",",I) Q:X=""  F J=1:1 S Y=$P(X," ",J) Q:$P(X," ",J,99)=""  I IGN'[Y S ^%ZIX(IN,Y,RECN)="" W "."
+ S ^%ZIX(IN,RECN)=TITLE_DS_KEYS W !!,?10,"FILED." H 1
+ Q
+KILL F I=1:1 S X=$P(A,",",I) Q:X=""  F J=1:1 S Y=$P(X," ",J) Q:$P(X," ",J,99)=""  I Y'="" K ^%ZIX(IN,Y,RECN) W "."
+ Q
+END ;
+ W @FF,!,?25,IN," Index",!! S DP=4,(RECN,TITLE,KEYS)="",E="1 "
+ Q
+UPPER S UA=A F I=1:1 Q:UA?.NUPC  S Y=$A(UA,I) S:Y>96&(Y<123) UA=$E(UA,0,I-1)_$C(Y-32)_$E(UA,I+1,255)
+ Q
+HELP W !!,"- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+ S S="0" F I=1:1 S S=$O(^%ZIH(DR,S)) Q:S=""  W !,?5,^(S)
+ W !,"- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -",!!
+ Q
+ENTER R !,"Enter HELP text for what label: ",A Q:"X"[A
+ S:'$D(^%ZIH(A,0)) ^%ZIH(A,0)=0 S TTL=A K PRG D ^%ZEDT
+ G ENTER
+DRV S DF=0,A="",DM="" S:'$D(DS) DS=";"
+DRVA Q:'DP  S DR=$P(DL,DS,DP) G DRVZ:DR=""
+ S DQ=$P($T(@DR),DS,2,9),A="" S:DQ[DS DQ=@$P(DQ,DS,2) G DRVG:DQ=""
+ S DI="T"_DR,@DR=$S('$D(@DR):"",1:@DR),DT=@DR D:$T(@DI)'=""&("?"'[DT) @DI
+DRVB W !,$J(DQ,21),": " I "?"'[DT D DRVT W ?45 W:$X>45 !,?21 W ": "
+DRVC K DT S DF=1 I DM="" S DF=0 W:$D(LH) @LH R DM:600 W:$D(HL) @HL S:'$T DM="^" G:DM[DS DRVA
+ S A=$P(DM,DS,1),DM=$P(DM,DS,2,99)
+DRVE D:A="@" ^VZESC G:A="@" DRVA I A="?"!(A="??")!(A="#") D:A="?"!(A="??") DRVHELP W:A="#" @FF G DRVA
+ S E=$E(DN,DP) I A="" G DRVJ:@DR=""&E,DRVH
+ I A="<" S E=$S(E:"1Can't Delete",1:0) G:E DRVJ S @DR="",DE=1 W "DELETED>" G DRVH
+ I A="^" S E=$P(DB,DS,DP),DP=$S(E="^":DP,1:E) G DRVG:E="^",DRVA
+DRVG S E=0,DT="" D @DR G DRVJ:E S @DR=A,DE=1 S:DT=""&DF DT=A I DT'="" D DRVT
+DRVH S DP=DP+1 G DRVA
+DRVJ S DM="" W:$D(LH) @LH W:$X+$L(E)>79 !,?22 W:E'="1 " *7 W $S(E?1N:" What?",1:" "_$E(E,2,99)) W:$D(HL) @HL G DRVA
+DRVHELP D HELP
+DRVT W:$D(LH) @LH S:$D(DT)=1 DT(1)=DT F DT=1:1 Q:'$D(DT(DT))  W " " W:$L(DT(DT))+$X>76 !,?23 W "<"_DT(DT)_">"
+DRVZ W:$D(HL) @HL K DT Q
+LH) @LH S:$D(DT)=1 DT(

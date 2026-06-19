@@ -17,8 +17,7 @@ NAME    I $V(1022,0)'>P S GD=$V(1016,0)#256*65536+$V(1014,0) G READ:GD,EXIT
         .S B=$V(B+2,0)#256*256+($V(B+1,0)#256)*256+($V(B,0)#256)
         S COL=$V(P,0)#2+1
         S BITS=$V(P,0)\2#2+7
-        W !,"^",NAM,?12,$S($V(P,0)\4#2:"Y",1:"N"),?17,$P("Numeric,String",",",COL),?26,BL2,?39,BL1,?52,"System:[",A4,"]  World:[",A3
-,"]"
+        W !,"^",NAM,?12,$S($V(P,0)\4#2:"Y",1:"N"),?17,$P("Numeric,String",",",COL),?26,BL2,?39,BL1,?52,"System:[",A4,"]  World:[",A3,"]"
         W !,?17,BITS,"-bit",?52,"Group :[",A2,"]  User :[",A1,"]"
         S P=P+8 G NAME
 ERR     U 0 I $ZE?1"<INRPT".E W !,"*** Interrupt ***"

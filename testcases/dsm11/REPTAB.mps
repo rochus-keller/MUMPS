@@ -23,8 +23,7 @@ LOAD    S ID=^SYS(0,"RUNNING"),ST=$V(44) I '$D(^SYS(ID,"REPSCHEMA")) Q
         F SC=1:1:4 I $D(^SYS(ID,"REPSCHEMA",SC)) D LOAD1
         W !,"Replication schema table reloaded." Q
 LOAD1   S TABADD=SC-1*32+2+$V(ST+474)
-        F R=1:1:7 S UC=$P($P(^(SC),";",R),",",1),SY=$P($P(^(SC),";",R),",",2) S OFS=R-1*4+TABADD I SY'="" D GETUCN I BD W !,"Error -
- uci ",UC," does not exist on volume set ",SY,!
+        F R=1:1:7 S UC=$P($P(^(SC),";",R),",",1),SY=$P($P(^(SC),";",R),",",2) S OFS=R-1*4+TABADD I SY'="" D GETUCN I BD W !,"Error - uci ",UC," does not exist on volume set ",SY,!
         Q
 HELP    W !,"Each replication schema is a list of up to 7 UCI,VOL pairs,"
         W !,"separated by semicolons.  Example:  UUU,VVV;CCC,OOO;III,LLL"

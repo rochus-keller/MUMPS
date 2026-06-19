@@ -9,8 +9,7 @@ LOOP    I ^UTILITY($J,1,L1)'=^UTILITY($J,2,L2) D DIFF
         S L1=L1+1,L2=L2+1 G LOOP
 DIFF    D %RCMP3:$D(D)=0 W !,"***********************",!
         S P(1)=L1,P(2)=L2,P=0,D=D+1
-DL      S P=P+1#2,A=P+1,P(A)=P(A)+1 S:^UTILITY($J,A,0)'>P(A) P(A)=^UTILITY($J,A,0) I ^UTILITY($J,A,P(A))="" S A2=P+1#2+1,P(A2)=^UTIL
-ITY($J,A2,0) S J=P(1),K=P(2) G DONE
+DL      S P=P+1#2,A=P+1,P(A)=P(A)+1 S:^UTILITY($J,A,0)'>P(A) P(A)=^UTILITY($J,A,0) I ^UTILITY($J,A,P(A))="" S A2=P+1#2+1,P(A2)=^UTILITY($J,A2,0) S J=P(1),K=P(2) G DONE
 DL2     S J=P(1) F K=L2:1:P(2) G DONE:^UTILITY($J,1,J)=^UTILITY($J,2,K)
         S K=P(2) F J=L1:1:P(1) G DONE:^UTILITY($J,1,J)=^UTILITY($J,2,K)
         G DL

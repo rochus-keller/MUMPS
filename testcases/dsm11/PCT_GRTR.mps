@@ -1,7 +1,6 @@
 %GRTR   ;27-Feb-85;Receive routines/globals from %GRTS;DSM V3 ;DMW
         S DSP=0,DIR="R" D ^%GRTINI
-R       S GET="F K=1:1 R X:T1 S RSLT=$S('$T:-1,X=ENQ:0,X=ETX:2,X=""(%)ERROR(%)"":3,X=SYNC:3,X=EOT:4,1:1),ERROR=RSLT=3 Q:RSLT>1  W:'R
-SLT XX,RET I RSLT R CHK1:T1 X CHK S XX=$S(OK:ACK,1:NAK)_""^""_J X BUFLUSH W XX,RET Q:OK"
+R       S GET="F K=1:1 R X:T1 S RSLT=$S('$T:-1,X=ENQ:0,X=ETX:2,X=""(%)ERROR(%)"":3,X=SYNC:3,X=EOT:4,1:1),ERROR=RSLT=3 Q:RSLT>1  W:'RSLT XX,RET I RSLT R CHK1:T1 X CHK S XX=$S(OK:ACK,1:NAK)_""^""_J X BUFLUSH W XX,RET Q:OK"
         S CHK="S CHK2=0,OK=$S($L(X):0,$P(CHK1,""^"",2):0,1:1) F L=1:1:$L(X) S CHK2=CHK2+$A(X,L) S OK=CHK2=$P(CHK1,""^"",2)"
         S REM="ZR:MOD=""R""&ERROR"
         S END="U ME W:DEV'=$I "" **Received**"",! U DEV"

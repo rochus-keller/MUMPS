@@ -19,8 +19,7 @@ ALLG    I $D(@INREF)#10 S @(OUTREF_GL)=@$ZR
         G GET
 SUBTRE  I $D(@INREF)#10 S @(OUTREF_$E(INREF,$F(INREF,J),$L(INREF)))=@$ZR
         S MAXREF=$E(INREF,1,$L(INREF)-1)_","
-        F I=1:1 S INREF=$ZO(@INREF) Q:$E(INREF,1,$L(MAXREF))'=MAXREF  S @(OUTREF_$E(INREF,$F(INREF,J),$L(INREF)))=@$ZR W:%LIST !,INR
-EF
+        F I=1:1 S INREF=$ZO(@INREF) Q:$E(INREF,1,$L(MAXREF))'=MAXREF  S @(OUTREF_$E(INREF,$F(INREF,J),$L(INREF)))=@$ZR W:%LIST !,INREF
         G GET
 OUTERR  W !,"Error referencing global for output" G ZQ
 INERR   W !,"Error referencing global for input" G ZQ

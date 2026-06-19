@@ -1561,16 +1561,15 @@ void Parser::viewgroup() {
 }
 
 void Parser::zargs() {
-	expr();
-	if( la.d_type == Tok_Hat ) {
-		expect(Tok_Hat, false, "zargs");
-		routineref();
-	}
-	if( FIRST_openparams(la.d_type) ) {
-		openparams();
-	}
-	while( la.d_type == Tok_Comma ) {
-		expect(Tok_Comma, false, "zargs");
+	if( ( peek(1).d_type == Tok_Lpar )  ) {
+		expect(Tok_Lpar, false, "zargs");
+		openparam();
+		while( la.d_type == Tok_Colon ) {
+			expect(Tok_Colon, false, "zargs");
+			openparam();
+		}
+		expect(Tok_Rpar, false, "zargs");
+	} else if( FIRST_expr(la.d_type) ) {
 		expr();
 		if( la.d_type == Tok_Hat ) {
 			expect(Tok_Hat, false, "zargs");
@@ -1579,7 +1578,19 @@ void Parser::zargs() {
 		if( FIRST_openparams(la.d_type) ) {
 			openparams();
 		}
-	}
+		while( la.d_type == Tok_Comma ) {
+			expect(Tok_Comma, false, "zargs");
+			expr();
+			if( la.d_type == Tok_Hat ) {
+				expect(Tok_Hat, false, "zargs");
+				routineref();
+			}
+			if( FIRST_openparams(la.d_type) ) {
+				openparams();
+			}
+		}
+	} else
+		invalid("zargs");
 }
 
 void Parser::entryref() {
@@ -1953,10 +1964,18 @@ void Parser::glvn() {
 	} else if( la.d_type == Tok_At ) {
 		expect(Tok_At, false, "glvn");
 		expratom();
-		if( la.d_type == Tok_Lpar ) {
-			expect(Tok_Lpar, false, "glvn");
-			exprlist();
-			expect(Tok_Rpar, false, "glvn");
+		if( ( peek(1).d_type == Tok_At && peek(2).d_type == Tok_Lpar )  || la.d_type == Tok_Lpar ) {
+			if( ( peek(1).d_type == Tok_At && peek(2).d_type == Tok_Lpar )  ) {
+				expect(Tok_At, false, "glvn");
+				expect(Tok_Lpar, false, "glvn");
+				exprlist();
+				expect(Tok_Rpar, false, "glvn");
+			} else if( la.d_type == Tok_Lpar ) {
+				expect(Tok_Lpar, false, "glvn");
+				exprlist();
+				expect(Tok_Rpar, false, "glvn");
+			} else
+				invalid("glvn");
 		}
 	} else
 		invalid("glvn");
@@ -1973,10 +1992,18 @@ void Parser::lvar() {
 	} else if( la.d_type == Tok_At ) {
 		expect(Tok_At, false, "lvar");
 		expratom();
-		if( la.d_type == Tok_Lpar ) {
-			expect(Tok_Lpar, false, "lvar");
-			exprlist();
-			expect(Tok_Rpar, false, "lvar");
+		if( ( peek(1).d_type == Tok_At && peek(2).d_type == Tok_Lpar )  || la.d_type == Tok_Lpar ) {
+			if( ( peek(1).d_type == Tok_At && peek(2).d_type == Tok_Lpar )  ) {
+				expect(Tok_At, false, "lvar");
+				expect(Tok_Lpar, false, "lvar");
+				exprlist();
+				expect(Tok_Rpar, false, "lvar");
+			} else if( la.d_type == Tok_Lpar ) {
+				expect(Tok_Lpar, false, "lvar");
+				exprlist();
+				expect(Tok_Rpar, false, "lvar");
+			} else
+				invalid("lvar");
 		}
 	} else
 		invalid("lvar");

@@ -12,11 +12,9 @@
 %CK     U %IOD
         W #,!,?35,"Routine Search",!,?35,"Searching for",!,?(40-($L(%SE)/2)),"""",%SE,""""
         W !,?32 D ^%D W "  " D ^%T W !!
-        S %LK="F %I=1:1 S %LN=$T(+%I) X:%LN="""" ""ZS:%ZS  "" Q:%LN=""""  I %LN[%SE W !,*7,"">>>>>"",%NAM,""+"",%I-1,!,%LN S %C=0,%C
-HK=1 X %REP,%INS:%ALT"
+        S %LK="F %I=1:1 S %LN=$T(+%I) X:%LN="""" ""ZS:%ZS  "" Q:%LN=""""  I %LN[%SE W !,*7,"">>>>>"",%NAM,""+"",%I-1,!,%LN S %C=0,%CHK=1 X %REP,%INS:%ALT"
         S %C=0,%REP="",%ALT="",%INS="ZI %LN:"_"+%I"_" ZR +%I S %ZS=1 W !,%LN,!"
-        I %CT'="""" S %REP="S %FLN=1,%ALT=0 F %K=0:1 S %FLN=$F(%LN,%SE,$L(%CT)-$L(%SE)+%FLN) Q:'%FLN  S %LN=$E($E(%LN,1,%FLN-$L(%SE)
--1)_%CT_$E(%LN,%FLN,255),1,255),%ALT=1"
+        I %CT'="""" S %REP="S %FLN=1,%ALT=0 F %K=0:1 S %FLN=$F(%LN,%SE,$L(%CT)-$L(%SE)+%FLN) Q:'%FLN  S %LN=$E($E(%LN,1,%FLN-$L(%SE)-1)_%CT_$E(%LN,%FLN,255),1,255),%ALT=1"
         S %NAM=""
 %GO     U %IOD S %NAM=$ZS(^UTILITY($J,%NAM)) I %NAM="" W !!! I '$D(%CHK) W "`",%SE,"'"," Not found ",!!! G %ASK
         I %NAM="" W !!! G %ASK

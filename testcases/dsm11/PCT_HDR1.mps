@@ -1,6 +1,5 @@
 %HDR1   ; CALLED BY %HDR--NOT STAND ALONE : JEC ;  24-NOV-80  1:25 PM
-        F %T8=1:1:8 W ! F %NX=1:1:%L9 S %CH=$E(STR,%NX),%PF=$P($T(@($F(%FS,%CH)-1+300)),";;",2,99) W $E(%PF,(%T8-1)*8+1,%T8*8) I %NX
-<%L9 W "    "
+        F %T8=1:1:8 W ! F %NX=1:1:%L9 S %CH=$E(STR,%NX),%PF=$P($T(@($F(%FS,%CH)-1+300)),";;",2,99) W $E(%PF,(%T8-1)*8+1,%T8*8) I %NX<%L9 W "    "
         Q
 A1      ;;
 301     ;; AAAAAA AA    AAAA    AAAAAAAAAAAAAAAAAAAA    AAAA    AAAA    AA

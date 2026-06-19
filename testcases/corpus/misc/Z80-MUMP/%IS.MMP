@@ -1,0 +1,88 @@
+%IS ;John Lewkowicz - NYS College of Veterinary Medicine
+ ;SETUP TERMINAL PARAMETERS
+ R !,"Device: ",IO S:IO="" IO=0 G IO20:IO'["?",IO10:IO="??"
+ W !!,?5,"Device number like '0' for CRT etc. Use '??' for list.",! G %IS
+IO10 W ! F IO=0:1:3 W !,?5,IO,?10,$P("Console,Printer,SDP1,SDP2",",",IO+1)
+ W ! G %IS
+IO20 G IO30:IO=2!(IO=3) I IO=1 S IOM=80,IOSL=66,IOF="#",IOST="P",IOPAR="" O IO Q
+ S IOM=80,IOSL=24,IOF="*26,#",IOST="C",IOPAR="" Q
+IO30 R !,"File Name: ",%I I %I="" K %I G %IS
+ I %I["?" W !!,"File name to be opened like 'TEST.XXX'",! G IO30
+ S IOM=255,IOSL=66,IOF="#",IOST="S",IOPAR="" O IO:("A":%I) K %I Q
+CURRENT S %T=^%TC,%T=^%TC(%T)
+ F %I=1:1:8 S @$P("BS;FF;RM;SL;XY;RO;LH;HL",";",%I)=$P(%T,";",%I)
+ S:LH="" LH="""""",HL=LH
+ K %T,%I
+ Q
+DEFINE ;Define devices
+ K (PSW,JRN,FF,HL,LH,DKA,DKB) S (HL,LH)="""""",DS=";",TT=""
+ S (BS,FF,RM,SL,XY,RO,HI,LO,DES)=""
+RESTART W !!,?25,"Define Devices",!! S SV=""
+ S DL="TT;DES;BS;FF;RM;SL;XY;RO;HI;LO;SV;CD",DN="111111111111",DB="0;1;2;3;4;5;6;7;8;9;10;0",DP=1 D DRV
+ D CURRENT K (PSW,JRN,FF,HL,LH,DKA,DKB)
+ Q
+TT ;Terminal Type
+ I "^Xx"[A S DP=0,E="1 " Q
+ G TT10:A'="?L" S S="" F I=0:1 S S=$O(^%TC(S)) Q:S=""  W:'(I#2) ! W ?I#2*40,S," - ",$E($P(^(S),DS,9),1,35-$L(S))
+ W ! S E="1 " Q
+TT10 I '$D(^%TC(A)) S (DES,BS,FF,RM,SL,XY,RO,HI,LO,SV,CD)="" W " --> NEW" Q
+ S X=^(A) W ! F I=9,1:1:8 S L=$P("BS;FF;RM;SL;XY;RO;HI;LO;DES",DS,I),@L=$P(X,DS,I) W !,$J($P($T(@L),DS,2),21),": ",@L
+ S SV="Y",DP=11,E="1 ",CD="",TT=A
+ Q
+DES ;Description
+ Q
+BS ;Back Space
+ Q
+FF ;Form Feed
+ Q
+RM ;Right Margin
+ I A'?1N.N S E="1 NUMBER only please."
+ Q
+SL ;Screen Length
+ I A'?1N.N S E="1 NUMBER only please."
+ Q
+XY ;Cursor positioning
+ Q
+RO ;Rub Out (DELETE)
+ Q
+HI ;High Intensity
+ Q
+LO ;Low Intensity
+ Q
+SV ;Data OK ?
+ I "Yy"'[$E(A,1) S DP=2,E="1 ",SV="" Q
+ S $ZE="ERROR",E=0
+CFF S T="FF" W @FF
+CBS S T="BS" W @BS
+CXY S T="XY",DX=10,DY=10 X XY
+CRO S T="RO" W @RO
+CLO S T="LO" W @LO," LOW"
+CHI S T="HI" W @HI," HIGH"
+ S $ZE=" ",X=BS_DS_FF_DS_RM_DS_SL_DS_XY_DS_RO_DS_HI_DS_LO_DS_DES
+ S ^%TC(TT)=X W !!!!!!!!!!!!!!!!!!!!!! I 'E W "  tests OK.",! Q
+ W "Tests FAILED. Offending questions filled with non-failure responses"
+ W !,"   so you can run, go back and fix." G RESTART
+ERROR W !,"Error while testing - ",$P($T(@T),DS,2),"  " H 1
+ S @T=$S(T'="XY":""""_T_" Error"_"""",1:""),$ZE="ERROR",E=1 G @("C"_T)
+CD ;Make this the CURRENT device
+ I "Yy"[$E(A,1) S ^%TC=TT D CURRENT
+ S E="1 ",DP=99,TT=""
+ Q
+DRV S DF=0,A="",DM="" S:'$D(DS) DS=";"
+DRVA Q:'DP  S DR=$P(DL,DS,DP) G DRVZ:DR=""
+ S DQ=$P($T(@DR),DS,2,9),A="" S:DQ[DS DQ=@$P(DQ,DS,2) G DRVG:DQ=""
+ S DI="T"_DR,@DR=$S('$D(@DR):"",1:@DR),DT=@DR D:$T(@DI)'=""&("?"'[DT) @DI
+DRVB W !,$J(DQ,21),": " I "?"'[DT D DRVT W ?45 W:$X>45 !,?21 W ": "
+DRVC K DT S DF=1 I DM="" S DF=0 W:$D(LH) @LH R DM:600 W:$D(HL) @HL S:'$T DM="^" G:DM[DS DRVA
+ S A=$P(DM,DS,1),DM=$P(DM,DS,2,99)
+DRVE D:A="@" ^VZESC G:A="@" DRVA I A="?"!(A="??") D:A="?"!(A="??") DRVHELP G DRVA
+ S E=$E(DN,DP) I A="" G DRVJ:@DR=""&E,DRVH
+ I A="<" S E=$S(E:"1Can't Delete",1:0) G:E DRVJ S @DR="",DE=1 W "DELETED>" G DRVH
+ I A="^" S E=$P(DB,DS,DP),DP=$S(E="^":DP,1:E) G DRVG:E="^",DRVA
+DRVG S E=0,DT="" D @DR G DRVJ:E S @DR=A,DE=1 S:DT=""&DF DT=A I DT'="" D DRVT
+DRVH S DP=DP+1 G DRVA
+DRVJ S DM="" W:$D(LH) @LH W:$X+$L(E)>79 !,?22 W $S(E?1N:" What?",1:" "_$E(E,2,99)) W:$D(HL) @HL G DRVA
+DRVHELP D ^%ISH Q
+DRVT W:$D(LH) @LH S:$D(DT)=1 DT(1)=DT F DT=1:1 Q:'$D(DT(DT))  W:$L(DT(DT))+$X>76 !,?23 W "<"_DT(DT)_">"
+DRVZ W:$D(HL) @HL K DT Q
+ W:$D(LH) @LH S:$D(DT)=1 DT(1)=DT F D

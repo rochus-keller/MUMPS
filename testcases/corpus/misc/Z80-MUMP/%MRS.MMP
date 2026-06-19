@@ -1,0 +1,32 @@
+%MRS ;John Lewkowicz - NYS College of Veterinary Medicine
+ W !!!,?30,"Routine Save",!!
+SD R !,"Drive on which routines reside (A-H): ",SD Q:SD=""
+ I "??"[SD W "  Drive ID like 'A' or 'B' etc." G SD
+ I SD'?1U!("ABCDEFGH"'[SD) W " ??" G SD
+ ZO (SD:)
+ D ^%MRSET
+RS0 R !,"Output Drive (A-H): ",DRV Q:DRV=""
+ I "??"[DRV W "  Drive ID like 'A' or 'B' etc." G RS0
+ I DRV'?1U!("ABCDEFGH"'[DRV) W " ??" G RS0
+RS1 R !,"Name of Save file: ",F Q:F=""
+ I "??"[F W "   1-6 character name (no extension)." G RS1
+ S F=$P(F,".",1)_".SAV" O 2:(DRV:F) C 2:1 O 2:(DRV:F)
+RS2 R !,"Save comments too? ",SC I "??"[SC W "  Y or N please." G RS2
+ S SC="Yy"[$E(SC,1)
+RS3 R !,"Description: ",D
+ I D="?"!(D="??") W "  Free-text description of save." G RS3
+RS4 R !,"Date & Time: ",AUX I AUX="?"!(AUX="??") W "  Free-text Date & Time." G RS4
+ U 2 W D,!,AUX,!
+ S S="",X1=$P($T(X1),";",2,99) X X1 U 2 W "*EOF*",! C 2:0
+ G RS5:'SC W !!,"Saving comments now..."
+ S F=$P(F,".",1)_".SAC" O 2:(DRV:F) C 2:1 O 2:(DRV:F)
+ S S="",X2=$P($T(X2),";",2,99),X3=$P($T(X3),";",2,99)
+ U 2 W D,! X X2 U 2 W "*EOF*",! C 2:0
+RS5 ZO ("A":)
+ W !!,"All DONE.",!
+ Q
+X1 ;F I=1:1 S S=$O(^UTIL("ROU",S)) Q:S=""  I ^(S) U 2 W S,! ZL @S F J=1:1 S L=$T(+J) W L,! I L="" U 0 W:$X>70 ! W ?$X\10+1*10,S Q
+X2 ;F I=1:1 S S=$O(^UTIL("ROU",S)) Q:S=""  I ^(S) ZL @S F J=1:1 S L=$T(+J) Q:L=""  S CM=$P(L," ",1) I CM'="",$D(^%C(S,CM,0)) X X3
+X3 ;S C="" F CC=1:1 S C=$O(^(C)) Q:C=""  W "^%C("_""""_S_""""_","_""""_CM_""""_","_""""_C_""""_")="_^(C),!
+^%C(S,CM,0)) X X3
+X3 ;S C=

@@ -1,0 +1,60 @@
+2FOLDER2 ;test routine HW
+ ;
+ S $P(SPATIE," ",79)="" W $C(13),SPATIE,$C(13)
+ I $ZE(FNAM)=0 W "  File niet gevonden",*7 H 4 Q
+ O 3:($ZG:FNAM) K VAR
+ U 0 W "Ogenblikje voor ophalen file "
+ F J=1:1:10000 U 3 R X Q:X[$C(26)  S VAR(J)=X
+ S TPAG=J/20 S:TPAG'=(TPAG\1) TPAG=TPAG\1+1
+ C 3
+ S BEG=1,PAG=1
+TOON X CLR F J=BEG:1:BEG+20 W ! I $D(VAR(J)) W VAR(J)
+ W !!,BLD,%LIN80,!,"+ / <PgDn> = verder    - / <PgUp> = terug    P = print    <Esc> = STOP   ",PAG,"/",TPAG,VF R *ANS
+ I ANS=13!($C(ANS)="+")!($C(ANS)="Q") S BEG=BEG+20,PAG=PAG+1 S:'$D(VAR(BEG)) BEG=BEG-20,PAG=PAG-1 G TOON
+ I $C(ANS)="-"!($C(ANS)="I"),BEG>1 S BEG=BEG-20,PAG=PAG-1 G TOON
+ I $C(ANS)="O" S BEG=TPAG-1*20+1,PAG=TPAG G TOON
+ I $C(ANS)="G" S BEG=1,PAG=1 G TOON
+ I ANS=32!(ANS=27) Q
+ I $C(ANS)="P"!($C(ANS)="p") D PRINT Q
+ G TOON
+ ;
+PRINT ;
+ W $C(13),SPATIE,$C(13)
+ I '$D(^INSTEL) W "Foutmelding: U moet eerst de programma instellingen invullen. Geef <Enter> ",*7 R DUM Q
+ S PNAM="" I ^INSTEL("PN") W "Geef patientnaam > " R PNAM W $C(13),SPATIE,$C(13)
+ ;
+ D PSETUP
+ W "Het printen is nu bezig .... "
+ D PRINT2
+ Q
+ ;
+PSETUP ;
+ I ^INSTEL("P")=1 S %PINIT="$C(27),""(10U""",%PVA="$C(27),""(s3B""",%PVU="$C(27),""(s0B"""
+ I ^INSTEL("P")=2 S %PINIT="$C(0)",%PVA="$C(27,69)",%PVU="$C(27,70)"
+ I ^INSTEL("P")=3 S %PINIT="$C(0)",%PVA="$C(0)",%PVU="$C(0)"
+ Q
+ ;
+PRINT2 ;
+ S RTEL=0,PAG=1,%DT="" D ^NEDDATE
+ O 1 U 1
+ W @%PINIT,@%PVA
+ I $D(^INSTEL("A")) F J=1:1:4 S REG(J)=$P(^INSTEL("A"),"|",J)
+ W ! I ^INSTEL("PA") W REG(1)
+ I PNAM'="" W ?50,"Patientinformatie folder voor"
+ W ! I ^INSTEL("PA") W REG(2)
+ I PNAM'="" W ?50,PNAM
+ W ! I ^INSTEL("PA") W REG(3)
+ W ?50,%DT
+ W ! I ^INSTEL("PA") W REG(4)
+ W !,%LIN80,!,@%PVU S RTEL=6
+ ;
+ F J=1:1 Q:'$D(VAR(J))  W !,"     ",VAR(J) S RTEL=RTEL+1 D:RTEL>56&(VAR(J)="") NEWPAG D:RTEL>62 NEWPAG
+ W #
+ C 1
+ Q
+ ;
+NEWPAG W # S PAG=PAG+1
+ W !,?68,"Pagina ",PAG,!,%LIN80,!
+ S RTEL=3
+ Q
+

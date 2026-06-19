@@ -1,0 +1,59 @@
+FOLDER3 ;HW ; instellingen maken
+ ;
+ D ANSI
+ D HEADER,HEADER2
+ D PRINTER
+ D ADRES
+ D PATIENT
+ D EINDE
+ Q
+HEADER X CLR W BLD,%LIN80,!,?20,"* * *   I n s t e l l i n g e n   * * *",!,%LIN80,VF
+ Q
+HEADER2 W !!,"Beantwoord de nu komende vragen. Sluit elk antwoord af met <Enter>"
+ Q
+ ;
+ANSI X CLR W $C(27,91,50,74)
+ W !,"Als ANSI.SYS aktief is staat deze regel helemaal bovenaan het scherm."
+ W !! S X="Klopt dit? " D JANEE
+ I 'X S ^INSTEL("ANSI")=0 W !!,"OK. Dan gebruiken we de minder mooie opschuifprocedure."
+ I X S ^INSTEL("ANSI")=1
+ D SETVAR^FOLDER
+ Q
+ ;
+PRINTER ;
+ W !!!,"A. Printerkeuze",!,"---------------",!!
+ W !,"   1. HP Deskjet / HP Laserjet / en gelijkende"
+ W !,"   2. Epson matrix printer / en gelijkende"
+ W !,"   3. Algemene printer definitie (alleen als bovenstaande niet werken)"
+ W !!,"   Uw huidige instelling is: " W:$D(^INSTEL("P")) ^INSTEL("P") W:'$D(^INSTEL("P")) "nog niet bekend."
+ W !!,"Maak uw keuze : " R KZ I KZ="",$D(^INSTEL("P")) S KZ=^INSTEL("P") W KZ
+ I KZ'=1,KZ'=2,KZ'=3 W *7 D HEADER G PRINTER
+ S ^INSTEL("P")=KZ
+ Q
+ ;
+ADRES D HEADER
+ W !!,"B. Adres huisarts afdrukken",!,"---------------------------",!!
+ S X="Wilt u op een folder-afdruk uw eigen adres bovenaan vermelden"
+ D JANEE
+ I X S ^INSTEL("PA")=1 D ADRES2 Q
+ I 'X S ^INSTEL("PA")=0 Q
+ ;
+ADRES2 D HEADER
+ W !!,"C. Adres huisarts",!,"-----------------",!!
+ F J=1:1:4 S REG(J)=""
+ I $D(^INSTEL("A")) F J=1:1:4 S REG(J)=$P(^INSTEL("A"),"|",J)
+ F J=1:1:4 W !,J,"  ",REG(J)
+ I REG(1)'="" S X="Wilt u het adres wijzigen" W !! D JANEE I 'X Q
+ ;
+ W !!,"Vul nu desgewenst de vier adresregels opnieuw in. Als u alleen <Enter> geeft"
+ W !,"blijft de huidige instelling behouden."
+ W !
+ F J=1:1:4 W !,J,"  " R DUM W:DUM="" REG(J) I DUM'="" S REG(J)=DUM
+ F J=1:1:4 S $P(^INSTEL("A"),"|",J)=REG(J)
+ G ADRES2
+ Q
+ ;
+PATIENT D HEADER
+ W !!,"D. Naam patient afdrukken",!,"-------------------------",!!
+ W !,"U kunt bij het afdrukken van een folder ook de naam van de patient afdrukken."
+ W !,"In dat geval wordt u v

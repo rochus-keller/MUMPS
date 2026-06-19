@@ -1,0 +1,14 @@
+%MRL ;John Lewkowicz - NYS College of Veterinary Medicine
+ ;Routine lister
+ W #,?25,"Routine Lister",!! D ^%MRSET
+Z1 R !,"Date & {optional} Time for Heading: ",DAT I DAT="?"!(DAT="??") W "  Free text entry." G Z1
+Z2 R !,"Right Margin: 80   :",RM S:RM="" RM=80
+ I "??"[RM W "  Character position of right margin." G Z2
+ R !,"Comments too ?: Y   :: ",COM S COM=COM'="N"
+ S X1=$P($T(X1),";",2,99),X2=$P($T(X2),";",2,99),X3=$P($T(X3),";",2,99),X4=$P($T(X4),";",2,99),S=""
+ O 1 U 1 X X1 C 1 Q
+X1 ;F I=1:1 K (S,COM,DAT,X1,X2,X3,X4,I,RM) S S=$O(^UTIL("ROU",S)) Q:S=""  I ^(S) ZR  S SIZ=$S ZL @S S SIZ=SIZ-$S,P=0 X X2 W #
+X2 ;F J=1:1 X:J=1!($Y>60) X4 S X=$T(+J) Q:X=""  X X3 W !,?5,$P(X," ",1) S X=$P(X," ",2,255) F K=1:1 S Y=$E(X,1,RM-17),X=$E(X,RM-16,255) Q:Y=""  W ?15,Y W:X'="" !,?13,"--"
+X3 ;I COM S C=$P(X," ",1) I C'="",$D(^%C(S,C,0)) S C=0 W ! F CC=1:1 S C=$O(^(C)) W:C="" ! Q:C=""  X:$Y>60 X4 W !,?10,";; ",^(C)
+X4 ;W:P # W !!,?5,DAT,?40,S,"   ",SIZ," bytes" S P=P+1 W ?RM-7,"Page ",P
+(C)) W:C="" ! Q:C=""  X:

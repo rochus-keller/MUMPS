@@ -1,0 +1,41 @@
+MCLABEL ;WRITES ADDRESS LABELS;SLJ;MAY 19, 1982
+ S BL="" F I=1:1:33 S BL=BL_"X"
+ S BL=BL_"   "_BL_"   "_BL
+ O 1 F I=1:1 U 0 R "OK (Y/N) ",X,! Q:X="Y"  U 1 F J=1:1:4 W BL,! W:J=4 !!
+ F I=1:1 S CD=$T(CODES+I) Q:CD=""  S CODE($P(CD,";",2))=$P(CD,";",3)
+ F I=1:1:4 S LN(I)=""
+ S NM="",BL="                                    "
+ F I=1:1 S NM=$O(^MCGRP(NM)) Q:NM=""  S ADD=^(NM) D LABEL D:'(I#3) WRITE
+ D:I#3 WRITE K  Q
+LABEL ;PUT ONE NAME IN LABEL FORMAT
+ F J=2:1:6,8 S T(J)=$P(ADD,"^",J-1)
+ S CD=$S($P(ADD,"^",11)="N":"SNG",1:CODE($P(T(8),";",1)))
+ S T(1)=NM_$E(BL,1,30-$L(NM))_CD_"   ",T(4)=T(4)_", "_T(5)_"   "_T(6)
+ I T(3)="" S T(3)=T(4),T(4)=BL
+ F J=1:1:4 S LN(J)=LN(J)_T(J)_$E(BL,1,36-$L(T(J)))
+ Q
+WRITE ;WRITE OUT A THREE ACROSS SET OF LABELS
+ U 1 F J=1:1:4 W LN(J),!
+ W !! F J=1:1:4 S LN(J)=""
+ Q
+CODES ;THE MICRO CODES
+ ;Z80 CP/M 2.2;Z22
+ ;8080 CP/M 2.2;822
+ ;Z80 CP/M 1.4;Z14
+ ;8080 CP/M 1.4;814
+ ;ALTOS;ALT
+ ;APPLE;APL
+ ;P&T;TRS
+ ;NORTHSTAR;NOR
+ ;SUPERBRAIN;SUP
+ ;OSBORNE;OSB
+ ;SANYO;SAN
+;Z14
+ ;8080 CP/M 1.4;814
+ ;ALTOS;ALT
+ ;APPLE;APL
+ ;P&T;TRS
+ ;NORTHSTAR;NOR
+ ;SUPERBRAIN;SUP
+ ;OSBORNE;OSB
+ ;SANYO;SAN

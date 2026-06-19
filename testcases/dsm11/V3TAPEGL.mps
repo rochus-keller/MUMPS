@@ -15,8 +15,7 @@ NEXG    U U W:PR # U 0 S G=G+1 ;;OFFSET FROM LINE "GLOBS" OF NEXT GLOBAL
         I NEW'["(" S NEW=NEW_"("
         E  S NEW=$P(NEW,"(")_"("
         ;; .END fix
-        F I=1:1 S NOW=$ZO(@NOW) Q:NOW=""  W NEW_$P(NOW,"(",2,99),!,@NOW,! I 'PR G:'SDP WER:$ZA>127!($ZA<64) I SDP,$ZA>LAST D MOUNT^M
-AKESDP
+        F I=1:1 S NOW=$ZO(@NOW) Q:NOW=""  W NEW_$P(NOW,"(",2,99),!,@NOW,! I 'PR G:'SDP WER:$ZA>127!($ZA<64) I SDP,$ZA>LAST D MOUNT^MAKESDP
         U 0 G NEXG
         ;;
 PRGLOB  S PR=1 G PUTG

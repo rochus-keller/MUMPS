@@ -1,0 +1,45 @@
+ZRS ;RESTORE GLOBALS AND/OR ROUTINES FROM FLOPPY DISK
+ K  W !!!,"RESTORE ROUTINES AND/OR GLOBALS",!
+ S DEV=2
+D R !,"DRIVE (DEFAULT=B): ",DRV I DRV="" S DRV="B" W "(B)"
+ I DRV'?1U W !,"ENTER THE LETTER OF THE DESIRED DRIVE" G D
+E R !!,"FILE NAME: ",FIL I FIL="" G END
+ D OPEN W !,"DISK FILE ",DRV,":",FIL," OPENED"
+ D RSTOR G E
+END U DEV C DEV:0 U 0
+ K %R,BLK,DEV,FNO,FIL,DRV Q
+ ;*************************
+RSTOR S %H="",%Q=0,%J=0,EOL=$C(13)_$C(10),EOR=$C(13)_$C(12)
+ D READ S TYP=$P(%TP," ",2) D READ S DAT=%TP D READ S TTL=%TP
+ W !!,TYP," SAVED ",DAT W:TTL'="" !,"TITLED: ",TTL K DAT,TTL
+RS2 R !,"DISPLAY OR RESTORE: ",FLG,! I FLG="" Q
+ S FLG=$E(FLG,1) I "DR"'[FLG W "ENTER 'D' OR 'R'",! G RS2
+ I FLG="R" W "BEGIN ",$E(TYP,1,$L(TYP)-1)," RESTORE" W:TYP="ROUTINES" !
+ D RTN:TYP="ROUTINES",GLB:TYP="GLOBALS"
+ I FLG="R" W !,"END OF ",$E(TYP,1,$L(TYP)-1)," RESTORE",!
+ K %H,%TP,EOL,EOR,FLG,TYP Q
+ ;*************************
+ ;RETRIEVE GLOBALS FROM FLOPPY
+GLB D READ I %TP="END GLOBALS" K GLB,I,RG Q
+ S RG=%TP W !,RG W:FLG="R" " STARTED "
+ F I=1:0 S %J=1 D READ Q:%TP=EOR  S GLB=$P(%TP,"=",1),%J=0 D READ S:FLG="R" @GLB=%TP I FLG="D" W !,GLB,"=",%TP
+ I FLG="R" W "---> ",RG," DONE"
+ G GLB
+ ;*************************
+ ;RETRIEVE ROUTINES FROM FLOPPY
+RTN S AA="X BB,CC I %TP'=EOR ZM : ZI:FLG=""R"" %TP I FLG=""D"" W !,%TP"
+ S BB=$P($T(READ)," ",2,999),CC=$P($T(READ+1)," ",2,999),%J=1
+R2 D READ I %TP="END ROUTINES"!($A(%TP)=26) K AA,BB,CC,I,RTN Q
+ S RTN=%TP W:FLG="D" !,RTN X ("ZR  F I=1:0 X AA I %TP=EOR ZS:FLG=""R"" @RTN Q")
+ I FLG="R" W ?%Q#8*10,RTN S %Q=%Q+1 W:'(%Q#8) !
+ G R2
+ ;*************************
+READ U DEV R %TP
+ S:'$L(%TP)&%J %TP=EOR U 0
+ Q
+OPEN O DEV:(DRV:FIL) U 0 Q
+W:'(%Q#8) !
+ G R2
+ ;*************************
+READ U DEV R %TP
+ S:'$L(

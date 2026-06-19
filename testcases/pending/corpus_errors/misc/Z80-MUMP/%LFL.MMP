@@ -1,0 +1,11 @@
+%LFL ;LIST FIRST LINE OF ROUTINES
+ D X^%NAMES
+ S %N="" F %I=1:1 S %N=$O(^%U(%N)) Q:%N=""  X "ZL @%N W !,$T(+1)"
+ W !!
+ K %N,%I,%V,^%U
+ Q
+ LINE OF ROUTINES
+ D X^%NAMES
+ S %N="" F %I=1:1 S %N=$O(^%U(%N)) Q:%N=""  X "ZL @%N W !,$T(+1)"
+ W !!
+ K %N,

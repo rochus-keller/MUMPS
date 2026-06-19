@@ -1,6 +1,6 @@
 The goal of this project is to build a faithful implementation of the 1976 MUMPS standard (see the [NBS Handbook 118](https://archive.org/details/bitsavers_mumpsNBSHaageStandardJan1976_6795659), the first formal specification of the MUMPS language), including a MUMPS 76 parser, interpreter and integrated database.
 
-The year 2026 marks the **50th anniversary** of this standard and is therefore a good time for this project.
+The year 2026 marks the **50th anniversary** of this standard, and also the **60th anniversary** of MUMPS, and is therefore a good time for this project.
 
 Every existing MUMPS implementation targets a later, much larger standard (e.g. GT.M, YottaDB and RSM target the 1995 ANSI standard, partly with extensions, and have more than twice as many commands and functions). As it seems, nobody so far has implemented *just the 1976 standard*. By implementing the minimal, original standard using modern languages and tools, we can:
 
@@ -11,7 +11,7 @@ Every existing MUMPS implementation targets a later, much larger standard (e.g. 
 - Demonstrate what made MUMPS significant: a 19-command language with an integrated hierarchical database, running historical hospital software on a PDP-11, anticipating NoSQL by four decades.
 
 
-This project is work in progress.
+**This project is work in progress.**
 
 ## What is MUMPS
 
@@ -45,7 +45,7 @@ All of this ran on a machine with 8 kilobytes of memory, serving many simultaneo
 
 The conventional history of databases runs: hierarchical (IMS, 1966) -> network (CODASYL, 1969) -> relational (Codd, 1970) -> SQL (System R, 1974) -> object-oriented (1980s) -> NoSQL (2000s). MUMPS doesn't appear in this history because it was created by hospital programmers, not computer science researchers, and it was published in medical informatics journals, not ACM proceedings. Yet MUMPS globals anticipated the NoSQL movement by four decades; and unlike the NoSQL systems that arrived in the 2000s, MUMPS combined the database with a complete programming language and a multi-user operating system, all in a fraction of the memory that a single MongoDB process consumes today.
 
-SQL won the database wars of the 1980s and 1990s, only for the industry to discover in the 2000s that hierarchical key-value stores were better suited to many real-world workloads. When Amazon published the Dynamo paper in 2007, when Google released Bigtable, when MongoDB launched in 2009, they were (unknowingly) validating design decisions that Barnett, Pappalardo, and Marble had made in a Boston hospital in 1966. Now, on the 50th anniversary of the first standard, is a good opportunity to look back what they already had, and maybe to learn something for the future.
+SQL won the database wars of the 1980s and 1990s, only for the industry to discover in the 2000s that hierarchical key-value stores were better suited to many real-world workloads. When Amazon published the Dynamo paper in 2007, when Google released Bigtable, when MongoDB launched in 2009, they were (unknowingly) validating design decisions that Barnett, Pappalardo, and Marble had made in a Boston hospital in 1966. Now, on the 50th anniversary of the first standard and 60th anniversary of MUMPS, is a good opportunity to look back what they already had, and maybe to learn something for the future.
 
 ## How does MUMPS look
 

@@ -45,8 +45,7 @@ ST1     S TF=TF+F,TA=TA+A,TSD=TSD+SD,TSP=TSP+SP,TJR=TJR+JR,TBD=TBD+BD,TSYS=TSYS+
 SUBT    W !!,"Subtotal",?9,TF,?16,TA,?24,TBD
         I TSYS W ?35,"SYSTEM",?45,TSYS,?61,TSYS,!
         S J=""
-SUB1    S J=$ZS(TUCI(J)) I J="" W ?35,"*SDP*",?45,TSD,?61,TSD,!,?35,"*SPL*",?45,TSP,?61,TSP,!,?35,"*JRN*",?45,TJR,?61,TJR,! D:FLG UN
-K G T1
+SUB1    S J=$ZS(TUCI(J)) I J="" W ?35,"*SDP*",?45,TSD,?61,TSD,!,?35,"*SPL*",?45,TSP,?61,TSP,!,?35,"*JRN*",?45,TJR,?61,TJR,! D:FLG UNK G T1
         S X=J I '$D(U(J)) S X=0,FLG=1
         W ?35,U(X),?45,$P(TUCI(J),"/",2),?61,+TUCI(J),!
         G SUB1

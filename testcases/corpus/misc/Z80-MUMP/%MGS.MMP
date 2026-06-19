@@ -1,0 +1,31 @@
+%MGS ;John Lewkowicz - NYS College of Veterinary Medicine
+ K  S Q="""" W !!!,?30,"Global Save",!!
+GS4 R !,"Drive on which globals reside (A-H): ",SD
+ I "??"[SD W "  Drive ID like 'A' or 'B' etc." G GS4
+ I SD'?1U!("ABCDEFGH"'[SD) W " ??" G GS4
+ ZO (:SD)
+ D ^%MGSET
+GS0 R !,"Save to Drive (A-H): ",DRV Q:DRV=""
+ I "??"[DRV W "  Drive ID like 'A' or 'B' etc." G GS0
+ I DRV'?1U!("ABCDEFGH"'[DRV) W " ??" G GS0
+GS1 R !,"Name of Save file: ",F Q:F=""
+ I "??"[F W "   1-6 character name." G GS1
+ S F=$P(F,".",1)_".GBL" O 2:(DRV:F) C 2:1 O 2:(DRV:F)
+GS2 R !,"Description: ",D
+ I D="?"!(D="??") W "  Free-text description of this file." G GS2
+GS3 R !,"optional DATE and TIME entry: ",A
+ I "??"[A W "  Date & Time in any format." G GS3
+ U 2 W D,!,A,!
+ S G="" F I=1:1 S G=$O(^UTIL("GBL",G)) Q:G=""  I ^(G) D SAVE
+ U 2 W "*EOF*",! C 2:0
+GS5 ZO (:"A")
+ W !!,"All DONE.",!
+ Q
+SAVE U 0 W !,G U 2 S GR="^"_G,S1=""
+ I $D(@GR)#2 W GR,!,@GR,!
+S1 S S1=$O(@(GR_"(S1)")),S2="" Q:S1=""  W:$D(^(S1))#2 GR_"("_Q_S1_Q_")",!,^(S1),! G S1:'($D(^(S1))\10#2)
+S2 S S2=$O(@(GR_"(S1,S2)")),S3="" G S1:S2="" W:$D(^(S2))#2 GR_"("_Q_S1_Q_","_Q_S2_Q_")",!,^(S2),! G S2:'($D(^(S2))\10#2)
+S3 S S3=$O(@(GR_"(S1,S2,S3)")),S4="" G S2:S3="" W:$D(^(S3))#2 GR_"("_Q_S1_Q_","_Q_S2_Q_","_Q_S3_Q_")",!,^(S3),! G S3:'($D(^(S3))\10#2)
+S4 S S4=$O(@(GR_"(S1,S2,S3,S4)")),S5="" G S3:S4="" W:$D(^(S4))#2 GR_"("_Q_S1_Q_","_Q_S2_Q_","_Q_S3_Q_","_Q_S4_Q_")",!,^(S4),! G S4:'($D(^(S4))\10#2)
+ G S4
+")),S5="" G S3:S4="" W:$D(^(S4))#2 GR_"("_Q_S1_Q_","_Q_S2_Q_","_Q

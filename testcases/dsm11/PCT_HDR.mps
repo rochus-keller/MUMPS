@@ -2,8 +2,7 @@
         I '$D(STR) W !!!,"The variable STR must be defined with a header string",!! Q
         I '$D(%HEADER) S %HEADER="F"
         Q:%HEADER="N"  I %HEADER="S" W #!!!,STR,!!!,"Created on " D ^%D W "    " D ^%T W !!# Q
-        S %FS="ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789,-/.!#'$()*+?\=^&%",%ST=STR,%LC=11,(ERA,%T8)=0 S:'$D(%CP) %CP=2 S:'$D(%DV) %DV=0
-        I %DV<63,%DV>58 U %DV
+        S %FS="ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789,-/.!#'$()*+?\=^&%",%ST=STR,%LC=11,(ERA,%T8)=0 S:'$D(%CP) %CP=2 S:'$D(%DV) %DV=0        I %DV<63,%DV>58 U %DV
 BEG     S %TM=STR W # D HDR:%LC'=7 G TIM:%TM'="",B2:%LC=7
 B1      W !!!!,"Created on " D ^%D W "    " D ^%T W ! W:%DV>58&(%DV<63) "@@",!
 B2      S STR=%ST,%DV=$I Q:%LC=7  S %CP=%CP-1 G BEG:%CP>0 W # G B3

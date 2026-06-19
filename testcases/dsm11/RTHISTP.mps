@@ -26,8 +26,7 @@ PRINT   D HEADING W !!?51,"Average Counts of Jobs",! D LINE1,LINE2 S RTN="",TOTA
         D LINE2,LINE1 W !?47,"Averages of Events per Second",! D LINE3,LINE2
         S INC=2,DIV=SECS,UCIP=0,TAB=10
         F Q=2:1 S COM=$P($T(NODES),";;",Q) Q:COM=""  S HITS=^RTH(SUB,COM) D STARS
-        F K=1:1 Q:'$D(^RTH(SUB,"DDPIN"_K))  S HITS=^("DDPIN"_K),N=^("DDPNAM"_K) D PKASC S COM="DDPI "_N D STARS S HITS=^("DDPOUT"_K)
-,N=^("DDPNAM"_K) D PKASC S COM="DDPO "_N D STARS
+        F K=1:1 Q:'$D(^RTH(SUB,"DDPIN"_K))  S HITS=^("DDPIN"_K),N=^("DDPNAM"_K) D PKASC S COM="DDPI "_N D STARS S HITS=^("DDPOUT"_K),N=^("DDPNAM"_K) D PKASC S COM="DDPO "_N D STARS
         D LINE2,LINE3
         W !?20,"| Block Read Requests per Global Reference (LOGRD/(ROUREF+GLOREF)):",?90
         W $J(^("LOGRD")/(^("ROUREF")+^("GLOREF")),5,2)
@@ -42,8 +41,7 @@ PRINT   D HEADING W !!?51,"Average Counts of Jobs",! D LINE1,LINE2 S RTN="",TOTA
         D LINE1,LINE2 S INC=.2,TOTAL=0,TAB=11,DIV=^RTH(SUB,"TOTAL")/100 W "Disk Drive"
         F UN=0:1:7 S COM=UN_" Read",HITS=^RTH(SUB,"DISK",UN,"READ") D STAR S COM=UN_" Write",HITS=^("WRITE") D STAR
         S TAB=0,HITS=TOTAL,COM="Total" D STARS,LINE2,LINE1
-        D HEADING W !!?31,"Time Spent Executing Routines as a Percentage of Total Elapsed Time",!,"UCI       Routine" D LINE1 W "---
-       -------" D LINE2
+        D HEADING W !!?31,"Time Spent Executing Routines as a Percentage of Total Elapsed Time",!,"UCI       Routine" D LINE1 W "---       -------" D LINE2
         S RTN="",(UCIP,OTHER)=0,TAB=10
         S HITS=^RTH(SUB,"NOROOM"),COM="No Room" D STAR
         S COM="Idle",HITS=^("IDLE") D STARS
@@ -75,8 +73,7 @@ ID      W !?18,"Statistics Session #",SUB," Was Logged on " S %DT=$P(^RTH(SUB,"S
 LINE1   W ?20,"0    1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16   17   18   19   20",! Q
 LINE2   W ?20,"|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|----|",! Q
 LINE3   W ?20,"0    10   20   30   40   50   60   70   80   90  100  110  120  130  140  150  160  170  180  190  200",! Q
-NODES   ;;SWAPINS;;ROUREF;;MAPROU;;GLOREF;;GLOSET;;GLOKIL;;LOGRD;;READS;;TOTRD;;LOGWT;;WRITES;;WTSYNC;;TRYLAST;;GOTLAST;;ALLOC;;DEAL
-L;;TTYIN;;TTYOUT
+NODES   ;;SWAPINS;;ROUREF;;MAPROU;;GLOREF;;GLOSET;;GLOKIL;;LOGRD;;READS;;TOTRD;;LOGWT;;WRITES;;WTSYNC;;TRYLAST;;GOTLAST;;ALLOC;;DEALL;;TTYIN;;TTYOUT
         ;;
 HEADING W $C(12),!!?50,"System Performance Statistics",!?50,^RTH(SUB,"CONF"),! D ID
         W !?37,"Average Number of Jobs Running During Session: ",$J(^RTH(SUB,"JOBS")/^("TOTAL"),5,2)

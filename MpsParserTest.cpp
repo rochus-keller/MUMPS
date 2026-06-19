@@ -26,6 +26,7 @@
 #include <QElapsedTimer>
 #include "MpsLexer.h"
 #include "MpsParser.h"
+#include "MpsParser2.h"
 using namespace Mps;
 
 QStringList collectFiles(const QDir& dir, const QStringList& suffix)
@@ -118,24 +119,77 @@ static void checkParser(const QStringList& files)
              << "files" << "in" << timer.elapsed() << " [ms]";
 }
 
+static void checkParser2(const QStringList& files)
+{
+    int ok = 0;
+    int totalLines = 0;
+    int totalCommands = 0;
+
+    class Lex : public Scanner
+    {
+    public:
+        Lexer lex;
+        Token next()
+        {
+            return lex.nextToken();
+        }
+
+        Token peek(int offset)
+        {
+            return lex.peekToken(offset);
+        }
+    };
+
+    QElapsedTimer timer;
+    timer.start();
+    foreach(const QString& file, files)
+    {
+        Lex lex;
+        lex.lex.setStream(file);
+        Parser2 p(&lex);
+        qDebug() << "**** parsing with ast" << file.mid(root.size() + 1);
+        Routine* r = p.parse();
+        if( !p.errors.isEmpty() )
+        {
+            foreach(const Parser2::Error& e, p.errors)
+                qCritical() << e.path.mid(root.size() + 1) << e.row << e.col << e.msg;
+        }
+        else
+        {
+            ok++;
+            totalLines += r->d_lines.size();
+            for( int i = 0; i < r->d_lines.size(); i++ )
+                totalCommands += r->d_lines[i]->d_commands.size();
+        }
+        delete r;
+    }
+    qDebug() << "#### finished with" << ok << "files ok of total" << files.size()
+             << "files" << "in" << timer.elapsed() << " [ms]"
+             << "(" << totalLines << "lines," << totalCommands << "commands)";
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
     if( a.arguments().size() <= 1 )
     {
-        qDebug() << "Usage: MpsParserTest [-lex] <file-or-dir>";
+        qDebug() << "Usage: MpsParserTest [-lex|-ast] <file-or-dir>";
         qDebug() << "  -lex    Run lexer only (dump tokens)";
-        qDebug() << "  Otherwise runs parser";
+        qDebug() << "  -ast    Run AST-building parser (Parser2)";
+        qDebug() << "  Otherwise runs generated parser";
         return -1;
     }
 
     bool lexOnly = false;
+    bool astMode = false;
     QString path;
     for( int i = 1; i < a.arguments().size(); i++ )
     {
         if( a.arguments()[i] == "-lex" )
             lexOnly = true;
+        else if( a.arguments()[i] == "-ast" )
+            astMode = true;
         else
             path = a.arguments()[i];
     }
@@ -168,6 +222,8 @@ int main(int argc, char *argv[])
 
     if( lexOnly )
         checkLexer(files);
+    else if( astMode )
+        checkParser2(files);
     else
         checkParser(files);
 

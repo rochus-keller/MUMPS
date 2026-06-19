@@ -1,0 +1,97 @@
+FOLDER ;HW; hoofd menu folder programma
+ ;
+ S $P(%LIN80,$C(196),79)=""
+ D SETVAR
+ D MELDING
+ D LEESINH
+ D SETTXT
+ W !!,"Druk op een toets " R *DUM:60
+ D TOONMENU
+ D LEESKEUZ
+ Q
+ ;
+SETVAR S CLR="F J=1:1:4 W !",VF="",VH="",BLD=""
+ I $D(^INSTEL("ANSI")),^INSTEL("ANSI")=1 S CLR="W $C(27,91,50,74)",VF=$C(27)_"[0m",VH=VF_$C(27)_"[7m",BLD=VF_$C(27)_"[1m"
+ Q
+ ;
+TOONMENU X CLR W !,BLD,%LIN80,!,?8,"* * *   H o o f d m e n u   f o l d e r t e k s t e n   * * *"
+ w !,%LIN80,!,VF
+ ;
+ S LET="" F J=1:1 S LET=$O(HFD(LET)) Q:LET=""  W:J#2 ! W:'(J#2) ?40 W LET," ",$P(HFD(LET),"|",2)," (",+$P(HFD(LET),"|",1),")"
+ W !!,"* Instellingen programma",?40,"? Volledige lijst aanwezige folders"
+ W !!,%LIN80
+ Q
+ ;
+LEESKEUZ W !!!!!!,"        Kies met een letter of <Esc> om te stoppen " R *KZ
+ I KZ=27 H
+ S:KZ>96 KZ=KZ-32 S KZ=$C(KZ)
+ I KZ="?" S FNAM="INHOUD.FTX" D ^FOLDER2,TOONMENU G LEESKEUZ
+ I KZ="*" D ^FOLDER3,TOONMENU G LEESKEUZ ; instellingen
+ I $D(HFD(KZ)) S HFDLET=KZ D FOLDMENU,TOONMENU G LEESKEUZ
+ D TOONMENU G LEESKEUZ
+ ;
+FOLDMENU ;
+ X CLR W BLD,%LIN80,!,?25,"S u b m e n u : ",$P(HFD(HFDLET),"|",2),!,%LIN80,!,VF
+ S ANTKZ=$P(HFD(HFDLET),"|",1) I ANTKZ>18 D FOLDM2
+ I ANTKZ<19 D FOLDM1
+ W !,%LIN80,!,"Maak uw keuze (tik getal + <Enter>), annuleer = <Esc> : " R *KZ1 Q:KZ1=27  W *KZ1 R *KZ2 Q:KZ2=27  I KZ2'=13 W *KZ2 R *KZ3
+ S KZ=$C(KZ1) I KZ2'=13 S KZ=KZ_$C(KZ2)
+ Q:KZ=""
+ I KZ=+KZ,$D(TMP(KZ)) S FNAM=TMP(KZ)_".FTX" D ^FOLDER2 G FOLDMENU
+ W *7," onjuiste keuze " H 2 G FOLDMENU
+ ;
+FOLDM1 K TMP
+ S LET=HFDLET F J=1:1 S LET=$O(FLD(LET)) Q:LET=""  Q:$E(LET,1)'=HFDLET  W !,?15,$J(J,2),"  ",LET,"  ",FLD(LET) S TMP(J)=LET
+ I ANTKZ<18 F J=ANTKZ:1:18 W !
+ Q
+FOLDM2 K TMP
+ S LET=HFDLET F J=1:1 S LET=$O(FLD(LET)) Q:LET=""  Q:$E(LET,1)'=HFDLET  S TMP(J)=LET
+ F J=1:1:18 W !,$J(J,2)," ",TMP(J)," ",$E(FLD(TMP(J)),1,28) I $D(TMP(J+18)) W ?40,$J(J+18,2)," ",TMP(J+18)," ",$E(FLD(TMP(J+18)),1,28)
+ W !
+ Q
+ ;
+SETTXT F J=1:1:30 S DUM=$P($T(SETTXT2+J),";",2) Q:DUM=""  S LET=$P(DUM,"|",1) S:$D(HFD(LET)) HFD(LET)=HFD(LET)_"|"_$P(DUM,"|",2) S:'$D(HFD(LET)) HFD(LET)="|"_$P(DUM,"|",2)
+ Q
+ ; FLD = ARRAY MET FOLDERS, FLD(CODE)=OMSCHRIJVING
+ ; HFD = Hoofdstukletters, HFD(LET)= aantal | omschrijving
+ ;
+LEESINH I $ZE("INHOUD.FTX")=0 W !!,"File met inhoudsopgave niet gevonden." H 2 H
+ W !!,"Ogenblikje voor het inlezen van de inhoudsopgave .. "
+ O 3:($ZG:"INHOUD.FTX") K FLD,HFD
+ F J=1:1 U 3 R DUM Q:DUM[$C(26)  I DUM'="" S LET=$E(DUM,1) S:$D(HFD(LET)) HFD(LET)=HFD(LET)+1 S:'$D(HFD(LET)) HFD(LET)=1 S COD=$E(DUM,1,5),FLD(COD)=$E(DUM,7,99)
+2 C 3
+ q
+ ;
+MELDING X CLR W BLD,%LIN80
+ W !,"* *   N e d e r l a n d s   H u i s a r t s e n   G e n o o t s c h a p   * *"
+ W !,%LIN80,VF
+ W !!,"Voorlichtingsfolders in de computer - ondersteuningsprogramma versie 0.8"
+ w !!,"Deze folders zijn uit het enorme aanbod van folders geselecteerd door de "
+ W !,"commissie praktijkvoering (CPV) van het NHG."
+ w !!,"Het Genootschap zelf is echter niet verantwoordelijk voor de inhoud van de"
+ W !,"folders. Zoveel mogelijk is de bron van de folder vermeld."
+ W !!,"Bij dit programma behoort een schriftelijke handleiding. Daarin staat o.a."
+ W !,"hoe u zelf folders kunt toevoegen of folders kunt aanpassen."
+ W !!,"Programma en folders zijn te bestellen bij het NHG, tel: 030-881700"
+ W !!,%LIN80,!!
+ Q
+ ;
+SETTXT2 ;
+ ;A|Algemeen
+ ;B|Bloed en bloedvormende organen
+ ;D|Tractus Digestivus
+ ;F|Oog
+ ;H|Oor
+ ;K|Tr. Circulatorius
+ ;L|Bewegingsapparaat
+ ;N|Zenuwstelsel
+ ;P|Psychische problemen
+ ;R|Tr. Respiratorius
+ ;S|Huid en subcutis
+ ;T|Endocrien/metabool/voeding
+ ;U|Urinewegen
+ ;W|Zwangerschap, bevall./anticonc.
+ ;X|Gesl.org. & borsten vrouw
+ ;Y|Gesl.org. & borsten man
+ ;Z|Sociale problemen
+

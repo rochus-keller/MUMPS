@@ -1,0 +1,39 @@
+ZBV ;BACK-UP GLOBALS AND/OR ROUTINES TO FLOPPY
+ ;***********************************
+ ;*  GLOBAL WRITE & VERIFY SECTION  *
+ ;***********************************
+ ;GLOBAL WRITE
+GWRT S GLB="^"_RG W !,"^",RG," STARTED " U DEV W GLB,EOL U 0
+ S FLG="W",ERR=0 D GNXT I ERR=0 W "---> ^",RG," DONE"
+ K FLG Q
+ ;
+GNXT I $D(@GLB)#10=1 D GYYY
+ Q:'$D(@GLB)  I GLB'["("&(GLB'[")") S GLB=GLB_"("""")",SUB="",L=0 G GN1
+ S SUB=$P($P(GLB,")",1),"(",2),GLB=$P(GLB,"(",1),L=$L(SUB)
+ S GLB=GLB_"("_SUB_")"
+GN1 S GLB=$ZO(@GLB) G:GLB="" GEND
+ G:$E($P($P(GLB,")",1),"(",2),1,L)'=SUB GEND
+ D GYYY
+ G GN1
+GEND D GXXX K GLB,L,SUB
+ Q
+GXXX U DEV W EOR U 0 Q
+GYYY U DEV W GLB,"=",EOL,@GLB,EOL U 0 Q
+ ;************************************
+ ;*  ROUTINE WRITE & VERIFY SECTION  *
+ ;************************************
+ ;ROUTINE WRITE
+RWRT U DEV W RG,EOL
+ X "ZL @RG U DEV F J=1:1 Q:$T(+J)=""""  W $T(+J),EOL"
+ U DEV W EOR U 0 W ?%Q#8*10,RG S %Q=%Q+1 W:'(%Q#8) !
+ K J Q
+ ;
+ ;ROUTINE VERIFY
+RVER Q
+ ;**********************************
+DEV W EOR U 0 W ?%Q#8*10,RG S %Q=%Q+1 W:'(%Q#8) !
+ K J Q
+ ;
+ ;ROUTINE VERIFY
+RVER Q
+ ;***************************

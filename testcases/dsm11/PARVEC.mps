@@ -20,8 +20,7 @@ HD      U %IOD W !!,"Location",?10,"Contents",?20,"Name",?35,"Description",!
         W "--------",?10,"--------",?20,"----",?35,"-----------",!
 LOOP    U 0 I %IOD=$I S CNT=CNT+1 I CNT>6 G STOP
         I %IOD'=$I U %IOD I $Y>55 W # G HD
-        S X=$O(^PARVEC(X)) S %DO=X D %DO S %DO="#"_%DO U %IOD W !,$J(%DO,4) S NO=^(X),D=$P(NO,",",1),E=$P(NO,",",2),F=$P(NO,",",3),G
-=$P(NO,",",4),NO=X
+        S X=$O(^PARVEC(X)) S %DO=X D %DO S %DO="#"_%DO U %IOD W !,$J(%DO,4) S NO=^(X),D=$P(NO,",",1),E=$P(NO,",",2),F=$P(NO,",",3),G=$P(NO,",",4),NO=X
         D PRT U %IOD W ?19,$J(D,0) W:E]"" ?28,E D DEC W:F]"" ?28,F W ! G END:X=VECSIZ,LOOP
 %OD     I %OD'?1N.N!($L(%OD)>27)!(%OD="")!(%OD[8)!(%OD[9) S %OD="B" Q
         S %B(1)=1,%B=0 F %I=2:1:8 S %B(%I)=%B(%I-1)*8

@@ -1,0 +1,8 @@
+%DIR ;CREATE DIRECTORY OF ROUTINE OR GLOBAL NAMES
+ R !,"ROUTINES OR GLOBALS? (R/G) ",%D Q:%D=""  S %D=$E(%D) G:"RG"'[%D %DIR
+X K ^%U S %V=$S(%D="R":3,1:2) O 3:("A":"\/\/.123") U 3 V %V C 3:0
+ O 3:("A":"\/\/.123") S %C=0
+ F %J=0:1 U 3 R %D Q:$A(%D)=26  F %K=0:1:4 S %Y=$P($E(%D,%K*12+1,%K+1*12)," ") Q:%Y=""  S ^%U(%J*5+%K+1)=%Y,%C=%C+1
+ S ^%U(0)=%C
+ C 3:1 K %C,%D,%J,%K,%Y Q
+ 

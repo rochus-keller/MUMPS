@@ -15,10 +15,8 @@ HD      U %IOD W !!,"Location",?10,"Contents",?20,"Name",?35,"Description",!
         W "--------",?10,"--------",?20,"----",?35,"-----------",!
 LOOP    S CNT=CNT+1 U 0 I %IOD'=$I U %IOD I '(CNT#18) W # G HD
         U 0 I %IOD=$I G STOP:(CNT>6)
-        S X=$N(^SYSTAB(X)) S %DO=X D %DO S %DO="#"_%DO U %IOD W !,$J(%DO,4) S NO=^(X),D=$P(NO,",",1),E=$P(NO,",",2),F=$P(NO,",",3),G
-=$P(NO,",",4),NO=X
-        D PRT U %IOD W ?19,$J(D,0) W:'(E="") ?28,$J(E,0) D DEC W:'(F="")&($E(F,1)'="@") ?28,$J(F,0) W:$E(F,1)="@" ?28,@$E(F,2,255) W
- ! G END:X=442 G LOOP
+        S X=$N(^SYSTAB(X)) S %DO=X D %DO S %DO="#"_%DO U %IOD W !,$J(%DO,4) S NO=^(X),D=$P(NO,",",1),E=$P(NO,",",2),F=$P(NO,",",3),G=$P(NO,",",4),NO=X
+        D PRT U %IOD W ?19,$J(D,0) W:'(E="") ?28,$J(E,0) D DEC W:'(F="")&($E(F,1)'="@") ?28,$J(F,0) W:$E(F,1)="@" ?28,@$E(F,2,255) W ! G END:X=442 G LOOP
 %OD     I %OD'?1N.N!($L(%OD)>27)!(%OD="")!(%OD[8)!(%OD[9) S %OD="B" Q
         S %B(1)=1,%B=0 F %I=2:1:8 S %B(%I)=%B(%I-1)*8
         F %I=1:1:$L(%OD) S %B=%B+($E(%OD,$L(%OD)+1-%I)*%B(%I))

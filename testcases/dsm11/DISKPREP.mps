@@ -39,8 +39,7 @@ SHOW1   R !,"Add this disk to which Volume set ? > ",S,!
         F I=0:1:3 I STR(I)=S S STR=I G STR
         W !,S," is not a mounted Volume Set" G SHOW1
 STR     U 63:(::"Z"),0 V 0:$P(STR(STR,1),":")
-        I $V(916,0),$V(916,0)'=$V(812,0) W !,"This volume has logical size of ",$V(916,0)," maps.  It must be extended to the full "
-,!,$V(812,0)," map size using ^DISKSIZ before adding a new volume to the volume set.",! G USAGE
+        I $V(916,0),$V(916,0)'=$V(812,0) W !,"This volume has logical size of ",$V(916,0)," maps.  It must be extended to the full ",!,$V(812,0)," map size using ^DISKSIZ before adding a new volume to the volume set.",! G USAGE
         S UNIT=$V(512+401,0)#256+1
         S CODE=$V(512+392,0) S VOLNAM="" F I=0:1:2 S VOLNAM=VOLNAM_$C($V(512+394+I,0)#256)
         G PREP

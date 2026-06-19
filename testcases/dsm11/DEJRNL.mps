@@ -1,6 +1,5 @@
 DEJRNL  ;YZH;23-JUN-80;ENTRY ROUTINE TO DEJOURNAL FROM DISK AND MAGTAPE
-        I $V($V(44)+410) W !!,"Journaling is still active !!!",!,"Shutdown Journaling or stop Journaling on global(s) to be Dejourna
-led.",*7
+        I $V($V(44)+410) W !!,"Journaling is still active !!!",!,"Shutdown Journaling or stop Journaling on global(s) to be Dejournaled.",*7
 %JGR    K  W !!,"Specify one of the following:"
         W !,"1. Dejournal from disk"
         W !,"2. Dejournal from magnetic tape"

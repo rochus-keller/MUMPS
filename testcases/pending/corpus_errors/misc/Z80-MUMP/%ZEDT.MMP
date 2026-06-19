@@ -1,0 +1,98 @@
+%ZEDT ;John Lewkowicz - NYS College of Veterinary Medicine
+ ;Generalized global editor
+ S X=$S('^(0):"NO text yet\.I 0",1:"Use ""P A"" to see current text\"),A=$P(X,"\",2),X=$P(X,"\",1)
+ S EL=^(0),LNM=EL,CL=^(LNM),RNF=0 W !!!,X_" for "_TTL," (use '?' for HELP)" K X
+REDIT W !,">>: " I $E(A,1)="." S A=$E(A,2,255) I A'="" W A G R1
+ D READ G REDIT:E I A?1".".E S A=$E(A,2,255)
+ I A="" S A="R" W A
+ I A?1"+"1N.N S A=LNM_A
+ I A?1N.NP!(A?1"@".E) D UPPER S L=A D GLV G REND:L<1!'$D(^(L)) S LNM=L,CL=^(L) S A="R"
+R1 S C=$E(A,1) I C'="",". "[C S A=$E(A,2,255) G R1
+ I C=";",$D(PRG),A'=";" Q
+ I C?1L S C=$C($A(C)-32)
+ I C'=""&("??"[C) D ^%ZEDTE G REND
+ S A=$E(A,2,255) F I=1:1 Q:$E(A,1)'=" "  S A=$E(A,2,255)
+ I C?1U,$T(@("ED"_C))'="" G @("ED"_C)
+ W *7," NO such command."
+REND S A="" S:LNM CL=^(LNM) W !! W:'LNM "(NO text yet)" W:LNM LNM D:LNM DISP K L,L1,L2 G REDIT
+EDA G REND
+EDB D BREAK^%ZEDT1 G REND
+EDC D GLNM G REND:L1<0 S:L2<0 L2=L1 G REND:'L2
+ D SET,EDC0^%ZEDT1 G REND
+EDD G EDP
+EDR D GLNM G REND:L1'>0!'$D(^(L1)) S LNM=L1,CL=^(LNM) W !,LNM D DISP
+EDR0 W !,?2,"R-> " D READ G EDR0:E S X=A,L1=0,L2=0 G EDR9:A=""
+ I X="END"!(X="end") S L1=255,L2=256 G EDR2
+ I X'["..." S L2=$F(CL,X) G EDR1:'L2 S L1=L2-1-$L(X) G EDR2
+ I X="..." S L1=0,L2=256 G EDR2
+ I X?1"...".E S L1=0,X=$E(X,4,255),L2=$F(CL,X) G EDR1:L2<0,EDR2
+ I $E(X,$L(X)-2,$L(X))="..." S L2=256,X=$E(X,0,$L(X)-3),L1=$F(CL,X)-1-$L(X) G EDR1:L1<0,EDR2
+ S I=$E(X,0,$F(X,"...")-4),L1=$F(CL,I) G EDR1:'L1
+ S L2=$E(X,$F(X,"..."),255),L2=$F(CL,L2,L1) G EDR1:'L2 S L1=L1-1-$L(I) G EDR2
+EDR1 W *7," Can't find." G EDR0
+EDR2 W "   W-> " D READ G EDR2:E
+ S CL=$E(CL,0,L1)_A_$E(CL,L2,255) G EDR0
+EDR9 S ^(LNM)=CL G REND
+EDE D ERASE^%ZEDT1 G REND
+EDF S A="F" G EDX
+EDI D GLNM G REND:L1<0
+ S LNM=L1 D GINC S NLN=$S('LNM!$D(^(LNM)):LNM+INC,1:LNM)
+EDI0 I LNM,$D(^(LNM)) W !,LNM S CL=^(LNM) D DISP
+EDI1 W !,NLN,?6 W:'$D(PRG) ?10 D READ G EDIX:A?1".".E!(A="")
+ S LNM=NLN,^(LNM)=A D:L1<EL GINC S NLN=LNM+INC
+ G EDI1
+EDIX S:LNM>EL EL=LNM,^(0)=EL K NLN,INC W !
+ G REDIT
+EDQ D GLNM G REND:L1<0 S:L2<0 L2=L1 G REND:'L2
+ W !,?5,"Pattern Match   X?" D READ G REND:A=""
+ S A=".E"_A_".E" D SET S Y=$Y
+EDQ1 S L=$O(^(L)) G REND:L=""!(L>L2),EDQ1:^(L)'?@A S X=^(L) D MORE W L,?6,$E(X,1,72) S X=$E(X,73,255)
+ F I=1:1 G EDQ1:X="" D MORE G REDIT:E W ?7,$E(X,1,71) S X=$E(X,72,255)
+EDM D MOVE^%ZEDT1 G REND
+EDN S ^(0)=EL D RNUM^%ZEDT1 S A=".P A" G REDIT
+EDP D GLNM G REND:L1<0 S:L2<0 L2=L1 G REND:'L2
+EDP0 D SET W !! S Y=$Y
+EDP1 S L=$N(^(L)) G EDP2:L<0!(L>L2) S LNM=L,CL=^(L)
+ D MORE G REDIT:E
+ W LNM D DISP G EDP1
+EDP2 W ! K L G REDIT
+EDS D GLNM G REND:L1<0 S:L2<0 L2=L1 G REND:'L2
+ W !,?5,"Search for: " D READ G REND:A=""
+ D SET S Y=$Y
+EDS1 S L=$N(^(L)) G REND:L<0!(L>L2),EDS1:^(L)'[A S X=^(L) D MORE W L,?6,$E(X,1,72) S X=$E(X,73,255)
+ F I=1:1 G EDS1:X="" D MORE G REDIT:E W ?7,$E(X,1,71) S X=$E(X,72,255)
+EDT D XFER^%ZEDT1 G REND
+EDV D VIEW^%ZEDT1 G REND
+EDX S:EL ^(0)=EL K LNM,CL,INC,NLN,EL,C,L1,L2,L,I W !!
+ Q
+READ S A="",E=0
+RD2 R *X I X=13 Q
+ E  I X=21 F X=1:1:$L(A) W $C(8)," ",$C(8) I X=$L(A) S A="" G RD2
+ E  I X=127!(X=8) W:$L(A) $C(8)," ",$C(8) S A=$E(A,1,$L(A)-1) G RD2
+ E  S A=A_$C(X) W $C(X) G RD2
+GLNM I A="#" S A=LP1_"-"_LP2 W " ["_A_"]"
+ D UPPER S A=$S(A="":"L",A="A":"B-E",1:A),D=$S(A["-":"-",A[":":":",1:"-")
+ S LN=LNM,L=$P(A,D,1) D GLV S L1=-1 S:L'<0 L1=L Q:L1<0
+ S LN=L1,L=$P(A,D,2) D:A[D GLV X "S L2=$S(L'>0:-1,1:L)" S:L2>L1 LP1=L1,LP2=L2
+ Q
+GLV S LP=$P(L,"+",2),L=$P(L,"+",1)
+ I L'?1"@".E X "S L=$S(L="""":LN,+L=L:L,L=""L"":LNM,L=""B"":0,L=""E"":EL,1:-1)" G GLV9
+ S LL=$E(L,2,99),L=0 F II=1:1 S L=$N(^(L)) Q:L<0  Q:$P(^(L)," ",1)=LL
+GLV9 I LP F II=1:1:LP S L=$N(^(L)) I L<0 S L=EL Q
+ K LL,II,LP Q
+GINC S INC=1,L2=$N(^(LNM))-LNM I L2>0 F I=1:1 Q:L2>INC  S INC=INC/10
+ S:INC<1 RNF=1 Q
+DISP S LIN=CL
+ G DI2:$D(PRG)
+DI1 W ?10,$E(LIN,1,70) S LIN=$E(LIN,71,255) Q:LIN=""  W ! G DI1
+DI2 W ?6,$P(LIN," ",1) S LIN=$P(LIN," ",2,255)
+DI3 W ?15,$E(LIN,1,64) S LIN=$E(LIN,65,255) Q:LIN=""  W ! G DI3
+SET S L=$S('L1:.00001,1:L1-.00001)
+ Q
+MORE S E=0 W ! I $Y-Y>22 S Y=$Y,AA=A R "More: ",A D UPPER S:"Y"'[A E=1 S:$E(A,1)'="."&E A="."_A S:'E A=AA W !
+ Q
+UPPER F I=1:1 Q:A?.NUPC  S X=$E(A,I),X=$A(X) S:X>96&(X<123) A=$E(A,0,I-1)_$C(X-32)_$E(A,I+1,255)
+ Q
+"."_A S:'E A=AA W !
+ Q
+UPPER F I=1:1 Q:A?.NUPC  S X=$E(A,I),X=$A(X) S:X

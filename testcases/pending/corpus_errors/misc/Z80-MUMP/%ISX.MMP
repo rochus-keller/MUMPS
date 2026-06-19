@@ -1,0 +1,6 @@
+%IS S IO=$I,IOM=80,IOSL=24,IOF="#",IOST="C",IOPAR=""
+:'(%Q#8) !
+ G R2
+ ;*************************
+READ U DEV R %TP
+ S:'$L(

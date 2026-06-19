@@ -28,11 +28,9 @@ MOUNT   I ^SYS(ID,"OPTIONS","MOUNT")="N" G:%A RMAP G SD
 MNTHD   W !,"DISK",?8," DATABASE  ",?23,"LABEL/VOLUME"
         W !,"UNIT",?8,"VOLUME SET?",?23,"  SET NAME  "
         W !,"----",?8,"-----------",?23,"------------"
-        F I=0:0 S DSK=$O(DSK(DSK)) Q:DSK=""  W !,DSK,?12,$P(DSK(DSK),"^"),?23,$P(DSK(DSK),"^",2) I $P(DSK(DSK),"^",3)'="" W ?33,"Alt
-ernate name: ",$P(DSK(DSK),"^",3)
+        F I=0:0 S DSK=$O(DSK(DSK)) Q:DSK=""  W !,DSK,?12,$P(DSK(DSK),"^"),?23,$P(DSK(DSK),"^",2) I $P(DSK(DSK),"^",3)'="" W ?33,"Alternate name: ",$P(DSK(DSK),"^",3)
 MNTDSK  R !,DSK G:DSK="^" MNTBK G:DSK="?" MNTH I DSK="" W ! G SD
-        I $E(DSK)="-" S DSK=$E(DSK,2,4) G:'$D(DSK(DSK)) MNTDSK W ?12,$P(DSK(DSK),"^"),?23,$P(DSK(DSK),"^",2),?33," - removed from st
-artup list" K DSK(DSK) G MNTDSK
+        I $E(DSK)="-" S DSK=$E(DSK,2,4) G:'$D(DSK(DSK)) MNTDSK W ?12,$P(DSK(DSK),"^"),?23,$P(DSK(DSK),"^",2),?33," - removed from startup list" K DSK(DSK) G MNTDSK
         F I=1:1:$L(TYPES) I $E(DSK,1,2)=$P(TYPES,",",I),$E(DSK,3)<8 G MNTYP
         D IV G MNTDSK
 MNTYP   R ?12,MTYP G:MTYP="^" MNTBK G:MTYP="?" MNTH
@@ -47,8 +45,7 @@ ALAB    .R ?33,"Alternate Volume set name > ",N I N="^"!(N="") S %A=1 Q
         .I N'?3U D IV G ALAB
         .D CHKNM I %A W !,"Alternate name must be unique",! G ALAB
         .S LAB=LAB_"^"_N,%A=0
-        I MTYP="N",$L(LAB)>24!($E(LAB)'="""")!($E(LAB,$L(LAB))'="""") W !!,"Labels must be 1-22 characters enclosed in quotes",! G R
-WRT
+        I MTYP="N",$L(LAB)>24!($E(LAB)'="""")!($E(LAB,$L(LAB))'="""") W !!,"Labels must be 1-22 characters enclosed in quotes",! G RWRT
         S DSK(DSK)=MTYP_"^"_LAB G MNTDSK
 RWRT    W !,DSK,?12,MTYP G LAB
 MNTH    D MOUNTH^STUBLDH S DSK="XXX" G MNTHD

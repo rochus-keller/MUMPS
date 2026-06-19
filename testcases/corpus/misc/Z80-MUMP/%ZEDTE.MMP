@@ -1,0 +1,64 @@
+%ZEDTE ;John Lewkowicz - NYS College of Veterinary Medicine
+ ;Routine Editor - General Help
+ D UPPER S A=$E(A,2,9) S:A=";" A="SEMI" S:"?"[A A="1" W !!! G ^%ZEDTE1:$T(@A)=""
+ F I=1:1 S X=$T(@A+I) Q:X=""!($P(X," ",1)'="")  W !,$P(X,";",2,99)
+ Q
+UPPER ;
+ F I=1:1 Q:A?.NUPC  S X=$A(A,I) I X>96,X<123 S A=$E(A,0,I-1)_$C(X-32)_$E(A,I+1,255)
+ K X,I Q
+1 ;
+ ;-----------------------------------------------------------------------
+ ; => "B [line]"  Break "line" (default=current) into 2 lines.
+ ; => "C [L1-L2]" Change all occurences of 1 string to another
+ ; => "E [L1-L2]" Erase lines L1-L2.
+ ; => "F"         File current routine.
+ ; => "I [line]"  Insert text after "line".
+ ; => "M [L1-L2]" Move lines within text.
+ ; => "P [L1-L2]" Print lines L1-L2 -or- "P #" for last range of lines
+ ; => "Q [L1-L2]" Search L1-L2 for PATTERN MATCH.
+ ; => "R [line]"  Replace string(s) in line "line".
+ ; => "S [L1-L2]" Search for occurence of string in lines L1-L2.
+ ; => "N"         ReNumber the lines
+ ; => "X"         eXit without Filing
+ ; => ";LABEL"    Enter/Edit comments for LABEL.
+ ;
+ ;                MNEMONICS for L1, L2
+ ;    B - Begining      E - End      @LABEL - Line "LABEL"
+ ;    L - Current line  A - All text      # - Last range of lines specified
+ ;Use "?B" for more info on Break command, "?C" for Change command, etc.
+ ;----------------------------------------------------------------------
+B ;
+ ;BREAK command {B [line]} lets you break one line into two lines. If
+ ;  you don't specify the optional line reference ([line]), the current
+ ;  line is assumed. You will be asked after which characters in the
+ ;  line you want the break to occur.
+C ;
+ ;CHANGE command {C [L1-L2]} lets you change ALL occurences of one 
+ ;  string to another string. If you don't specify the optional range
+ ;  of line references ([L1-L2]), the Change will only effect the current
+ ;  line. You will be asked for both the target and the replacement 
+ ;  strings.
+E ;
+ ;ERASE command {E [L1-L2]} lets you erase one or more lines of text.
+ ;  If you don't specify the optional range of line references ([L1-L2]),
+ ;  the Erase will only eliminate the current line. If the range of 
+ ;  line references covers more than 1 line you will be asked to verify
+ ;  the Erase request.
+I ;
+ ;INSERT command {I [line]} lets you insert lines of text into the file.
+ ;  If you don't specify the optional line reference ([line]) the text
+ ;  will be inserted AFTER the Current line. If you do specify a line
+ ;  reference, the text will be inserted AFTER that line. If you say
+ ;  "I B" the text will be inserted at the begining of the file (that is
+ ;  Before any existing text).
+ ;
+ ;Enter null line to return to Edit mode  -or-  Type in an Edit command
+ ;  preceeded with a "." (as in ".P B:+5" or ".X").
+M ;
+ ;MOVE command {M [L1-L2]} lets you move lines of text around in the file.
+ ;  If you don't specify the optional range of lines to be moved ([L1-
+ ;  L2]), then the Current line will be moved. You will be asked which
+ ;  line you want the text moved AFTER.
+ moved ([L1-
+ ;  L2]), then the Current line will be moved. You will be asked which
+ ;  line you w

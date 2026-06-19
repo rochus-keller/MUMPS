@@ -1,0 +1,6 @@
+%MRDEL ;JML
+ R !,"Routine to DELETE: ",R Q:R=""
+ I "??"[R D ^%MRD G %MRDEL
+ K ^UTIL("ROU",R),^%C(R) ZD @R G %MRDEL
+
+ S:'$L(

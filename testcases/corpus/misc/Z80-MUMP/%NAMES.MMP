@@ -1,0 +1,76 @@
+%NAMES ;SELECT A SET OF GLOBAL OR ROUTINE NAMES
+ D ^%DIR G X+1
+X S %D="R" D X^%DIR
+ K ^%U1 F %I=1:1:^%U(0) S ^%U1($P(^%U(%I)," ",1))=""
+ K ^%U S %DEL=0
+START R !!,"OPTION -- ",%OP G:%OP="" END I "?/ADD/A/DELETE/D/HELP/H/LIST/L/QUIT/Q"'[%OP_"/" W " ???" G START
+ I %OP="?" D HELP G START
+ I $E(%OP)="Q" G END
+ D @%OP G START
+END I %DEL S %X="" F I=1:1 S %X=$O(^%U(%X)) Q:%X=""  K:^%U(%X)="D" ^%U(%X)
+ K ^%U1,%OP,%I,%DL,%D,%NM,%X,%N,%ST,%DEL
+ Q
+ ;
+GETNMS ;GATHER UP NAMES
+ W !,"ENTER THE ",$S(%V=3:"ROUTINE",1:"GLOBAL")," NAME: " R %NM Q:%NM=""
+ S %DL="?*",%X="",%N=0
+ Q:%NM'["?"&(%NM'["*")
+ F %I=1:1 D SCAND S:%ST'="" %X=%X_"1"""_%ST_"""" S:%N %X=%X_$S(%D="*":".",1:%N)_"E" Q:%NM=""
+ S %NM=%X Q
+ ;
+SCAND ;RETURN STRING BEFORE AND AFTER A SET OF DELIMETERS
+ F %N=1:1:$L(%NM) S %D=$E(%NM,%N) I %DL[%D S %ST=$E(%NM,1,%N-1),%NM=$E(%NM,%N+1,999) Q
+ E  S %ST=%NM,%NM="",%N=0,%D="" Q
+ F %N=1:1 S %Y=$E(%NM) Q:%Y'=%D  S %NM=$E(%NM,2,999)
+ K %Y
+ Q
+	;
+A	;ADD NAMES TO ^%U LIST
+ W "DD"
+ADD D GETNMS Q:%NM=""
+ I '%N S:$D(^%U1(%NM)) ^%U(%NM)="" G ADD
+ S %X="" F %I=1:1 S %X=$O(^%U1(%X)) Q:%X=""  S:%X?@%NM ^%U(%X)=""
+ G ADD
+ ;
+D ;DELETE NAMES FROM ^%U LIST
+ W "ELETE"
+DELETE D GETNMS Q:%NM=""
+ I '%N S:$D(^%U1(%NM)) ^%U(%NM)="D",%DEL=1  G DELETE
+ S %X="" F %I=1:1 S %X=$O(^%U1(%X)) Q:%X=""  S:%X?@%NM ^%U(%X)="D"
+ S %DEL=1 G DELETE
+ ;
+L ;LIST NAMES IN ^%U LIST
+ W "IST"
+LIST W !! S %X="",%I=1
+ S %X=$O(^%U(%X)) Q:%X=""
+ I ^%U(%X)'="D" W ?%I-1#8*10,%X W:'(%I#8) ! S %I=%I+1
+ G LIST+1
+ Q
+ ;
+HELP ;LIST INSTRUCTIONS
+H W !! F %I=1:1 S %X=$E($T(HP+%I),3,999) Q:%X=""  W %X,!
+ Q
+ ;
+HP ;INSTRUCTIONS
+ ;A OR ADD        -- ADD NAMES TO THE LIST
+ ;D OR DELETE     -- DELETE NAMES FROM THE LIST
+ ;L OR LIST       -- SHOW THE NAMES CURRENTLY IN THE LIST
+ ;H OR HELP       -- TYPED INSTEAD OF AN OPTION TO GET HELP
+ ;Q OR QUIT       -- EXIT %NAMES ROUTINE
+ ;?               -- ANOTHER WAY TO GET HELP
+ ;<RETURN>        -- ANOTHER WAY TO EXIT
+ ; 
+ ; 
+ ;INSTRUCTIONS FOR ENTERING NAMES
+ ;  ENTER EITHER
+ ;   1.  A COMPLETE NAME
+ ;   2.  A NAME WITH 1 OR MORE *'S IN IT
+ ;   3.  A NAME WITH 1 OR MORE ?'S IN IT
+ ;   4.  A COMBINATION OF 2 AND 3
+ ;   5.  A <RETURN> TO GET THE NEXT OPTION CHOICE
+ ; 
+ ; EXAMPLES:
+ ;  MOM WILL ONLY BE THE ONE NAME 'MOM'
+ ;  M*M WILL BE ANY NAME STARTING WITH 'M' AND ENDING WITH 'M'
+ ;  M?M WILL BE ANY 3 LETTER NAME BOTH STARTING AND ENDING WITH 'M'
+M W

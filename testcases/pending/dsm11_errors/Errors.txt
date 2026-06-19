@@ -1,0 +1,6 @@
+BSCBIT.mps:    data block (documentation text like S.ACK = SUCCESSFUL ACK RECEIVED, 
+               not executable code)
+PCT_FGC.mps:   U 63:(R:1),Y:(1024:(R-1)*1024) — (R-1) inside openparam is ambiguous 
+               between expression grouping and openparam group; hard LL(1) conflict
+PCT_LNKMP.mps: unbalanced parens in source: (('V)&ERR)!(ERR>1)) has 4 opens, 4 closes 
+               but nesting is wrong

@@ -57,8 +57,7 @@ HELPA   W !!,"Note: Format of a routine name",!
 HELP1   W !!,"Enter first line label or label+offset which you wish to copy"
         D HELPQ,HELPB G B
 HELPB   W !!,"Note:  Format of a line label",!
-        W !,"The initial character of a line label must be either a '%' or",!,"an upper-case alpha character, followed by one or mor
-e alphanumeric"
+        W !,"The initial character of a line label must be either a '%' or",!,"an upper-case alpha character, followed by one or more alphanumeric"
         W !,"characters.  A line label may also be an integer.  Special characters"
         W !,"are not allowed.  A line label must not exceed 8 characters in length.",! Q
 HELP2   W !!,"Enter the last label or label+offset that you wish to be copied"

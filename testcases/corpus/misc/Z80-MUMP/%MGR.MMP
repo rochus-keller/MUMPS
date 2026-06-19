@@ -1,0 +1,22 @@
+%MGR ;John Lewkowicz - NYS College of Veterinary Medicine
+ ;Restore globals saved with ^%MGS
+ K  S Q="""" W !!!!!,?30,"Global Restore",!!
+ W !,"YOU must KILL the globals unless you want a merge!",!
+GR0 R !,"Restore File on Drive (A-H) ? : ",SD Q:SD=""
+ I "??"[SD W "  Drive ID like 'A' or 'B' etc." G GR1
+ I SD'?1U!("ABCDEFGH"'[SD) W " ??" G GR0
+GR1 R !,"Name of Save File: ",F Q:F=""
+ I "??"[F W "   Name (without extension) of save file." G GR1
+GR2 R !,"Restore globals to Drive (A-H) ? : ",RD
+ I "??"[RD W "  Drive ID like 'A', or 'B' etc." G GR2
+ I RD'?1U!("ABCDEFGH"'[RD) W " ??" G GR2
+ ZO (:RD)
+ S F=$P(F,".",1)_".GBL" O 2:(SD:F) U 2 R D,A
+GR22 U 0 W !!,D_" - "_A,!! R "Restore ? : ",A
+ I A="?"!(A="??") W " 'Y' or 'YES' to begin restore." G GR22
+ Q:"Yy"'[$E(A,1)
+ F I=1:1 U 2 R GR Q:GR="*EOF*"  R DAT S @GR=DAT
+ C 2:0 U 0
+GR3 ZO (:"A")
+ W !!,"All done.",! Q
+" G GR22

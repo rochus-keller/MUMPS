@@ -18,14 +18,12 @@ RETURN  Q
 USRSPC  D INIT^LOADR S DRV="",NEED=0
         V ST+148\1024+2:"S0" S SIZ=$V(ST+148#1024,0)*64
         F CNT=0:0 S DRV=$O(^SYS(ID,"DRIVERS",DRV)) Q:DRV=""  I ^(DRV)="Y" D
-        .I 'NEED W ?6,"The selected loadable drivers are:",!!?6,"Driver",?15,"Bytes/Driver",?30,"Bytes/Unit",!?6,"------",?15,"-----
--------",?30,"-----------",! S NEED=1
+        .I 'NEED W ?6,"The selected loadable drivers are:",!!?6,"Driver",?15,"Bytes/Driver",?30,"Bytes/Unit",!?6,"------",?15,"------------",?30,"-----------",! S NEED=1
         .D FINDR^LOADR I CON'=0  W ?6,DRV,?18,DRVLN-DDBSIZ+4,?30,DDBSIZ,!
         I $E(ANS)="N" W:NEED !,"Note: You will not be able to use your TU58, RX02 or BISYNC driver without this option",! Q
         S DEF=^SYS(ID,"MEM.ALLOC","USRDRV"),QUES="DRV" X ^%Q("SGASK") Q:%A
         I ANS'?1N.N D IV G USRDRV
-        I ANS>(8192-SIZ) W !?6,"Only ",(8192-SIZ)," bytes of memory may used for LOADABLE DRIVERS",!?6,"The remaining space will sti
-ll be allocated.",!
+        I ANS>(8192-SIZ) W !?6,"Only ",(8192-SIZ)," bytes of memory may used for LOADABLE DRIVERS",!?6,"The remaining space will still be allocated.",!
         S ^SYS(ID,"MEM.ALLOC","USRDRV")=ANS Q
 JOBCMR  I $E(ANS)="N" S ^SYS(ID,"OPTIONS",OPT)="Y" Q  ;; do not change thisfor V3.1
         Q:$E(ANS)="N"  S DEF=^SYS(ID,"JOBCOM","CHANNELS"),QUES="CHANS" X ^%Q("SGASK") Q:%A
@@ -53,8 +51,7 @@ SETDRV  Q
 JBCSHO  D SHODEF W !?2,"With ",^SYS(ID,"JOBCOM","CHANNELS")," communication channels"
         W !?2,"and a ",^("RBSIZE")," byte default ring buffer size" Q
 JRNSHO  D SHODEF W !?2,"With ",^SYS(ID,"MEM.ALLOC","JOURNAL BUFFERS")," buffers" Q
-USRSHO  D SHODEF I ^SYS(ID,"OPTIONS","USRDRV")="Y" W !?2,"with ",^SYS(ID,"MEM.ALLOC","USRDRV")," bytes for TU58, RX02 or BISYNC supp
-ort"
+USRSHO  D SHODEF I ^SYS(ID,"OPTIONS","USRDRV")="Y" W !?2,"with ",^SYS(ID,"MEM.ALLOC","USRDRV")," bytes for TU58, RX02 or BISYNC support"
         Q
 SHODEF  W !?2,NAME," support:",?50,$S(^SYS(ID,"OPTIONS",OPT)="Y":" ",1:" Not "),"Included" Q
 IV      W !,"   Incorrect response - enter '?' for more information",! Q

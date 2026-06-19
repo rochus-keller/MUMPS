@@ -9,7 +9,6 @@ RMSHO   ;30-Jun-83 ;UTILITY ;ROUTINE MAPPING ;SHOWS ROUTINES CURRENTLY MAPPED ;J
         .I $V(ENT+1,ROUMAP) W " *** DISABLED ***"
 NOUCN   .I 'UC W "*** UCI not currently loaded ***"
         .W !!
-        .F RN=0:1:RNUM-1 W:$X>60 ! I $V(RN*8,MMNAM)'=255 W ?$X+9\10*10 W:'$V(RN*2,MMADR) "*" F I=0:1:7 Q:$V(RN*8+I,MMNAM)#256=255  W
- $C($V(RN*8+I,MMNAM)#256)
+        .F RN=0:1:RNUM-1 W:$X>60 ! I $V(RN*8,MMNAM)'=255 W ?$X+9\10*10 W:'$V(RN*2,MMADR) "*" F I=0:1:7 Q:$V(RN*8+I,MMNAM)#256=255  W $C($V(RN*8+I,MMNAM)#256)
         .W:$X !
 EXIT    Q

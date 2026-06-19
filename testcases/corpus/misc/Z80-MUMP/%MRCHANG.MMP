@@ -1,0 +1,16 @@
+%MRCHANG ;John Lewkowicz - NYS College of Veterinary Medicine
+ ;Change all occurences of a given string in selected routines.
+ K  W #,!,?30,"Routine Change",! D ^%MRSET
+LOOP S I=0
+READ1 R !,"Change: ",C G END:C="" I "??"[C W "  String to be replaced." G READ1
+READ2 R ?39," To: ",T I T="?"!(T="??") W "  Replacement String.",! G READ2
+ S I=I+1,FROM(I)=C,TO(I)=T G READ1
+END S END=I Q:'I
+ S X1=$P($T(X1),";",2,99),X2=$P($T(X2),";",2,99),X3=$P($T(X3),";",2,99) X X1
+ W !!,"All DONE.",!
+ Q
+X1 ;S S="" F I=1:1 S S=$O(^UTIL("ROU",S)) Q:S=""  I ^(S) W !,S ZL @S S MOD=0 F J=1:1:END S FROM=FROM(J),TOO=TO(J) X X2 I J=END,MOD ZS @S
+X2 ;F K=0:1 S L=$T(+K+1) Q:L=""  I L[FROM S MOD=1,NL="" F M=1:1 X X3 I L="" ZR @S+K ZI NL W !,?5,NL Q
+X3 ;S NL=$S(L'[FROM:NL_L,1:NL_$P(L,FROM,1)_TOO),L=$S(L'[FROM:"",1:$P(L,FROM,2,255))
+:1 X X3 I L="" ZR @S+K ZI NL W !,?5,NL Q
+X3 ;S NL=$S(L'[FROM:NL_L,1:NL

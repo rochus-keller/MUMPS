@@ -52,5 +52,4 @@ ASNLH   ;;3
 REDO    ;;1;;6.3;;1
         ;;Do you wish to edit these assignments
 EDIL    ;;0;;6.4;;1
-        W %NUM,?6,$P(TTY(TTY)," ")," Controller #",$P(TTY(TTY)," ",2) W:$P(TTY(TTY)," ",3)'="" " Unit #",$P(TTY(TTY)," ",3) W " is a
-ssigned to" Q
+        W %NUM,?6,$P(TTY(TTY)," ")," Controller #",$P(TTY(TTY)," ",2) W:$P(TTY(TTY)," ",3)'="" " Unit #",$P(TTY(TTY)," ",3) W " is assigned to" Q

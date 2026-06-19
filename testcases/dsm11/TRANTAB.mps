@@ -56,8 +56,7 @@ CHECK   S ID=^SYS(0,"RUNNING"),%A=ID="",ST=$V(44)
         Q
 SHOTAB  S %A=$O(^SYS(ID,"TRANSLATION TABLE",""))="" I %A W !,"** UCI translation table for configuration """,ID,""" is empty **" Q
         W !,"UCI translation table for configuration """,ID,""" :",!
-        S ENTRY="" W !,"Entry #",?9,"UCI",?14,"Vol Set",?23,"Global Name",?36,"New UCI",?45,"New Vol",?54,"Collating",?65,"Encoding"
-,?75,"Rep."
+        S ENTRY="" W !,"Entry #",?9,"UCI",?14,"Vol Set",?23,"Global Name",?36,"New UCI",?45,"New Vol",?54,"Collating",?65,"Encoding",?75,"Rep."
         W !,?14,"name",?36,"name",?45,"Set name",?74,"Schema",! D LIN
 DSP     W ! S ENTRY=$O(^SYS(ID,"TRANSLATION TABLE",ENTRY))
         I ENTRY="" W ! D LIN Q

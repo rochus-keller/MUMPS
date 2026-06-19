@@ -1,0 +1,30 @@
+%ZEDT2 ;John Lewkowicz - NYS College of Veterinary Medicine
+ ;Extension of routine editor used to xecute direct mode ("$") commands
+ S %0I=0 D SAVE K  S %0I=1 D RESTORE W !!,"'DIRECT' mode - use '$' to return to EDIT mode.",!
+CMND S $%ZE="ERROR^%ZEDT2" B 1 R !,"$->",%0X I "$"'[%0X X %0X G CMND
+ D RESUME Q
+ Q
+ERROR W !,$ZE,! D RESUME G ZR10^ZR
+RESUME B 0 S %0I=1 D SAVE K  S %0I=0 D RESTORE
+ S %0I=$S($D(PRG):$D(^ZR(ROUT,0)),1:$D(^["UTL"]COMMENT(ROUT,LAB,0,0)))
+ Q
+SAVE I '$D(^ZR(ROUT_"1000")) S ^ZR(ROUT_"1000")=0
+ S ^(ROUT_"1000",%0I,0)=$ZE,%0S="%0Z"
+ F %0I=1:1 S %0S=$ZS(@%0S) Q:%0S=""  S %0D=$D(@%0S) S:%0D#2 ^(%0S)=@%0S I %0D'=1 D ARRAY
+ K %0I,%0S,%0D,%0L,%0M,%0R,%0X,%0Y,%0Z Q
+RESTORE Q:'$D(^ZR(ROUT_"1000",%0I,0))
+ S:^(0)'?1"<".E $ZE=^(0) S %0S="%0Z"
+ F %0I=1:1 S %0S=$ZS(^(%0S)) Q:%0S=""  S:'$D(@%0S) @%0S=^(%0S)
+ S %0I=^ZR(ROUT_"1000"),^(ROUT_"1000")=%0I-1 K ^ZR(ROUT_"1000",%0I),%0I,%0S
+ Q
+ARRAY S %0L=0 G DOWN
+BUILD S %0R="" F %0I=1:1:%0L S:%0I>1 %0R=%0R_"," S %0R=%0R_"%0"_%0I
+ S %0R=%0S_"("_%0R_")",%0Z="$ZS("_%0R_")",@("@%0M="_%0Z) G UP:@%0M=""
+ S %0D=$D(@%0R) G DOWN:'(%0D#2) S %0X=@%0R,%0R=%0S_"("
+ F %0I=1:1:%0L S:%0I>1 %0R=%0R_"," S %0Y=@("%0"_%0I),%0R=%0R_$S(%0Y/1=%0Y:%0Y,1:""""_%0Y_"""")
+ S %0R=%0R_")" S:$L(%0R)>31 %0R="*"_$E(%0R,1,30) S ^(%0R)=%0X G BUILD:%0D=1
+DOWN S %0L=%0L+1,%0M="%0"_%0L S:'$D(@%0M) @%0M="""""" G BUILD
+UP K @%0M S %0L=%0L-2 G DOWN:%0L'<0
+ ^(%0R)=%0X G BUILD:%0D=1
+DOWN S %0L=%0L+1,%0M="%0"_%0L S:'$D(@%0M) @%0M="""""" G BUILD
+UP K @%0M S %0L=%0L-2 G DOWN:%0L'<

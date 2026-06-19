@@ -1,0 +1,15 @@
+%MRFIND ;John Lewkowicz - NYS College of Veterinary Medicine.
+ ;Find all occurences of a given string or pattern in selected routines.
+ K  W #,!,?30,"Routine Find",!! D ^%MRSET
+ F I=1:1 R !,"Find: ",C Q:C=""  D CHECK S:E I=I-1
+ S END=I-1 Q:'END
+ S X1=$P($T(X1),";",2,99),X2=$P($T(X2),";",2,99),X3=$P($T(X3),";",2,99) X X1
+ Q
+CHECK I "??"[C S E=1 W "  search string or pattern like '?3N1P'" Q
+ I $E(C,1)="?" S C="?.E"_$E(C,2,255)_".E"
+ S F(I)=C,E=0
+ Q
+X1 ;S S="" F I=1:1 S S=$O(^UTIL("ROU",S)) Q:S=""  I ^(S) W !,S ZL @S F J=1:1:END S F=F(J) X X2
+X2 ;F K=1:1 S L=$T(+K) Q:L=""  S P=$E(F,1)="?" I $S('P&(L[F):1,'P&(L'[F):0,L?@$E(F,2,255):1,1:0) X X3
+X3 ;S L1=$P(L," ",1),L2=$P(L," ",2,255) W !,?5,L1 F L=1:1 S L1=$E(L2,1,64),L2=$E(L2,65,255) Q:L1=""  W ?15,L1 W:L2'="" !,?13,"--"
+S L1=$P(L," ",1),L2=$P(L," ",2,255) W !,?5,L1 F L=1:1 S L1=$E(L2,1,64),L2=$E(L2,65,255) Q:L1=""  W ?15,

@@ -98,7 +98,8 @@ jobargs   ::= entryref [ ':' expr { ':' expr } ]
 viewargs  ::= viewgroup { ',' viewgroup }
 viewgroup ::= [ expr ] { ':' [ expr ] }
 
-zargs     ::= expr [ '^' routineref ] [ openparams ] { ',' expr [ '^' routineref ] [ openparams ] }
+zargs     ::= \LA: 1:'('\ '(' openparam { ':' openparam } ')'
+            | expr [ '^' routineref ] [ openparams ] { ',' expr [ '^' routineref ] [ openparams ] }
 
 
 entryref   ::= label_ref [ '+' expr ] [ '^' routineref ] [ '(' [ actuallist ] ')' ]
@@ -159,10 +160,10 @@ exprCont ::= '?' pattern
 
 glvn     ::= ident [ '(' exprlist ')' ]
            | '^' gvntail
-           | '@' expratom [ '(' exprlist ')' ]
+           | '@' expratom [ \LL:2\ '@' '(' exprlist ')' | '(' exprlist ')' ]
 
 lvar     ::= ident [ '(' exprlist ')' ]
-           | '@' expratom [ '(' exprlist ')' ]
+           | '@' expratom [ \LL:2\ '@' '(' exprlist ')' | '(' exprlist ')' ]
 
 // Lexer tokens
 ident ::=

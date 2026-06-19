@@ -1,0 +1,73 @@
+%ZEDTE1 ;John Lewkowicz - NYS College of Veterinary Medicine
+ ;Routine Editor - extended explanations extension from %ZEDTE
+ F I=1:1 S X=$T(@A+I) Q:X=""!($P(X," ",1)'="")  W !,$P(X,";",2,99)
+ Q
+ROUT ;
+ ;Enter the ROUTINE NAME to be edited. If that name dosen't exist, a new
+ ;   routine with that name will be created. If it DOES exist, it will be
+ ;   loaded so you can edit it.
+ ;To use the LAST routine edited, enter the character "*".
+P ;
+ ;PRINT command {P [L1-L2}} lets you print one or more lines of text. If
+ ;  you don't specify the optional rang of line references ([L1-L2]), then
+ ;  the Current line will be printed.
+ ;  The print will pause after each screenful of text.
+ ; 
+ ;You can also use "P #" which will clear the screen and display the
+ ;  last range of line that you specified.
+R ;
+ ;REPLACE command {R [line]} lets you replace the first occurence of
+ ;  a target string with another string. If you don't specify the optional
+ ;  line reference ([line]), the Replace will be done on the current
+ ;  line. You will be asked for both a target and a replacement string.
+ ;
+ ;  You can use the characters "..." in the target string to indicate
+ ;  any and all characters (wild card). Thus a specification of:
+ ;
+ ;  "A...CF"  would indicate a target starting with "A" and ending with
+ ;            "CF" and with ANY characters in between.
+ ;
+ ;  Use specification of "END" to append text to end of line.
+Q ;
+ ;Q - PATTERN MATCH command {Q [L1-L2]} lets you search for a pattern in
+ ;   line L1-L2. Like:
+ ;
+ ;            1"$L(".UN1","
+ ;
+ ;   will search for all occurences of a 2-parameter $L function.
+ ;NOTE that the editor will automatically insert a .E before and after
+ ;   your pattern match. Don't you do it (takes a lot longer).
+S ;
+ ;SEARCH command {S [L1-L2]} lets you search the text for a target string
+ ;  of characters. If you don't specify the optional range of lines, only
+ ;  the Current line will be searched. You will be asked for the target
+ ;  string.
+ ;
+ ;Use "S A" or "S B-E" to search all lines.
+T ;
+ ;TRANSFER command {T [line]} lets you transfer lines of text from another
+ ;  Routine to this one. You will be asked for the Routine Name, the 
+ ;  Starting Label reference (can be Label + offset), the ending Label
+ ;  reference, and the line reference after which the text will be inserted.
+ ;  After the line have been moved, you will have the option of moving
+ ;  any comments along with them.
+N ;
+ ;NUMBER command permits you to renumber your text lines (for cosmetic
+ ;  purposes).
+F ;
+ ;FILE the routine you are working on.
+V ;
+ ;VIEW command allows you to look at other programs without eXiting
+ ;  from the editor. You will be asked for the Routine Name.
+X ;
+ ;EXIT command - go back to Routine Name question WITHOUT filing any
+ ;  changes made since the last File command.
+SEMI ;
+ ;To ADD or EDIT comments to be associated with any given label, enter
+ ;a semcolon followed by the LABEL. You can then enter or edit text to be
+ ;associated with that label. These comments will be printed when listing
+ ;the routine with %RL but do NOT take up partition space when your routine
+ ;is running.
+ents will be printed when listing
+ ;the routine with %RL but do NOT take up partition space when your routine
+ ;i

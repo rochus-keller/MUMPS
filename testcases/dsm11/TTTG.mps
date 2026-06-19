@@ -31,8 +31,7 @@ COD     W !!,"Routine number ",R," already exists"
         G C:COD=""!(COD="^") I COD="?" D HLP1 G COD
         I COD="C" S U=^SYS(ID,"TIED TERMINAL TABLE",R,"UCI"),V=^("VSET"),NAM=^("ROUTINE NAME"),P=^("PARTITION SIZE") G V
         I COD'="D" D IV G COD
-        S TT="",F=0 F I=0:0 S TT=$O(^SYS(ID,"TTY",TT)) Q:TT=""  I $D(^(TT,"ROUTINE")),^("ROUTINE")=R W !,"TTY ",TT," is currently ti
-ed to routine ",R S F=1
+        S TT="",F=0 F I=0:0 S TT=$O(^SYS(ID,"TTY",TT)) Q:TT=""  I $D(^(TT,"ROUTINE")),^("ROUTINE")=R W !,"TTY ",TT," is currently tied to routine ",R S F=1
         I F W !!,"Unable to delete this table entry",! G C
         K ^SYS(ID,"TIED TERMINAL TABLE",R,"UCI"),^("PARTITION SIZE"),^("ROUTINE NAME"),^("VSET") G:DMB="D" DEL
         V TTTAB+(R-1*4)::0,TTTAB+(R-1*4)+2::0

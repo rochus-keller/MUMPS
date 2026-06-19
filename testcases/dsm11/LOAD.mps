@@ -19,8 +19,7 @@ GETDEV  K DEVNUM S CONUM=$O(DEV(CONUM)) G LOADIT:CONUM="" S DEVAS=$P(DEV(CONUM),
         S $P(DEV(CONUM),",",4)=DEVAS
         G GETDEV
 LOADIT  W !,"Loading ",DRV," driver ..." D LOAD^LOADR G EXIT
-Q6      W !,"Device number to access ",DRV," controller #",CONUM-1 W:UNI>1 " unit #",UNIT W " (51-58) " W:DEVNUM'="" "<",DEVNUM R ">
- ",A
+Q6      W !,"Device number to access ",DRV," controller #",CONUM-1 W:UNI>1 " unit #",UNIT W " (51-58) " W:DEVNUM'="" "<",DEVNUM R "> ",A
         I A="" G Q6:DEVNUM="" Q
         Q:A="^"  I A="?"!(A<51)!(A>58) D Q6HLP G Q6
         I $V(DEVTAB+A)#256'=255,%LOAD D NODEV G Q6

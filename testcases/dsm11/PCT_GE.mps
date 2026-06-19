@@ -57,7 +57,6 @@ ERR     W "Wrong block was found.  Should have been type ",T," ; found ",TYPE,!
         I TYPE/32#2 W "Assigned to the Garbage Collector",!
         E  W "?????",!
 F       S BLOFFSET=1023 D DMP G ASK
-HELP    W !,"Enter the name of a global in your directory.",!,"Enter '^D' to list your global directory.",!,"Enter '^' or <CR> to ex
-it.",! G ASK
+HELP    W !,"Enter the name of a global in your directory.",!,"Enter '^D' to list your global directory.",!,"Enter '^' or <CR> to exit.",! G ASK
 END     C 63 K I,TYPE,BN,BLOFFSET,CNT,FB,GN,GD,LEVEL,NAM,NXTBL,ST,UN,UT,UTLB,L,%,C,P,TP,W,UTMM,UTOFF,STRTAB
         Q
