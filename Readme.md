@@ -138,6 +138,13 @@ and bracket skipping) pretty well, which was difficult to get right. It's likely
 The next stage is the interpreter and some form of intermediate representation. There are also issues with long-line handling
 and indirection (@) to be solved, and I need better error recovery.
 
+## Status on June 22, 2026
+
+The interpreter works with dedicated tests and PCT_DOC.mps; globals are implemented, though there is no database yet.
+All 19 commands are implemnted; OPEN, CLOSE, USE, LOCK, VIEW, JOB, ZCMD are only stubs so far. Also the intrinsic
+functions $T and $V are stubs, but $L, $E, $P, $A, $C, $D, $O, $S, $F, $J, $G, $TR, and $R are implemented.
+The parser is callable at runtime; cross-routine calls and XECUTE are implemented.
+The goal of the interpreter is functionality, completeness and comprehensibility, not performance. 
 
 ## Precompiled versions
 

@@ -20,7 +20,6 @@
 #include "MpsNode.h"
 using namespace Mps;
 
-// --- Node ---
 
 Node::Node()
     : d_hasValue(false)
@@ -198,8 +197,6 @@ int Node::findKeyIndex(const QByteArray& key) const
     return -1;
 }
 
-// --- SymbolTable ---
-
 SymbolTable::SymbolTable()
 {
 }
@@ -236,6 +233,26 @@ void SymbolTable::remove(const QByteArray& name)
         delete it.value();
         d_vars.erase(it);
     }
+}
+
+Node* SymbolTable::detach(const QByteArray& name)
+{
+    QMap<QByteArray, Node*>::iterator it = d_vars.find(name);
+    if( it != d_vars.end() )
+    {
+        Node* node = it.value();
+        d_vars.erase(it);
+        return node;
+    }
+    return 0;
+}
+
+void SymbolTable::reattach(const QByteArray& name, Node* node)
+{
+    QMap<QByteArray, Node*>::iterator it = d_vars.find(name);
+    if( it != d_vars.end() )
+        delete it.value();
+    d_vars.insert(name, node);
 }
 
 bool SymbolTable::contains(const QByteArray& name) const

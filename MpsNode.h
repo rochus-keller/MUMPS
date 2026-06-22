@@ -69,6 +69,8 @@ public:
     Node* getOrCreate(const QByteArray& name);
     Node* get(const QByteArray& name) const;
     void remove(const QByteArray& name);
+    Node* detach(const QByteArray& name);
+    void reattach(const QByteArray& name, Node* node);
     bool contains(const QByteArray& name) const;
     QList<QByteArray> names() const;
     void clear();
