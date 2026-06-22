@@ -33,9 +33,74 @@
 using namespace Mps;
 
 
-Interpreter::Interpreter(): d_curRoutine(0), d_curLine(0), d_flow(FlowNormal),
-      d_gotoLine(-1), d_testFlag(true), d_xPos(0), d_yPos(0), d_out(stdout), d_in(stdin)
+Interpreter::Interpreter(QObject * p):QObject(p), d_curRoutine(0), d_curLine(0), d_flow(FlowNormal),
+      d_gotoLine(-1), d_testFlag(true), d_xPos(0), d_yPos(0), d_out(stdout)
 {
+}
+
+bool Interpreter::executeLine(const QByteArray& line)
+{
+    class Lex : public Scanner
+    {
+    public:
+        Lexer lex;
+        Token next() { return lex.nextToken(); }
+        Token peek(int offset) { return lex.peekToken(offset); }
+    };
+
+    QByteArray adjusted = " " + line;
+    Lex lex;
+    lex.lex.setStream(adjusted, "<interactive>");
+    Parser2 parser(&lex);
+    Routine* r = parser.parse();
+    if( !parser.errors.isEmpty() )
+    {
+        for( int i = 0; i < parser.errors.size(); i++ )
+        {
+            const Parser2::Error& e = parser.errors[i];
+            d_out << "ERR: " << e.msg << endl;
+        }
+        delete r;
+        return true;
+    }
+
+    if( r->d_lines.isEmpty() )
+    {
+        delete r;
+        return true;
+    }
+
+    d_flow = FlowNormal;
+    d_gotoLine = -1;
+    executeLineCommands(r->d_lines[0], 0);
+    delete r;
+
+    return d_flow != FlowHalt;
+}
+
+void Interpreter::runInteractive()
+{
+    char buf[4096];
+    while( true )
+    {
+        d_out << "> " << flush;
+        if( !fgets(buf, sizeof(buf), stdin) )
+            break;
+        QByteArray line(buf);
+        if( line.endsWith('\n') )
+            line.chop(1);
+        if( line.endsWith('\r') )
+            line.chop(1);
+        if( line.isEmpty() )
+            continue;
+        if( !executeLine(line) )
+            break;
+    }
+}
+
+void Interpreter::executeLine(const QString & str)
+{
+    executeLine(str.toUtf8());
 }
 
 Interpreter::~Interpreter()
@@ -297,13 +362,17 @@ void Interpreter::execKill(Command* cmd)
         }else if( ref->d_kind == VarRef::Global )
         {
             if( ref->d_subs.isEmpty() )
+            {
+                updateNakedRef(ref->d_name, QList<QByteArray>());
                 d_globals.remove(ref->d_name);
+            }
             else
             {
+                QList<QByteArray> subs = evalSubscripts(ref->d_subs);
+                updateNakedRef(ref->d_name, subs);
                 Node* node = d_globals.get(ref->d_name);
                 if( node )
                 {
-                    QList<QByteArray> subs = evalSubscripts(ref->d_subs);
                     if( subs.size() == 1 )
                         node->removeChild(subs[0]);
                     else if( subs.size() > 1 )
@@ -320,6 +389,9 @@ void Interpreter::execKill(Command* cmd)
                     }
                 }
             }
+        }else if( ref->d_kind == VarRef::NakedGlobal )
+        {
+            killNakedGlobal(ref->d_subs);
         }else if( ref->d_kind == VarRef::Grouped )
         {
             for( int g = 0; g < ref->d_group.size(); g++ )
@@ -1144,24 +1216,29 @@ Value Interpreter::getVar(ExprAtom* a)
     {
         Node* node = d_globals.get(a->d_name);
         if( !node )
+        {
+            QList<QByteArray> subs = evalSubscripts(a->d_args);
+            updateNakedRef(a->d_name, subs);
             return Value();
+        }
 
         if( a->d_args.isEmpty() )
         {
+            updateNakedRef(a->d_name, QList<QByteArray>());
             if( node->hasValue() )
                 return Value(node->value());
             return Value();
         }
 
         QList<QByteArray> subs = evalSubscripts(a->d_args);
+        updateNakedRef(a->d_name, subs);
         Node* child = node->descend(subs);
         if( child && child->hasValue() )
             return Value(child->value());
         return Value();
     }else if( a->d_tag == ExprAtom::NakedGlobal )
     {
-        // TODO
-        return Value();
+        return getNakedGlobal(a->d_args);
     }
 
     return Value();
@@ -1184,13 +1261,20 @@ void Interpreter::setVar(VarRef* ref, const Value& val)
     {
         Node* node = d_globals.getOrCreate(ref->d_name);
         if( ref->d_subs.isEmpty() )
+        {
+            updateNakedRef(ref->d_name, QList<QByteArray>());
             node->setValue(val.str());
+        }
         else
         {
             QList<QByteArray> subs = evalSubscripts(ref->d_subs);
+            updateNakedRef(ref->d_name, subs);
             Node* target = node->descendOrCreate(subs);
             target->setValue(val.str());
         }
+    }else if( ref->d_kind == VarRef::NakedGlobal )
+    {
+        setNakedGlobal(ref->d_subs, val);
     }else if( ref->d_kind == VarRef::Dollar )
     {
         QByteArray upper = ref->d_name.toUpper();
@@ -1326,18 +1410,27 @@ Value Interpreter::getVarRef(VarRef* ref)
     {
         Node* node = d_globals.get(ref->d_name);
         if( !node )
+        {
+            QList<QByteArray> subs = evalSubscripts(ref->d_subs);
+            updateNakedRef(ref->d_name, subs);
             return Value();
+        }
         if( ref->d_subs.isEmpty() )
         {
+            updateNakedRef(ref->d_name, QList<QByteArray>());
             if( node->hasValue() )
                 return Value(node->value());
             return Value();
         }
         QList<QByteArray> subs = evalSubscripts(ref->d_subs);
+        updateNakedRef(ref->d_name, subs);
         Node* child = node->descend(subs);
         if( child && child->hasValue() )
             return Value(child->value());
         return Value();
+    }else if( ref->d_kind == VarRef::NakedGlobal )
+    {
+        return getNakedGlobal(ref->d_subs);
     }
     return Value();
 }
@@ -1500,13 +1593,30 @@ Value Interpreter::callIntrinsic(const QByteArray& name, const QList<Expression*
                 return Value(child->data());
             }else if( a->d_tag == ExprAtom::GlobalVar )
             {
+                QList<QByteArray> subs = evalSubscripts(a->d_args);
+                updateNakedRef(a->d_name, subs);
                 Node* node = d_globals.get(a->d_name);
                 if( !node )
                     return Value(0);
                 if( a->d_args.isEmpty() )
                     return Value(node->data());
-                QList<QByteArray> subs = evalSubscripts(a->d_args);
                 Node* child = node->descend(subs);
+                if( !child )
+                    return Value(0);
+                return Value(child->data());
+            }else if( a->d_tag == ExprAtom::NakedGlobal )
+            {
+                if( d_nakedName.isEmpty() )
+                    return Value(0);
+                QList<QByteArray> evalSubs = evalSubscripts(a->d_args);
+                QList<QByteArray> fullSubs = d_nakedSubs + evalSubs;
+                updateNakedRef(d_nakedName, fullSubs);
+                Node* node = d_globals.get(d_nakedName);
+                if( !node )
+                    return Value(0);
+                if( fullSubs.isEmpty() )
+                    return Value(node->data());
+                Node* child = node->descend(fullSubs);
                 if( !child )
                     return Value(0);
                 return Value(child->data());
@@ -1545,18 +1655,37 @@ Value Interpreter::callIntrinsic(const QByteArray& name, const QList<Expression*
                 return Value(parent->order(lastSub, dir));
             }else if( a->d_tag == ExprAtom::GlobalVar )
             {
+                QList<QByteArray> subs = evalSubscripts(a->d_args);
+                updateNakedRef(a->d_name, subs);
                 Node* node = d_globals.get(a->d_name);
                 if( !node )
                     return Value();
                 if( a->d_args.isEmpty() )
                     return Value(node->order(QByteArray(), dir));
 
-                QList<QByteArray> subs = evalSubscripts(a->d_args);
                 if( subs.isEmpty() )
                     return Value();
                 QByteArray lastSub = subs.last();
                 subs.removeLast();
                 Node* parent = subs.isEmpty() ? node : node->descend(subs);
+                if( !parent )
+                    return Value();
+                return Value(parent->order(lastSub, dir));
+            }else if( a->d_tag == ExprAtom::NakedGlobal )
+            {
+                if( d_nakedName.isEmpty() )
+                    return Value();
+                QList<QByteArray> evalSubs = evalSubscripts(a->d_args);
+                QList<QByteArray> fullSubs = d_nakedSubs + evalSubs;
+                updateNakedRef(d_nakedName, fullSubs);
+                Node* node = d_globals.get(d_nakedName);
+                if( !node )
+                    return Value();
+                if( fullSubs.isEmpty() )
+                    return Value(node->order(QByteArray(), dir));
+                QByteArray lastSub = fullSubs.last();
+                fullSubs.removeLast();
+                Node* parent = fullSubs.isEmpty() ? node : node->descend(fullSubs);
                 if( !parent )
                     return Value();
                 return Value(parent->order(lastSub, dir));
@@ -1658,6 +1787,8 @@ Value Interpreter::callIntrinsic(const QByteArray& name, const QList<Expression*
                 return defaultVal;
             }else if( a->d_tag == ExprAtom::GlobalVar )
             {
+                QList<QByteArray> subs = evalSubscripts(a->d_args);
+                updateNakedRef(a->d_name, subs);
                 Node* node = d_globals.get(a->d_name);
                 if( !node )
                     return defaultVal;
@@ -1667,8 +1798,27 @@ Value Interpreter::callIntrinsic(const QByteArray& name, const QList<Expression*
                         return Value(node->value());
                     return defaultVal;
                 }
-                QList<QByteArray> subs = evalSubscripts(a->d_args);
                 Node* child = node->descend(subs);
+                if( child && child->hasValue() )
+                    return Value(child->value());
+                return defaultVal;
+            }else if( a->d_tag == ExprAtom::NakedGlobal )
+            {
+                if( d_nakedName.isEmpty() )
+                    return defaultVal;
+                QList<QByteArray> evalSubs = evalSubscripts(a->d_args);
+                QList<QByteArray> fullSubs = d_nakedSubs + evalSubs;
+                updateNakedRef(d_nakedName, fullSubs);
+                Node* node = d_globals.get(d_nakedName);
+                if( !node )
+                    return defaultVal;
+                if( fullSubs.isEmpty() )
+                {
+                    if( node->hasValue() )
+                        return Value(node->value());
+                    return defaultVal;
+                }
+                Node* child = node->descend(fullSubs);
                 if( child && child->hasValue() )
                     return Value(child->value());
                 return defaultVal;
@@ -2069,6 +2219,94 @@ void Interpreter::restoreFrame(const StackFrame& frame)
             if( saved )
                 d_locals.reattach(name, saved);
         }
+    }
+}
+
+void Interpreter::updateNakedRef(const QByteArray& name, const QList<QByteArray>& subs)
+{
+    d_nakedName = name;
+    d_nakedSubs = subs;
+    if( !d_nakedSubs.isEmpty() )
+        d_nakedSubs.removeLast();
+}
+
+Value Interpreter::getNakedGlobal(const QList<Expression*>& subs)
+{
+    if( d_nakedName.isEmpty() )
+        return Value();
+
+    QList<QByteArray> evalSubs = evalSubscripts(subs);
+    QList<QByteArray> fullSubs = d_nakedSubs + evalSubs;
+    updateNakedRef(d_nakedName, fullSubs);
+
+    Node* node = d_globals.get(d_nakedName);
+    if( !node )
+        return Value();
+
+    if( fullSubs.isEmpty() )
+    {
+        if( node->hasValue() )
+            return Value(node->value());
+        return Value();
+    }
+
+    Node* child = node->descend(fullSubs);
+    if( child && child->hasValue() )
+        return Value(child->value());
+    return Value();
+}
+
+void Interpreter::setNakedGlobal(const QList<Expression*>& subs, const Value& val)
+{
+    if( d_nakedName.isEmpty() )
+        return;
+
+    QList<QByteArray> evalSubs = evalSubscripts(subs);
+    QList<QByteArray> fullSubs = d_nakedSubs + evalSubs;
+    updateNakedRef(d_nakedName, fullSubs);
+
+    Node* node = d_globals.getOrCreate(d_nakedName);
+    if( fullSubs.isEmpty() )
+        node->setValue(val.str());
+    else
+    {
+        Node* target = node->descendOrCreate(fullSubs);
+        target->setValue(val.str());
+    }
+}
+
+void Interpreter::killNakedGlobal(const QList<Expression*>& subs)
+{
+    if( d_nakedName.isEmpty() )
+        return;
+
+    QList<QByteArray> evalSubs = evalSubscripts(subs);
+    QList<QByteArray> fullSubs = d_nakedSubs + evalSubs;
+    updateNakedRef(d_nakedName, fullSubs);
+
+    Node* node = d_globals.get(d_nakedName);
+    if( !node )
+        return;
+
+    if( fullSubs.isEmpty() )
+    {
+        d_globals.remove(d_nakedName);
+        return;
+    }
+
+    if( fullSubs.size() == 1 )
+        node->removeChild(fullSubs[0]);
+    else
+    {
+        Node* parent = node;
+        for( int s = 0; s < fullSubs.size() - 1; s++ )
+        {
+            parent = parent->get(fullSubs[s]);
+            if( !parent )
+                return;
+        }
+        if( parent )
+            parent->removeChild(fullSubs.last());
     }
 }
 

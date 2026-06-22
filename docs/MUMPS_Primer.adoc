@@ -1,0 +1,517 @@
+// LeanDoc 2026-06-09
+
+// This file may be used under the terms of the GNU General Public
+// License (GPL) versions 2.0 or 3.0 as published by the Free Software
+// Foundation, see http://www.gnu.org/copyleft/gpl.html for more information
+
+
+= The MUMPS Primer: An Introduction and Tutorial for the 1976 Standard
+Rochus Keller
+v0.1, 2026
+:toc:
+:numbered:
+
+== Introduction
+
+=== What is MUMPS?
+
+In 1966, at the Laboratory of Computer Science at Massachusetts General
+Hospital in Boston, Octo Barnett, Neil Pappalardo, and Curtis Marble
+created a programming language called MUMPS -- the _Massachusetts General
+Hospital Utility Multi-Programming System_.
+
+MUMPS was born from a practical need: hospitals required a system where
+doctors and nurses could simultaneously access and update patient data
+from multiple terminals, in real time, on affordable hardware. In 1966,
+"affordable hardware" meant a DEC PDP-7 with 8K words of memory and a
+small disk. There was no room for separate layers -- no separate operating
+system, file system, database server, and application language stacked on
+top of each other. Everything had to be one integrated system.
+
+What emerged was something remarkable: a programming language with a
+built-in hierarchical database -- what the database world would not have
+a name for until four decades later: a _NoSQL_ database with an
+integrated programming language.
+
+The core data abstraction in MUMPS is the _global variable_: a
+hierarchical, sparse array that is stored persistently on disk and shared
+among all concurrent users. In today's terms, globals are a schema-free,
+ordered key-value store with composite keys, created on first assignment
+and deleted on demand.
+
+----
+SET ^PATIENT(12345,"NAME")="Smith, John"
+SET ^PATIENT(12345,"DOB")="1945-03-15"
+SET ^PATIENT(12345,"LAB","2024-01-15","GLUCOSE")=95
+----
+
+There is no `CREATE TABLE`, no schema definition, no `INSERT` statement.
+You simply SET a value at a hierarchical path, and the system creates
+whatever intermediate nodes are necessary. KILL a node, and the entire
+subtree beneath it disappears.
+
+Consider what MUMPS had in 1966 that the rest of the computing world
+would spend decades reinventing:
+
+* *Schema-free storage*: No declarations required. Nodes are created on
+  first assignment. This is what MongoDB would call "schemaless documents"
+  in 2009.
+* *Hierarchical data model*: Patient records naturally form trees. MUMPS
+  globals mirror this structure directly. This is what Firebase would
+  call "real-time hierarchical data" in 2012.
+* *Ordered key traversal*: The `$NEXT` function walks through sibling
+  nodes in sorted order without an explicit index -- what Redis would call
+  "sorted sets" in 2009, or LevelDB "ordered iteration" in 2011.
+* *Integrated language and database*: There is no impedance mismatch.
+  Variables and database nodes use the same syntax, the same data types,
+  the same operations.
+
+All of this ran on a machine with 8 kilobytes of memory, serving multiple
+simultaneous users.
+
+=== The 1976 Standard
+
+By the early 1970s, multiple vendors had created their own incompatible
+MUMPS dialects. The MUMPS Development Committee (MDC), formed in 1972,
+set out to create a common standard. The result was published in January
+1976 by the U.S. National Bureau of Standards as *NBS Handbook 118:
+"MUMPS Language Standard"*. A companion document, the *Programmers'
+Reference Manual* (MDC/42), was written by Melvin Conway (of "Conway's
+Law" fame) later that year. Together they form the first complete, formal
+specification of MUMPS.
+
+The 1976 standard is astonishingly minimal:
+
+* *19 commands*: BREAK, CLOSE, DO, ELSE, FOR, GOTO, HALT, HANG, IF,
+  KILL, LOCK, OPEN, QUIT, READ, SET, USE, VIEW, WRITE, XECUTE
+* *12 functions*: $ASCII, $CHAR, $DATA, $EXTRACT, $FIND, $JUSTIFY,
+  $LENGTH, $NEXT, $PIECE, $RANDOM, $SELECT, $TEXT
+* *7 special variables*: $HOROLOG, $IO, $JOB, $STORAGE, $TEST, $X, $Y
+
+That is the entire language. No JOB command (no programmatic
+multi-tasking). No NEW command (no local variable scoping -- that came in
+1984). Subscripts restricted to nonnegative integers for portability.
+Maximum string length of 255 characters. Yet this was sufficient to build
+hospital information systems serving millions of patients.
+
+This primer covers exactly this 1976 standard -- the essential,
+crystallized MUMPS, before decades of extensions.
+
+=== Who This Book Is For
+
+This book is for programmers who are fluent in at least one other
+language and want to understand what MUMPS was, how it worked, and what
+made it historically significant. You do not need any prior MUMPS
+experience.
+
+The book serves three purposes:
+
+. *Introduction*: What MUMPS is and why it matters.
+. *Tutorial*: A progressive, example-driven walkthrough of the language
+  that you can follow along interactively.
+. *Quick reference*: A summary of all commands, functions, and special
+  variables for the 1976 standard.
+
+We focus on single-user operation. Multi-user features like LOCK and
+device sharing are mentioned where relevant, but their full treatment is
+deferred.
+
+=== Getting Started
+
+To follow along with the examples, start the MUMPS interpreter in
+interactive mode. You will see a prompt:
+
+----
+>
+----
+
+At this prompt you can type any MUMPS command and it will be executed
+immediately. Try:
+
+----
+>WRITE "Hello, World!",!
+Hello, World!
+----
+
+The `!` after the comma is a format code that produces a new line. We
+will explain the syntax in detail shortly.
+
+To exit the interpreter, type:
+
+----
+>HALT
+----
+
+You can also run MUMPS programs in batch mode by loading routine files.
+But for learning, interactive mode is ideal -- it gives you immediate
+feedback on every command.
+
+
+== The Language at a Glance
+
+Before diving into the details, here is a bird's-eye view of MUMPS for
+the programmer coming from another language. MUMPS has several features
+that will feel unfamiliar -- deliberately so, because they reflect a
+different set of design trade-offs.
+
+=== Everything Is a String
+
+MUMPS has exactly one data type: the character string. Numbers are simply
+strings that happen to look numeric. The string `"42"` and the number
+`42` are the same value. When you perform arithmetic, MUMPS automatically
+interprets strings as numbers; when you concatenate, it treats values as
+strings. There are no type declarations, no type errors, and no
+conversions to worry about.
+
+=== No Operator Precedence
+
+All binary operators are evaluated strictly left to right. There is no
+multiplication-before-addition rule. The expression `2+3*4` evaluates to
+`20`, not `14`, because `2+3` is computed first (giving `5`), then `5*4`
+gives `20`. Use parentheses to override this: `2+(3*4)` gives `14`.
+
+This is unfamiliar, but it eliminates an entire class of bugs related
+to precedence misunderstandings.
+
+=== Line-Oriented Structure
+
+A MUMPS program is a sequence of _lines_. Each line has an optional
+_label_ (for reference by DO, GOTO, or $TEXT), followed by a mandatory
+space separator, followed by zero or more _commands_ separated by single
+spaces:
+
+----
+LABEL command1 argument command2 argument ;comment
+----
+
+Spaces are syntactically significant. A single space separates the
+command word from its argument. Two spaces (or end of line) separate an
+argumentless command from the next command or comment. A semicolon begins
+a comment that extends to end of line.
+
+=== Commands Are Terse
+
+Every command has a full name and a one-letter abbreviation. Both are
+always valid. `SET X=1` and `S X=1` are identical. `WRITE` and `W`,
+`IF` and `I`, `FOR` and `F`, and so on. Experienced MUMPS programmers
+universally use the abbreviations, making MUMPS code extremely dense.
+In this tutorial we generally use the full command names for clarity, with
+the abbreviation noted.
+
+=== The Persistent Database Is Built In
+
+Any variable whose name starts with a caret (`^`) is a _global
+variable_: it is stored persistently on disk, survives process
+termination, and is shared among all users. Variables without a caret are
+_local variables_: they exist only in the current process's memory and
+vanish when the process ends. Global and local variables use exactly the
+same syntax for subscripts, assignment, and deletion.
+
+
+== Variables and Data Types
+
+=== Local Variables
+
+A local variable name starts with a letter or `%`, followed by letters
+and digits:
+
+----
+>SET NAME="Alice"
+>SET AGE=30
+>SET %TEMP=98.6
+>WRITE NAME," is ",AGE," years old.",!
+Alice is 30 years old.
+----
+
+Variable names are case-sensitive: `Name`, `NAME`, and `name` are three
+different variables.
+
+NOTE: In the 1976 standard, portable routine names and labels are limited
+to 8 significant characters (uppercase only for routine names), but local
+variable names follow the same `name` syntax: a letter or `%` followed
+by alphanumerics.
+
+=== Subscripted Variables
+
+Any variable can have subscripts, forming a hierarchical tree:
+
+----
+>SET PATIENT("NAME")="Smith, John"
+>SET PATIENT("AGE")=45
+>SET PATIENT("LAB",1)="Glucose: 95"
+>SET PATIENT("LAB",2)="Cholesterol: 210"
+----
+
+An unsubscripted variable and its subscripted forms coexist
+independently. `PATIENT` can hold a value while `PATIENT("NAME")` holds
+a different one -- they are separate nodes in the same tree.
+
+=== Strings, Numbers, and Automatic Conversion
+
+Every value in MUMPS is a string. When an arithmetic operator is
+applied, MUMPS takes the _numeric interpretation_ of the string: it
+scans from left to right, consuming as much of the string as looks like
+a valid number, and uses that. The rest is ignored.
+
+----
+>WRITE +"123ABC"
+123
+>WRITE +"ABC"
+0
+>WRITE +"3.14 is pi"
+3.14
+>WRITE +""
+0
+----
+
+The unary `+` forces numeric interpretation. This is how MUMPS handles
+what other languages call "type conversion" -- it simply happens
+automatically whenever a numeric context requires it.
+
+Numeric values have a canonical form: no leading zeros (except for the
+number `0` itself), no trailing zeros after the decimal point, and no
+unnecessary decimal point. The string `"007.10"` has the numeric
+interpretation `7.1`.
+
+=== Truth Values
+
+MUMPS uses `0` for false and `1` for true. The _truth-value
+interpretation_ of any string is: take its numeric interpretation; if the
+result is `0`, the truth value is `0`; otherwise it is `1`.
+
+----
+>WRITE '0
+1
+>WRITE '1
+0
+>WRITE '"ABC"
+1
+----
+
+The apostrophe (`'`) is the NOT operator. `"ABC"` has numeric
+interpretation `0`, so `'"ABC"` gives `1` -- which may be surprising but
+is perfectly consistent.
+
+
+== Expressions and Operators
+
+=== Strict Left-to-Right Evaluation
+
+This is the single most important rule to internalize: *all binary
+operators are at the same precedence level and are evaluated left to
+right*. Parentheses are the only way to change the order of evaluation.
+
+----
+>WRITE 2+3*4
+20
+>WRITE 2+(3*4)
+14
+>WRITE 10-2-3
+5
+>WRITE 1+2_"ABC"
+3ABC
+----
+
+In the last example, `1+2` gives `3`, then `3_"ABC"` concatenates to
+produce `"3ABC"`. The underscore `_` is the string concatenation
+operator.
+
+=== Arithmetic Operators
+
+|===
+|Operator |Meaning |Example |Result
+
+|`+` |Addition |`3+4` |`7`
+|`-` |Subtraction |`10-3` |`7`
+|`*` |Multiplication |`6*7` |`42`
+|`/` |Division |`7/2` |`3.5`
+|`\` |Integer division |`7\2` |`3`
+|`#` |Modulo |`7#3` |`1`
+|===
+
+Integer division (`\`) truncates toward negative infinity (it computes
+the floor). Modulo is defined as `A#B = A-(B*floor(A/B))`.
+
+=== Unary Operators
+
+|===
+|Operator |Meaning |Example |Result
+
+|`+` |Numeric interpretation |`+"42ABC"` |`42`
+|`-` |Negation |`-3` |`-3`
+|`'` |Logical NOT |`'0` |`1`
+|===
+
+Unary operators bind tighter than binary operators and are applied
+right to left: `'-3` first negates (`-3`), then takes the truth-value
+interpretation of `-3` (which is nonzero, so `1`), then inverts
+(`0`).
+
+=== Relational Operators
+
+All relational operators return `0` or `1`.
+
+|===
+|Operator |Meaning |Example |Result
+
+|`=` |String equals |`"AB"="AB"` |`1`
+|`<` |Numeric less than |`3<10` |`1`
+|`>` |Numeric greater than |`10>3` |`1`
+|`]` |String follows (ASCII order) |`"B"]"A"` |`1`
+|`[` |String contains |`"ABCDE"["CD"` |`1`
+|`?` |Pattern match |`"ABC"?3A` |`1`
+|===
+
+Each of these can be negated with a preceding apostrophe: `'=` means "not
+equal", `'<` means "not less than" (i.e., greater than or equal), `'>` means
+"not greater than" (i.e., less than or equal), `']` means "not follows",
+`'[` means "not contains", and `'?` means "does not match pattern".
+
+The _follows_ operator (`]`) uses ASCII collating order, which is a
+character-by-character comparison based on ASCII codes. It is *not*
+numeric comparison -- `"9"]"10"` is true because `"9"` follows `"1"` in
+ASCII. For numeric comparison, use `<` and `>`.
+
+The _contains_ operator (`[`) tests whether the right operand is a
+substring of the left operand. The empty string is contained in every
+string.
+
+=== Logical Operators
+
+|===
+|Operator |Meaning |Example |Result
+
+|`&` |AND |`1&1` |`1`
+|`!` |OR |`0!1` |`1`
+|===
+
+Negated forms: `'&` is NAND, `'!` is NOR.
+
+Remember: no short-circuit evaluation. Both sides are always evaluated.
+Since all operators share the same precedence, `A=1!B=2` is parsed as
+`((A=1)!B)=2`, which is probably not what you mean. Use parentheses:
+`(A=1)!(B=2)`.
+
+=== The Concatenation Operator
+
+The underscore (`_`) concatenates two strings:
+
+----
+>SET FIRST="John"
+>SET LAST="Smith"
+>WRITE FIRST_" "_LAST
+John Smith
+----
+
+=== Pattern Match
+
+The `?` operator tests whether a string matches a pattern. Patterns are
+built from _pattern atoms_, each consisting of a count (or `.` for "any
+number") followed by a code or a string literal:
+
+|===
+|Code |Meaning |Characters
+
+|`A` |Alphabetic |`A-Z`, `a-z`
+|`N` |Numeric |`0-9`
+|`U` |Uppercase |`A-Z`
+|`L` |Lowercase |`a-z`
+|`P` |Punctuation |includes space
+|`C` |Control characters |includes DEL
+|`E` |Everything |all 128 ASCII characters
+|===
+
+Codes can be combined. `1AN` means "one character that is alphabetic or
+numeric".
+
+Examples:
+
+----
+>WRITE "ABC"?3A
+1
+>WRITE "AB3"?3A
+0
+>WRITE "AB3"?2A1N
+1
+>WRITE "Hello"?1U.AL
+1
+>WRITE "12345"?.N
+1
+>WRITE "TEST-1"?1.A1"-"1.N
+1
+----
+
+The last example reads: "one or more alphabetics, then a literal hyphen,
+then one or more numerics."
+
+
+== Commands
+
+=== SET -- Assign a Value
+
+`SET` (abbreviation: `S`) assigns a value to one or more variables.
+
+----
+>SET X=42
+>SET NAME="Alice",AGE=30
+>SET (A,B,C)=0
+----
+
+The third form is a _multiple SET_: all variables in parentheses receive
+the same value.
+
+The right-hand side is an expression that is evaluated first; then the
+result is stored in the named variable(s). Subscript expressions on the
+left are evaluated before the right-hand expression:
+
+----
+>SET I=3
+>SET A(I)=I*10
+>WRITE A(3)
+30
+----
+
+=== WRITE -- Output Data
+
+`WRITE` (abbreviation: `W`) sends output to the current device.
+
+----
+>WRITE "Hello"
+Hello
+>WRITE 2+2
+4
+>WRITE !,"Name: ",NAME,!
+Name: Alice
+----
+
+WRITE accepts several argument forms, separated by commas:
+
+* *An expression*: outputs its string value.
+* *A format code*: `!` outputs a new line (carriage return + line feed).
+  `#` outputs a form feed (clears the screen or starts a new page).
+  `?n` tabs to column _n_ (column numbering starts at 0).
+* *`*n`*: outputs the character whose ASCII code is _n_.
+
+These can be freely mixed:
+
+----
+>WRITE #,!,"Report",!,"======",!!
+>WRITE ?10,"Column 10",?30,"Column 30",!
+>WRITE *7
+----
+
+The last example outputs a BEL character (ASCII 7), which may ring the
+terminal bell.
+
+
+(To be continued...)
+
+
+[bibliography]
+== References
+
+* [[[nbs118]]] Joseph T. O'Neill, ed. _MUMPS Language Standard_. National
+  Bureau of Standards Handbook 118, January 1976.
+* [[[mdc42]]] Melvin E. Conway. _MUMPS Programmers' Reference Manual_.
+  MUMPS Development Committee, MDC/42, September 1976.
+

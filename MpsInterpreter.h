@@ -23,6 +23,7 @@
 #include "MpsAst.h"
 #include "MpsValue.h"
 #include "MpsNode.h"
+#include <QObject>
 #include <QMap>
 #include <QStack>
 #include <QStringList>
@@ -30,15 +31,17 @@
 
 namespace Mps {
 
-class Interpreter
+class Interpreter : public QObject
 {
 public:
-    Interpreter();
+    Interpreter(QObject* = 0);
     ~Interpreter();
 
     void addSearchPath(const QString& path);
     void run(const QString& routinePath);
     void run(Routine* routine);
+    bool executeLine(const QByteArray& line);
+    void runInteractive();
 
     struct Error
     {
@@ -51,6 +54,12 @@ public:
 
     SymbolTable& locals() { return d_locals; }
     SymbolTable& globals() { return d_globals; }
+
+signals:
+    void showOutput(const QString&);
+
+public slots:
+    void executeLine(const QString&);
 
 protected:
     enum Flow { FlowNormal, FlowQuit, FlowGoto, FlowHalt, FlowSkipLine };
@@ -120,6 +129,11 @@ protected:
 
     void restoreFrame(const StackFrame& frame);
 
+    void updateNakedRef(const QByteArray& name, const QList<QByteArray>& subs);
+    Value getNakedGlobal(const QList<Expression*>& subs);
+    void setNakedGlobal(const QList<Expression*>& subs, const Value& val);
+    void killNakedGlobal(const QList<Expression*>& subs);
+
     void runtimeError(const QString& msg, quint32 lineNr);
 
 private:
@@ -138,8 +152,10 @@ private:
     int d_xPos;
     int d_yPos;
 
+    QByteArray d_nakedName;
+    QList<QByteArray> d_nakedSubs;
+
     QTextStream d_out;
-    QTextStream d_in;
 };
 
 }

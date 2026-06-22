@@ -30,19 +30,33 @@ int main(int argc, char *argv[])
 
     if( a.arguments().size() <= 1 )
     {
-        qDebug() << "Usage: mumps <routine.mps> [search-dir ...]";
+        qDebug() << "Usage: mumps [-i] <routine.mps> [search-dir ...]";
+        qDebug() << "  -i   interactive mode (REPL)";
         return -1;
     }
 
+    bool interactive = false;
     QString routinePath;
     QStringList searchPaths;
 
     for( int i = 1; i < a.arguments().size(); i++ )
     {
-        if( routinePath.isEmpty() )
+        if( a.arguments()[i] == "-i" )
+            interactive = true;
+        else if( routinePath.isEmpty() && !interactive )
             routinePath = a.arguments()[i];
         else
             searchPaths.append(a.arguments()[i]);
+    }
+
+    Interpreter interp;
+    for( int i = 0; i < searchPaths.size(); i++ )
+        interp.addSearchPath(searchPaths[i]);
+
+    if( interactive )
+    {
+        interp.runInteractive();
+        return 0;
     }
 
     if( routinePath.isEmpty() )
@@ -58,11 +72,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    Interpreter interp;
     interp.addSearchPath(fi.absolutePath());
-    for( int i = 0; i < searchPaths.size(); i++ )
-        interp.addSearchPath(searchPaths[i]);
-
     interp.run(fi.absoluteFilePath());
 
     if( !interp.errors.isEmpty() )
