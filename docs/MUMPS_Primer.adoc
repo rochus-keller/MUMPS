@@ -7,7 +7,7 @@
 
 = The MUMPS Primer: An Introduction and Tutorial for the 1976 Standard
 Rochus Keller
-v0.1, 2026
+v0.2, 2026
 :toc:
 :numbered:
 
@@ -503,8 +503,607 @@ These can be freely mixed:
 The last example outputs a BEL character (ASCII 7), which may ring the
 terminal bell.
 
+=== READ -- Input Data
+
+`READ` (abbreviation: `R`) reads input from the current device.
+
+----
+>READ "Enter your name: ",NAME
+Enter your name: Alice
+>WRITE "Hello, ",NAME,!
+Hello, Alice
+----
+
+READ accepts the same format codes and string literal arguments as WRITE
+(they are output to the terminal as prompts), plus variable arguments
+that receive input. The input terminates when the user presses Enter (the
+exact termination procedure is implementation-defined).
+
+READ also supports a timeout:
+
+----
+>READ "Answer? ",X:10
+----
+
+This waits up to 10 seconds for input. If the user responds in time,
+the special variable `$TEST` is set to `1`; if the timeout expires,
+`$TEST` is set to `0` and `X` contains whatever partial input was
+received (possibly the empty string).
+
+A special form reads a single character and returns its ASCII code:
+
+----
+>READ *X
+----
+
+After the user types `A`, `X` will have the value `65`.
+
+=== IF and ELSE -- Conditional Execution
+
+`IF` (abbreviation: `I`) conditionally executes the remainder of the
+current line.
+
+----
+>SET X=5
+>IF X>3 WRITE "X is greater than 3",!
+X is greater than 3
+----
+
+If the condition is false, *everything to the right on that line* is
+skipped. There is no block structure like braces or `endif` -- the scope
+of IF is always to the end of the current line.
+
+`ELSE` (abbreviation: `E`) executes the remainder of the line if the
+most recent IF (or a timed command) set `$TEST` to `0`:
+
+----
+>SET X=2
+>IF X>3 WRITE "big",!
+>ELSE  WRITE "small",!
+small
+----
+
+NOTE: ELSE has no argument -- note the *two* spaces between `ELSE` and
+`WRITE`. An argumentless command requires two spaces before the next
+command (or end of line).
+
+IF can take multiple arguments separated by commas. They act like a
+chain of ANDs -- if any argument is false, the rest of the line is
+skipped:
+
+----
+>IF X>0,X<100 WRITE "X is between 1 and 99",!
+----
+
+This is equivalent to `IF X>0 IF X<100 WRITE ...` or
+`IF (X>0)&(X<100) WRITE ...`. However, the comma form has a subtle
+advantage: if the first condition is false, the second is never
+evaluated, avoiding potential side effects.
+
+=== Post-Conditionals
+
+Any command except ELSE, FOR, and IF can be made conditional by
+appending a colon and a condition directly after the command word:
+
+----
+>SET X=5
+>WRITE:X>3 "X is big",!
+X is big
+>SET:X=5 X=0
+>WRITE X
+0
+----
+
+Post-conditionals do not affect `$TEST`. This is the key difference
+from IF.
+
+Arguments of DO, GOTO, and XECUTE can also be individually
+post-conditionalized:
+
+----
+>DO SUB1:X=1,SUB2:X=2,SUB3
+----
+
+This calls SUB1 only if `X=1`, SUB2 only if `X=2`, and SUB3
+unconditionally.
+
+=== FOR -- Repetition
+
+`FOR` (abbreviation: `F`) controls repeated execution of the remainder
+of the current line (its _scope_). Like IF, the scope of FOR extends to
+end of line.
+
+FOR takes a _loop variable_ and one or more _for parameters_ separated
+by commas:
+
+==== Single value
+
+----
+>FOR I=5 WRITE I," "
+5
+----
+
+Executes the scope once with `I` set to `5`.
+
+==== Start, step (infinite loop)
+
+----
+>FOR I=1:1 WRITE I," " QUIT:I>5
+1 2 3 4 5 6
+----
+
+`FOR I=1:1` means "start at 1, increment by 1, forever." You must exit
+explicitly with QUIT or GOTO.
+
+==== Start, step, stop
+
+----
+>FOR I=1:1:5 WRITE I," "
+1 2 3 4 5
+----
+
+`FOR I=1:1:5` means "start at 1, step by 1, stop when I exceeds 5." The
+step can be negative:
+
+----
+>FOR I=10:-2:0 WRITE I," "
+10 8 6 4 2 0
+----
+
+==== Multiple parameters
+
+FOR parameters can be mixed:
+
+----
+>FOR I=1:1:3,10,20:5:30 WRITE I," "
+1 2 3 10 20 25 30
+----
+
+The parameters are processed left to right, each controlling successive
+executions of the scope.
+
+==== Nested FORs
+
+Multiple FORs on the same line are nested, with the rightmost being the
+innermost:
+
+----
+>FOR I=1:1:2 FOR J=1:1:3 WRITE I,"@",J," "
+1@1 1@2 1@3 2@1 2@2 2@3
+----
+
+==== Exiting a FOR
+
+QUIT in the scope of FOR terminates the innermost FOR:
+
+----
+>FOR I=1:1:100 QUIT:I>3  WRITE I," "
+1 2 3
+----
+
+Note that `QUIT:I>3` must come *before* `WRITE` -- the order on the line
+matters. If WRITE came first, the numbers 1 through 100 would be
+printed with the loop only terminating after the WRITE for each
+iteration.
+
+GOTO in the scope of FOR terminates *all* FORs on that line and
+transfers control to the specified label.
+
+=== DO -- Call a Subroutine
+
+`DO` (abbreviation: `D`) calls a subroutine. In MUMPS, a "subroutine"
+is simply a label within a routine. Execution continues at the labeled
+line until a QUIT (not in the scope of FOR) or end-of-routine is
+reached, at which point control returns to the command after the DO.
+
+Consider this routine:
+
+----
+MAIN SET X=10
+ DO DOUBLE
+ WRITE "Result: ",X,!
+ HALT
+DOUBLE SET X=X*2
+ QUIT
+----
+
+Executing `DO MAIN` (or running the routine starting at MAIN) would
+print `Result: 20`.
+
+DO can call into other routines using the caret notation:
+
+----
+>DO ^MYROUTINE
+>DO LABEL^OTHERROUTINE
+>DO LABEL+2^ROUTINE
+----
+
+The last form means "start at the 2nd line after LABEL in ROUTINE."
+
+Arguments of DO may be listed, with each called in turn:
+
+----
+>DO SUB1,SUB2,^EXTERNAL
+----
+
+And each argument can be post-conditionalized:
+
+----
+>DO PRINTA:X=1,PRINTB:X=2,PRINTC
+----
+
+=== GOTO -- Transfer Control
+
+`GOTO` (abbreviation: `G`) transfers control to another line. Unlike
+DO, GOTO does not return -- it replaces the current execution point.
+
+----
+>GOTO LABEL
+>GOTO LABEL^ROUTINE
+>GOTO LABEL+3^ROUTINE
+----
+
+When GOTO is executed inside the scope of FOR, all FORs on that line
+are terminated.
+
+Like DO, GOTO arguments can be listed and post-conditionalized:
+
+----
+>GOTO A:X=1,B:X=2,C
+----
+
+At most one argument actually transfers control: the first whose
+condition (if any) is true.
+
+=== QUIT -- Return from Subroutine or Exit FOR
+
+`QUIT` (abbreviation: `Q`) has two behaviors depending on context:
+
+* *Not in FOR scope*: Returns from the current subroutine (DO or
+  XECUTE). If the routine stack becomes empty, the process terminates
+  (equivalent to HALT).
+* *In FOR scope*: Terminates the innermost FOR loop.
+
+QUIT takes no arguments, but it can be post-conditionalized:
+
+----
+>QUIT:X>100
+----
+
+=== HALT and HANG
+
+`HALT` (abbreviation: `H`, argumentless) terminates the process.
+
+`HANG` (abbreviation: `H`, with argument) suspends execution for a
+specified number of seconds:
+
+----
+>HANG 5
+----
+
+The two commands share the abbreviation `H` -- the presence or absence
+of an argument distinguishes them: `H` alone is HALT; `H 3` is HANG 3.
+
+=== XECUTE -- Execute a String as Code
+
+`XECUTE` (abbreviation: `X`) evaluates an expression and executes its
+string value as a one-line MUMPS subroutine:
+
+----
+>SET CMD="WRITE ""Hello from XECUTE"",!"
+>XECUTE CMD
+Hello from XECUTE
+----
+
+Note the doubled quotes inside the string literal -- each `""` represents
+a single `"` in the string's value.
+
+XECUTE creates a temporary subroutine scope, so QUIT inside the executed
+string returns to the command after XECUTE, not to the line containing
+it:
+
+----
+>XECUTE "SET X=1 QUIT:X=1  WRITE ""not reached"""
+>WRITE X
+1
+----
+
+XECUTE is MUMPS's answer to `eval()` in other languages. It is
+powerful but should be used judiciously.
+
+=== KILL -- Delete Variables
+
+`KILL` (abbreviation: `K`) removes variables and their subtrees from
+storage. It comes in three forms:
+
+==== Argumentless KILL (Kill All)
+
+----
+>KILL
+----
+
+Deletes all local variables.
+
+==== Selective KILL
+
+----
+>KILL X
+>KILL ^PATIENT(12345)
+>KILL X,Y,^A(3,4)
+----
+
+Deletes the named variable(s) and all descendants.
+
+==== Exclusive KILL
+
+----
+>KILL (A,B)
+----
+
+Deletes all local variables *except* A and B (and their descendants).
+The variables in parentheses are preserved; everything else is removed.
+
+=== BREAK
+
+`BREAK` (abbreviation: `B`, argumentless) suspends execution until a
+signal from the operating environment (typically a keypress). It is
+primarily a debugging tool.
+
+----
+>BREAK
+----
+
+
+== String Functions
+
+MUMPS provides a set of built-in functions, each prefixed with `$` and
+accepting a parenthesized argument list. Function names can be
+abbreviated to the `$` plus the first letter: `$EXTRACT` and `$E` are
+the same function.
+
+=== $LENGTH -- String Length
+
+`$LENGTH(expr)` returns the number of characters in the value of
+_expr_. The length of the empty string is 0.
+
+----
+>WRITE $LENGTH("Hello")
+5
+>WRITE $L("")
+0
+----
+
+=== $EXTRACT -- Substring by Position
+
+`$EXTRACT(string,from)` returns the single character at position
+_from_ (1-based). `$EXTRACT(string,from,to)` returns the substring from
+position _from_ to _to_ inclusive.
+
+----
+>SET X="ABCDE"
+>WRITE $EXTRACT(X,1)
+A
+>WRITE $E(X,2,4)
+BCD
+>WRITE $E(X,3,99)
+CDE
+----
+
+If the position is out of range, `$EXTRACT` returns the empty string.
+There is no "index out of bounds" error.
+
+=== $PIECE -- Substring by Delimiter
+
+`$PIECE(string,delimiter,n)` returns the _n_-th piece of _string_ when
+split by _delimiter_. An optional fourth argument returns a range of
+pieces.
+
+----
+>SET REC="Smith^John^45^M"
+>WRITE $PIECE(REC,"^",1)
+Smith
+>WRITE $P(REC,"^",2)
+John
+>WRITE $P(REC,"^",3)
+45
+>WRITE $P(REC,"^",2,3)
+John^45
+----
+
+`$PIECE` is one of the most heavily used functions in MUMPS programming.
+Delimited strings are the standard way to store structured data within a
+single value -- essentially a lightweight record format.
+
+=== $FIND -- Search for Substring
+
+`$FIND(string,target)` searches for _target_ in _string_. If found, it
+returns the position of the character *after* the last character of the
+match. If not found, it returns `0`. An optional third argument
+specifies the starting position.
+
+----
+>SET X="ABCABC"
+>WRITE $FIND(X,"BC")
+4
+>WRITE $F(X,"BC",4)
+7
+>WRITE $F(X,"XY")
+0
+----
+
+The return value is the position *after* the match, which is convenient
+for chaining: you can pass the result directly as the starting position
+for the next search.
+
+=== $JUSTIFY -- Right-Justify and Format Numbers
+
+`$JUSTIFY(expr,width)` right-justifies the value of _expr_ in a field
+of _width_ characters, padding with spaces on the left.
+
+`$JUSTIFY(number,width,decimals)` additionally rounds the number to
+_decimals_ decimal places.
+
+----
+>WRITE $JUSTIFY("Hi",10)
+        Hi
+>WRITE $JUSTIFY(3.14159,10,2)
+      3.14
+>WRITE $J(100,6,2)
+100.00
+----
+
+This is the primary tool for formatted numeric output in MUMPS.
+
+=== $ASCII and $CHAR -- Character Code Conversion
+
+`$ASCII(string)` returns the ASCII code of the first character of
+_string_ (or -1 if the string is empty). An optional second argument
+selects a different position.
+
+`$CHAR(code1,code2,...)` returns a string built from the given ASCII
+codes. Negative codes contribute no character.
+
+----
+>WRITE $ASCII("A")
+65
+>WRITE $A("Hello",2)
+101
+>WRITE $CHAR(72,101,108,108,111)
+Hello
+>WRITE $C(65,66,67)
+ABC
+----
+
+=== $RANDOM -- Random Number
+
+`$RANDOM(n)` returns a pseudo-random integer in the range 0 through
+_n_-1:
+
+----
+>WRITE $RANDOM(10)
+7
+>WRITE $R(100)
+42
+----
+
+The argument must be a positive integer.
+
+=== $SELECT -- Conditional Expression
+
+`$SELECT(cond1:val1,cond2:val2,...,1:default)` evaluates conditions left
+to right and returns the value paired with the first true condition. It
+is an error if no condition is true, so the conventional idiom is to end
+with `1:default` (since `1` is always true).
+
+----
+>SET X=2
+>WRITE $SELECT(X=1:"one",X=2:"two",X=3:"three",1:"other")
+two
+----
+
+`$SELECT` is the MUMPS equivalent of a conditional (ternary) expression.
+
+=== $TEXT -- Retrieve Source Line
+
+`$TEXT(label)` returns the source text of the line with the given label
+in the current routine. `$TEXT(label+n)` returns the _n_-th line after
+that label. `$TEXT(+n)` returns the _n_-th line of the routine.
+
+----
+>WRITE $TEXT(MAIN)
+MAIN SET X=10
+----
+
+If the line does not exist, `$TEXT` returns the empty string.
+
+
+
 
 (To be continued...)
+
+
+
+[appendix]
+== Glossary
+
+Ascending Order::
+  For integer subscripts, the natural numeric order: 0, 1, 2, 3, ...
+  For strings, the ASCII collating sequence.
+
+Caret::
+  The `^` character (ASCII 94). Prefixes global variable names.
+
+Current Device::
+  The I/O device to which READ and WRITE are directed. Identified by
+  `$IO`. Changed by USE.
+
+
+Entry Reference::
+  A specification of a line in a routine, used by DO, GOTO, and $TEXT.
+  May include a label, an offset, and a routine name.
+
+Global Variable::
+  A variable whose name begins with `^`. Stored persistently on disk,
+  shared among all processes, and organized as a hierarchical tree.
+
+Label::
+  A name or integer literal at the beginning of a line that identifies
+  the line for reference by DO, GOTO, or $TEXT.
+
+Local Variable::
+  A variable without the `^` prefix. Exists only in the current
+  process's memory; lost when the process terminates.
+
+
+Node::
+  A point in the variable tree identified by a name and zero or more
+  subscripts. Each node may have a value, descendants, both, or neither.
+
+
+Post-Conditional::
+  A `:tvexpr` appended to a command word or (for DO, GOTO, XECUTE) an
+  argument, which causes conditional execution without affecting `$TEST`.
+
+Routine::
+  The unit of program storage and interchange. Consists of a routine
+  head (the routine name) followed by a routine body (a sequence of
+  lines).
+
+Routine Stack::
+  A stack that records return points for DO and XECUTE calls. QUIT pops
+  the stack.
+
+Scope (of FOR or IF)::
+  The remainder of the current line. FOR and IF control execution of
+  everything to their right on the same line.
+
+Special Variable::
+  A read-only system variable prefixed with `$` (e.g., `$HOROLOG`,
+  `$TEST`). Provides access to system state.
+
+
+String::
+  The sole data type in MUMPS. All values, including numbers, are
+  represented as character strings.
+
+Subscript::
+  An expression enclosed in parentheses after a variable name, used to
+  select a descendant node. Multiple subscripts, separated by commas,
+  identify a path through the tree.
+
+Test Switch::
+  A Boolean register (0 or 1) whose content is available via `$TEST`.
+  Set by IF (with arguments), and by OPEN, LOCK, and READ when a timeout
+  is used.
+
+Timeout::
+  A `:numexpr` appended to arguments of READ, OPEN, or LOCK, specifying
+  a maximum wait time in seconds. Sets `$TEST` on completion.
+
+Truth Value::
+  `0` (false) or `1` (true). The truth-value interpretation of any
+  string is: take its numeric interpretation; if the result is `0`, the
+  truth value is `0`; otherwise it is `1`.
 
 
 [bibliography]
