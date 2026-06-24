@@ -7,7 +7,7 @@
 
 = The MUMPS Primer: An Introduction and Tutorial for the 1976 Standard
 Rochus Keller
-v0.2, 2026
+v0.3, 2026
 :toc:
 :numbered:
 
@@ -1017,6 +1017,507 @@ MAIN SET X=10
 If the line does not exist, `$TEXT` returns the empty string.
 
 
+== The Global Database
+
+This is the feature that makes MUMPS unique: the hierarchical,
+persistent, shared database that is built into the language itself.
+
+=== Global Variables
+
+Any variable whose name begins with a caret (`^`) is a _global
+variable_. Globals are:
+
+* *Persistent*: They survive process termination. When you SET a global,
+  it is written to disk.
+* *Shared*: All processes can see and modify the same globals
+  (in a multi-user system).
+* *Hierarchical*: Like local variables, globals can have any number of
+  subscripts, forming a tree structure.
+
+----
+>SET ^COLOR(1)="Red"
+>SET ^COLOR(2)="Green"
+>SET ^COLOR(3)="Blue"
+>HALT
+----
+
+After restarting the interpreter:
+
+----
+>WRITE ^COLOR(2)
+Green
+----
+
+The data is still there. No save command, no file I/O, no serialization.
+The variable *is* the database.
+
+=== Building a Data Model
+
+Here is a small patient registry, built purely with globals:
+
+----
+>SET ^PAT(1,"NAME")="Smith, John"
+>SET ^PAT(1,"DOB")="1945-03-15"
+>SET ^PAT(1,"LAB",1,"DATE")="1976-01-10"
+>SET ^PAT(1,"LAB",1,"TEST")="Glucose"
+>SET ^PAT(1,"LAB",1,"RESULT")=95
+>SET ^PAT(2,"NAME")="Doe, Jane"
+>SET ^PAT(2,"DOB")="1960-07-22"
+----
+
+This creates a tree like:
+
+----
+^PAT
+  +-- 1
+  |   +-- "NAME" = "Smith, John"
+  |   +-- "DOB" = "1945-03-15"
+  |   +-- "LAB"
+  |       +-- 1
+  |           +-- "DATE" = "1976-01-10"
+  |           +-- "TEST" = "Glucose"
+  |           +-- "RESULT" = 95
+  +-- 2
+      +-- "NAME" = "Doe, Jane"
+      +-- "DOB" = "1960-07-22"
+----
+
+No schema was defined. No table was created. The structure emerged simply
+from the patterns of SET commands.
+
+=== $DATA -- Testing Whether a Node Exists
+
+`$DATA(variable)` returns an integer describing the state of a node:
+
+|===
+|Value |Meaning
+
+|`0` |The node does not exist
+|`1` |The node exists and has a value, but no descendants
+|`10` |The node exists, has descendants, but no value of its own
+|`11` |The node exists, has both a value and descendants
+|===
+
+----
+>WRITE $DATA(^PAT)
+10
+>WRITE $D(^PAT(1,"NAME"))
+1
+>WRITE $D(^PAT(1,"LAB"))
+10
+>WRITE $D(^PAT(99))
+0
+----
+
+A common idiom is to test whether a variable is defined before using it:
+
+----
+>IF $DATA(^PAT(1)) WRITE "Patient 1 exists",!
+Patient 1 exists
+----
+
+=== $NEXT -- Walking the Tree
+
+`$NEXT(variable(subscript))` returns the next subscript value at the
+same level, in ascending numeric order. If there is no next value, it
+returns `-1`.
+
+NOTE: In the 1976 standard, subscripts are restricted to nonnegative
+integers for portability. `$NEXT` works with integer subscripts. Later
+standards added `$ORDER` for string-subscript traversal.
+
+To iterate over all patients:
+
+----
+>SET ID=0
+>FOR  SET ID=$NEXT(^PAT(ID)) QUIT:ID=-1  WRITE ID,": ",^PAT(ID,"NAME"),!
+1: Smith, John
+2: Doe, Jane
+----
+
+Note the argumentless FOR -- `FOR` followed by two spaces -- which
+creates an infinite loop. The loop body uses `$NEXT` to advance to the
+next subscript and QUITs when `-1` is returned (no more entries).
+
+This pattern -- an argumentless FOR with $NEXT and a QUIT on -1 -- is
+the fundamental database traversal idiom in 1976-era MUMPS.
+
+=== The Naked Reference
+
+After accessing a subscripted global, MUMPS remembers the "path" to the
+parent node in a hidden register called the _Naked Indicator_. A
+subsequent reference of the form `^(subscript)` is interpreted relative
+to this remembered path.
+
+----
+>SET X=^PAT(1,"NAME")
+----
+
+After this, the Naked Indicator holds `^PAT(1)`. A naked reference
+like `^("DOB")` would be equivalent to `^PAT(1,"DOB")`.
+
+The naked reference is a compact notation that was important when every
+character counted (lines were limited to 255 characters). In practice,
+it makes code harder to read and is a common source of subtle bugs. We
+mention it here for completeness but recommend using explicit variable
+references in new code.
+
+=== KILL on Globals
+
+KILL works on globals exactly as it does on locals:
+
+----
+>KILL ^PAT(1,"LAB")
+----
+
+This removes the `"LAB"` node and its entire subtree (the lab records
+for patient 1). The parent node `^PAT(1)` is not affected.
+
+----
+>KILL ^PAT
+----
+
+This removes the entire patient database.
+
+
+== Input/Output
+
+=== Formatting Output
+
+The format codes in WRITE (and READ) control the position of output
+on the current device:
+
+|===
+|Code |Effect
+
+|`!` |New line (carriage return + line feed). Sets `$X` to 0, adds 1
+to `$Y`.
+|`#` |Form feed (new page / clear screen). Sets both `$X` and `$Y` to
+0.
+|`?n` |Tab to column _n_. If the cursor is already at or past column
+_n_, no effect. Otherwise, spaces are output to reach column _n_.
+Column numbering starts at 0.
+|===
+
+Example -- a formatted report:
+
+----
+>WRITE #,!,"Patient Report",!
+>WRITE "==============",!!
+>SET ID=0
+>FOR  SET ID=$NEXT(^PAT(ID)) QUIT:ID=-1  DO SHOW
+>HALT
+SHOW WRITE "ID: ",ID,?15,"Name: ",^PAT(ID,"NAME"),!
+ QUIT
+----
+
+=== The Special Variables $X and $Y
+
+`$X` tracks the current horizontal cursor position (column number) on
+the current device. `$Y` tracks the current vertical position (line
+number). Both are updated automatically as characters are output:
+
+----
+>WRITE "123" SET Y=$X
+----
+
+After this, `Y` is `3` (three characters were output).
+
+A common idiom for line wrapping:
+
+----
+>IF $X>72 WRITE !
+----
+
+=== Device I/O (Overview)
+
+The commands `OPEN`, `USE`, and `CLOSE` manage I/O devices:
+
+* `OPEN device` obtains ownership of a device (e.g., a printer, a file).
+* `USE device` makes a device the current target for READ and WRITE.
+* `CLOSE device` releases ownership.
+
+The special variable `$IO` contains the identifier of the current
+device.
+
+In a single-user system, your terminal is typically the default (and
+only) device. Device management becomes important in multi-user or
+multi-device configurations, which we defer to a later discussion.
+
+
+== Indirection
+
+Indirection is MUMPS's mechanism for dynamic code construction. The
+`@` operator evaluates an expression and substitutes its value into the
+surrounding syntax.
+
+=== Name Indirection
+
+----
+>SET VARNAME="X"
+>SET @VARNAME=42
+>WRITE X
+42
+----
+
+`@VARNAME` evaluates `VARNAME` (getting `"X"`) and then uses `"X"` as
+the variable name. This is equivalent to `SET X=42`.
+
+=== Subscript Indirection
+
+----
+>SET REF="^PAT(1,""NAME"")"
+>WRITE @REF
+Smith, John
+----
+
+=== Argument Indirection
+
+For commands that support it, indirection can replace entire arguments
+or argument lists:
+
+----
+>SET ARGS="X=1,Y=2,Z=3"
+>SET @ARGS
+>WRITE X," ",Y," ",Z
+1 2 3
+----
+
+=== Pattern Indirection
+
+Even patterns can be indirect:
+
+----
+>SET PAT="3N"
+>WRITE "123"?@PAT
+1
+----
+
+Indirection is powerful but makes code harder to read and debug. Use it
+when you genuinely need dynamic behavior -- for example, when variable
+names or commands are determined at run time.
+
+
+== Special Variables
+
+MUMPS provides seven built-in special variables, each prefixed with `$`.
+They are read-only (you cannot SET them).
+
+=== $HOROLOG -- Date and Time
+
+`$HOROLOG` (abbreviated `$H`) returns a string of the form `days,seconds`
+where _days_ counts days since December 31, 1840 (day 0,0 is the first
+second of that day) and _seconds_ counts seconds since midnight (0 to
+86399).
+
+----
+>WRITE $HOROLOG
+67708,51301
+----
+
+To extract useful information, use `$PIECE`:
+
+----
+>SET H=$H
+>SET DAYS=$PIECE(H,",",1)
+>SET SECS=$PIECE(H,",",2)
+>SET HOURS=SECS\3600
+>SET MINS=SECS\60#60
+>WRITE "Seconds since midnight: ",SECS,!
+>WRITE "Time: ",HOURS,":",MINS,!
+----
+
+The peculiar epoch (1840-12-31) was chosen because it precedes any date
+likely to appear in medical records, and the date arithmetic works out
+conveniently for leap year calculations.
+
+=== $IO -- Current Device
+
+`$IO` (abbreviated `$I`) returns the identifier of the current I/O
+device, as set by USE or the system default.
+
+=== $JOB -- Process Identifier
+
+`$JOB` (abbreviated `$J`) returns a positive integer that uniquely
+identifies the current process. It remains constant throughout the life
+of the process.
+
+A common use is to create process-specific temporary globals:
+
+----
+>SET ^TEMP($JOB,"SCRATCH")="work in progress"
+----
+
+=== $STORAGE -- Available Space
+
+`$STORAGE` (abbreviated `$S`) returns an integer representing the number
+of characters of free space available. Its exact meaning is
+implementation-defined, but it measures how much room remains for local
+variables and routine code.
+
+----
+>IF $STORAGE<100 GOTO ^OVERFLOW
+----
+
+=== $TEST -- Last Test Result
+
+`$TEST` (abbreviated `$T`) contains the truth value (`0` or `1`) set by
+the most recent IF with an argument, or by an OPEN, LOCK, or READ with a
+timeout.
+
+----
+>READ "Input: ",X:5
+>IF $TEST WRITE "Got input: ",X,!
+>ELSE  WRITE "Timed out.",!
+----
+
+=== $X and $Y -- Cursor Position
+
+`$X` and `$Y` return the current horizontal and vertical cursor
+positions on the current device, as described in the I/O section.
+
+
+== Routines and Program Structure
+
+=== Routine Structure
+
+A MUMPS _routine_ is the unit of program storage and interchange.
+It consists of a sequence of lines, each terminated by an end-of-line
+marker. The routine as a whole ends with an end-of-routine marker.
+
+In interchange format:
+
+----
+ROUTINENAME
+LABEL1 command command ;comment
+ command command
+LABEL2 command
+ QUIT
+----
+
+The first line (the routine head) contains only the routine name. The
+remaining lines form the routine body.
+
+=== Lines and Labels
+
+Each line has an optional label at the left margin, followed by a
+space separator (`ls`), followed by commands:
+
+----
+CALC SET X=A+B
+ WRITE "Result: ",X,!
+ QUIT
+----
+
+The line `CALC` has a label. The next two lines have no labels (they
+begin with a space). Labels are used as targets for DO, GOTO, and
+$TEXT.
+
+Labels can be either names (like `CALC`) or integer literals (like
+`1`, `42`). When a label is an integer, leading zeros are significant:
+label `01` is different from label `1`.
+
+=== Entry References
+
+DO and GOTO use _entry references_ to specify where to transfer control:
+
+|===
+|Form |Meaning
+
+|`DO LABEL` |Call the line labeled LABEL in the current routine
+|`DO ^ROUTINE` |Call the first line of ROUTINE
+|`DO LABEL^ROUTINE` |Call the line labeled LABEL in ROUTINE
+|`DO LABEL+3^ROUTINE` |Call the 3rd line after LABEL in ROUTINE
+|===
+
+GOTO uses the same forms, but transfers control rather than calling a
+subroutine.
+
+=== Command Abbreviations
+
+For reference, here is the complete list of command abbreviations:
+
+|===
+|Command |Abbreviation
+
+|BREAK |B
+|CLOSE |C
+|DO |D
+|ELSE |E
+|FOR |F
+|GOTO |G
+|HALT |H (no argument)
+|HANG |H (with argument)
+|IF |I
+|KILL |K
+|LOCK |L
+|OPEN |O
+|QUIT |Q
+|READ |R
+|SET |S
+|USE |U
+|VIEW |V
+|WRITE |W
+|XECUTE |X
+|===
+
+No other abbreviation is valid. `GO` for GOTO, `WR` for WRITE, etc.,
+are all errors.
+
+
+== Putting It All Together
+
+Let us build a small but complete application: a phone directory that
+stores names and phone numbers in global variables and lets the user
+look them up, add entries, and list all entries.
+
+----
+PHONE ; Phone directory application
+ WRITE #,!,"=== Phone Directory ===",!
+MENU WRITE !,"Options: (A)dd  (L)ookup  (D)irectory  (Q)uit",!
+ READ "Choice: ",CH QUIT:CH=""
+ IF CH="A"!(CH="a") DO ADD GOTO MENU
+ IF CH="L"!(CH="l") DO LOOKUP GOTO MENU
+ IF CH="D"!(CH="d") DO LIST GOTO MENU
+ IF CH="Q"!(CH="q") QUIT
+ WRITE "Invalid choice.",! GOTO MENU
+ ;
+ADD WRITE !,"Add new entry:",!
+ READ "  Name: ",NAME QUIT:NAME=""
+ READ "  Phone: ",PHONE QUIT:PHONE=""
+ SET ^PHONE(NAME)=PHONE
+ WRITE "  Saved.",!
+ QUIT
+ ;
+LOOKUP WRITE !,"Look up entry:",!
+ READ "  Name: ",NAME QUIT:NAME=""
+ IF $DATA(^PHONE(NAME)) WRITE "  Phone: ",^PHONE(NAME),!
+ ELSE  WRITE "  Not found.",!
+ QUIT
+ ;
+LIST WRITE !,"All entries:",!
+ SET NAME=""
+ FOR  SET NAME=$NEXT(^PHONE(NAME)) QUIT:NAME=-1  DO
+ . WRITE "  ",NAME,?25,^PHONE(NAME),!
+ QUIT
+----
+
+This small program demonstrates most of the features covered in this
+tutorial:
+
+* Global variables (`^PHONE`) for persistent storage
+* READ for user input with prompts
+* IF/ELSE for branching
+* DO for subroutine calls
+* GOTO for returning to the menu
+* FOR with $NEXT for iterating over the database
+* $DATA for testing whether an entry exists
+* Post-conditionals (`QUIT:NAME=""`) for early exit
+* Format codes (`!`, `#`, `?25`) for output formatting
+
+The data persists across sessions. You can add entries, quit, restart
+the interpreter, and the entries are still there -- because globals are
+the database.
 
 
 (To be continued...)
@@ -1054,6 +1555,14 @@ Local Variable::
   A variable without the `^` prefix. Exists only in the current
   process's memory; lost when the process terminates.
 
+Naked Indicator::
+  A hidden register that remembers the global name and all but the
+  last subscript of the most recently executed global reference. Used to
+  interpret naked references of the form `^(subscript)`.
+
+Naked Reference::
+  A global variable reference of the form `^(expr[,...])` that relies
+  on the Naked Indicator for the global name and leading subscripts.
 
 Node::
   A point in the variable tree identified by a name and zero or more
