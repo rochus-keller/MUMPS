@@ -103,7 +103,7 @@ QByteArray Value::numToCanonical(double val)
         return QByteArray::number(ival);
     }
 
-    QByteArray result = QByteArray::number(val, 'f', 18);
+    QByteArray result = QByteArray::number(val, 'g', 15);
 
     if( result.contains('.') )
     {

@@ -32,8 +32,9 @@
 #include <cstdlib>
 using namespace Mps;
 
+void sleep_ms(unsigned long ms); // implemented in MpsMain.cpp
 
-Interpreter::Interpreter(QObject * p):QObject(p), d_curRoutine(0), d_curLine(0), d_flow(FlowNormal),
+Interpreter::Interpreter(QObject * p):d_curRoutine(0), d_curLine(0), d_flow(FlowNormal),
       d_gotoLine(-1), d_testFlag(true), d_xPos(0), d_yPos(0), d_out(stdout)
 {
 }
@@ -138,6 +139,15 @@ void Interpreter::run(const QString& routinePath)
         }
         delete r;
         return;
+    }
+
+    // Store source lines for $TEXT
+    QFile src(routinePath);
+    if( src.open(QIODevice::ReadOnly) )
+    {
+        r->d_sourceLines.append(QByteArray()); // index 0 unused
+        while( !src.atEnd() )
+            r->d_sourceLines.append(src.readLine().trimmed());
     }
 
     QFileInfo fi(routinePath);
@@ -318,6 +328,11 @@ void Interpreter::execSet(Command* cmd)
             Value val = evalExpr(sa->d_expr);
             for( int j = 0; j < sa->d_dests.size(); j++ )
                 setVar(sa->d_dests[j], val);
+        }else if( sa->d_dests.size() == 1 && sa->d_dests[0]->d_kind == VarRef::Indirect )
+        {
+            // Argument indirection: SET @ARGS where ARGS="X=1,Y=2,Z=3"
+            Value target = evalAtom(sa->d_dests[0]->d_indirExpr);
+            executeLine("SET " + target.str());
         }
     }
 }
@@ -996,7 +1011,17 @@ void Interpreter::execView(Command* cmd)
 
 void Interpreter::execHalt(Command* cmd)
 {
-    Q_UNUSED(cmd); // TODO
+    if( !cmd->d_exprs.isEmpty() )
+    {
+        // HANG: sleep for specified seconds
+        double secs = evalExpr(cmd->d_exprs[0]).toNumber();
+        if( secs > 0 )
+        {
+            unsigned int ms = (unsigned int)(secs * 1000);
+            sleep_ms(ms);
+        }
+        return;
+    }
     d_flow = FlowHalt;
 }
 
@@ -1694,6 +1719,85 @@ Value Interpreter::callIntrinsic(const QByteArray& name, const QList<Expression*
         return Value();
     }
 
+    if( upper == "N" || upper == "NEXT" )
+    {
+        // $NEXT: same as $ORDER but returns "-1" instead of "" at end
+        if( args.isEmpty() )
+            return Value(QByteArray("-1"));
+
+        if( args[0] && !args[0]->d_operands.isEmpty() )
+        {
+            ExprAtom* a = args[0]->d_operands[0];
+            if( a->d_tag == ExprAtom::LocalVar )
+            {
+                Node* node = d_locals.get(a->d_name);
+                if( !node )
+                    return Value(QByteArray("-1"));
+                if( a->d_args.isEmpty() )
+                {
+                    QByteArray r = node->order(QByteArray(), 1);
+                    return Value(r.isEmpty() ? QByteArray("-1") : r);
+                }
+                QList<QByteArray> subs = evalSubscripts(a->d_args);
+                if( subs.isEmpty() )
+                    return Value(QByteArray("-1"));
+                QByteArray lastSub = subs.last();
+                subs.removeLast();
+                Node* parent = subs.isEmpty() ? node : node->descend(subs);
+                if( !parent )
+                    return Value(QByteArray("-1"));
+                QByteArray r = parent->order(lastSub, 1);
+                return Value(r.isEmpty() ? QByteArray("-1") : r);
+            }else if( a->d_tag == ExprAtom::GlobalVar )
+            {
+                QList<QByteArray> subs = evalSubscripts(a->d_args);
+                updateNakedRef(a->d_name, subs);
+                Node* node = d_globals.get(a->d_name);
+                if( !node )
+                    return Value(QByteArray("-1"));
+                if( subs.isEmpty() )
+                {
+                    QByteArray r = node->order(QByteArray(), 1);
+                    return Value(r.isEmpty() ? QByteArray("-1") : r);
+                }
+                QByteArray lastSub = subs.last();
+                subs.removeLast();
+                Node* parent = subs.isEmpty() ? node : node->descend(subs);
+                if( !parent )
+                    return Value(QByteArray("-1"));
+                QByteArray r = parent->order(lastSub, 1);
+                return Value(r.isEmpty() ? QByteArray("-1") : r);
+            }else if( a->d_tag == ExprAtom::NakedGlobal )
+            {
+                if( d_nakedName.isEmpty() )
+                    return Value(QByteArray("-1"));
+                QList<QByteArray> evalSubs = evalSubscripts(a->d_args);
+                QList<QByteArray> fullSubs = d_nakedSubs;
+                for( int ns = 0; ns < evalSubs.size(); ns++ )
+                    fullSubs.append(evalSubs[ns]);
+                QByteArray gName = d_nakedName;
+                updateNakedRef(gName, fullSubs);
+
+                QByteArray lastSub;
+                QList<QByteArray> parentSubs = fullSubs;
+                if( !parentSubs.isEmpty() )
+                {
+                    lastSub = parentSubs.last();
+                    parentSubs.removeLast();
+                }
+                Node* node = d_globals.get(gName);
+                if( !node )
+                    return Value(QByteArray("-1"));
+                Node* parent = parentSubs.isEmpty() ? node : node->descend(parentSubs);
+                if( !parent )
+                    return Value(QByteArray("-1"));
+                QByteArray r = parent->order(lastSub, 1);
+                return Value(r.isEmpty() ? QByteArray("-1") : r);
+            }
+        }
+        return Value(QByteArray("-1"));
+    }
+
     if( upper == "S" || upper == "SELECT" )
     {
         // funcargs stores pairs of: condition, value, condition, value, ...
@@ -1753,7 +1857,54 @@ Value Interpreter::callIntrinsic(const QByteArray& name, const QList<Expression*
     {
         if( args.isEmpty() )
             return Value();
-        // TODO
+
+        // $TEXT(label+offset^routine) or $TEXT(+n)
+        Routine* targetRoutine = d_curRoutine;
+
+        if( args[0] && !args[0]->d_operands.isEmpty() )
+        {
+            ExprAtom* a = args[0]->d_operands[0];
+
+            // Check if it's a simple label reference (parsed as LocalVar)
+            if( a->d_tag == ExprAtom::LocalVar && a->d_args.isEmpty() )
+            {
+                QByteArray label = a->d_name;
+                // Find line with this label
+                for( int i = 0; i < targetRoutine->d_lines.size(); i++ )
+                {
+                    if( targetRoutine->d_lines[i]->d_label == label )
+                    {
+                        int lineNr = targetRoutine->d_lines[i]->d_lineNr;
+                        if( lineNr > 0 && lineNr < targetRoutine->d_sourceLines.size() )
+                            return Value(targetRoutine->d_sourceLines[lineNr]);
+                        break;
+                    }
+                }
+                return Value();
+            }
+
+            // Numeric offset from start: $TEXT(+n) → unary +n parsed as NumLit or UnaryOp
+            if( a->d_tag == ExprAtom::NumLit )
+            {
+                int lineIdx = a->d_val.toInt() - 1;
+                if( lineIdx >= 0 && lineIdx < targetRoutine->d_lines.size() )
+                {
+                    int lineNr = targetRoutine->d_lines[lineIdx]->d_lineNr;
+                    if( lineNr > 0 && lineNr < targetRoutine->d_sourceLines.size() )
+                        return Value(targetRoutine->d_sourceLines[lineNr]);
+                }
+                return Value();
+            }
+        }
+
+        // Fallback: evaluate as numeric (for $TEXT(+n) where + is unary op)
+        int n = (int)evalExpr(args[0]).toNumber();
+        if( n > 0 && n <= targetRoutine->d_lines.size() )
+        {
+            int lineNr = targetRoutine->d_lines[n - 1]->d_lineNr;
+            if( lineNr > 0 && lineNr < targetRoutine->d_sourceLines.size() )
+                return Value(targetRoutine->d_sourceLines[lineNr]);
+        }
         return Value();
     }
 
@@ -1981,6 +2132,75 @@ bool Interpreter::matchPatElems(const QByteArray& str, int pos,
 
     PatElem* pe = elems[elemIdx];
 
+    if( pe->d_kind == PatElem::IndirectionPat )
+    {
+        // Pattern indirection: evaluate expression, parse as pattern, match
+        if( !pe->d_indir )
+            return false;
+        Value patVal = evalAtom(pe->d_indir);
+        QByteArray patStr = patVal.str();
+        if( patStr.isEmpty() )
+            return matchPatElems(str, pos, elems, elemIdx + 1);
+
+        // Parse the pattern string
+        class Lex : public Scanner
+        {
+        public:
+            Lexer lex;
+            Token next() { return lex.nextToken(); }
+            Token peek(int offset) { return lex.peekToken(offset); }
+        };
+        // Wrap in a dummy expression context so the pattern parser can handle it
+        QByteArray code = " WRITE \"\"?" + patStr;
+        Lex lex;
+        lex.lex.setStream(code, "PATTERN_INDIR");
+        Parser2 parser(&lex);
+        Routine* r = parser.parse();
+        if( !r || r->d_lines.isEmpty() || parser.errors.size() > 0 )
+        {
+            delete r;
+            return false;
+        }
+        // Extract the pattern from the parsed expression
+        Line* line = r->d_lines[0];
+        if( line->d_commands.isEmpty() )
+        {
+            delete r;
+            return false;
+        }
+        Command* cmd = line->d_commands[0];
+        if( cmd->d_writeArgs.isEmpty() || !cmd->d_writeArgs[0]->d_expr )
+        {
+            delete r;
+            return false;
+        }
+        Expression* ex = cmd->d_writeArgs[0]->d_expr;
+        // The expression should have a pattern match: ""?pattern
+        // Operands: [0]=empty string, [1]=pattern atom
+        if( ex->d_operands.size() < 2 )
+        {
+            delete r;
+            return false;
+        }
+        ExprAtom* patAtom = ex->d_operands[1];
+        if( !patAtom || patAtom->d_tag != ExprAtom::PatternMatch || !patAtom->d_pattern )
+        {
+            delete r;
+            return false;
+        }
+
+        // Build combined elem list: indirect pattern elems + remaining elems
+        QList<PatElem*> combined;
+        for( int p = 0; p < patAtom->d_pattern->d_elems.size(); p++ )
+            combined.append(patAtom->d_pattern->d_elems[p]);
+        for( int p = elemIdx + 1; p < elems.size(); p++ )
+            combined.append(elems[p]);
+
+        bool result = matchPatElems(str, pos, combined, 0);
+        delete r;
+        return result;
+    }
+
     int minRep = pe->d_min;
     int maxRep = pe->d_max;
     if( maxRep < 0 )
@@ -2121,6 +2341,14 @@ Routine* Interpreter::loadRoutine(const QByteArray& name)
                 Routine* r = parser.parse();
                 if( parser.errors.isEmpty() )
                 {
+                    // Store source lines for $TEXT
+                    QFile src(path);
+                    if( src.open(QIODevice::ReadOnly) )
+                    {
+                        r->d_sourceLines.append(QByteArray()); // index 0 unused
+                        while( !src.atEnd() )
+                            r->d_sourceLines.append(src.readLine().trimmed());
+                    }
                     d_routineCache.insert(lookupName, r);
                     return r;
                 }else

@@ -253,6 +253,11 @@ static inline bool FIRST_actuallist(int tt) {
 void Parser2::next()
 {
     cur = la;
+    if( !d_queue.isEmpty() )
+    {
+        la = d_queue.takeFirst();
+        return;
+    }
     la = scanner->next();
     while( la.d_type == Tok_Invalid )
     {
@@ -1607,16 +1612,24 @@ PatElem* Parser2::patAtom()
     PatElem* pe = new PatElem();
 
     // Optional repetition count: numlit or '.'
+    // In pattern context, a real like "1.3" means min=1, max=3;
+    // ".5" means min=0, max=5; "2." means min=2, max=unlimited.
     if( FIRST_numlit(la.d_type) || la.d_type == Tok_Dot )
     {
-        if( FIRST_numlit(la.d_type) )
+        if( la.d_type == Tok_real )
+        {
+            // Real token in pattern context: split at '.'
+            QByteArray val = la.d_val;
+            int dotPos = val.indexOf('.');
+            QByteArray minStr = val.left(dotPos);
+            QByteArray maxStr = val.mid(dotPos + 1);
+            pe->d_min = minStr.isEmpty() ? 0 : minStr.toInt();
+            pe->d_max = maxStr.isEmpty() ? -1 : maxStr.toInt();
+            next();
+        }else if( la.d_type == Tok_integer )
         {
             int count = la.d_val.toInt();
             next();
-            // Check if there's a '.' for range (e.g., 1.3 means min 1 max 3)
-            // Actually in MUMPS patterns, "1.3N" means 1 to 3 N's
-            // The numlit might already be a real like "1.3"
-            // Or it could be "1" followed by "." for variable range
             if( la.d_type == Tok_Dot )
             {
                 pe->d_min = count;
@@ -1651,12 +1664,58 @@ PatElem* Parser2::patAtom()
     if( la.d_type == Tok_ident )
     {
         pe->d_kind = PatElem::Codes;
-        pe->d_codes = la.d_val;
-        expect(Tok_ident, false, "patAtom");
+        QByteArray val = la.d_val;
+        // In pattern context, an ident like "A1N" must be split:
+        // "A" is the code for this atom, "1N" starts the next atom.
+        int splitPos = -1;
+        for( int k = 0; k < val.size(); k++ )
+        {
+            if( val[k] >= '0' && val[k] <= '9' )
+            {
+                splitPos = k;
+                break;
+            }
+        }
+        if( splitPos > 0 )
+        {
+            pe->d_codes = val.left(splitPos);
+            QByteArray remainder = val.mid(splitPos);
+            // Split remainder into leading digits and trailing letters
+            int j = 0;
+            while( j < remainder.size() && remainder[j] >= '0' && remainder[j] <= '9' )
+                j++;
+            Token numTok;
+            numTok.d_type = Tok_integer;
+            numTok.d_val = remainder.left(j);
+            numTok.d_lineNr = la.d_lineNr;
+            numTok.d_colNr = la.d_colNr + splitPos;
+            numTok.d_sourcePath = la.d_sourcePath;
+            d_queue.append(numTok);
+            if( j < remainder.size() )
+            {
+                Token identTok;
+                identTok.d_type = Tok_ident;
+                identTok.d_val = remainder.mid(j);
+                identTok.d_lineNr = la.d_lineNr;
+                identTok.d_colNr = la.d_colNr + splitPos + j;
+                identTok.d_sourcePath = la.d_sourcePath;
+                d_queue.append(identTok);
+            }
+        }else
+            pe->d_codes = val;
+
+        next(); // consume the ident token
     }else if( la.d_type == Tok_string )
     {
         pe->d_kind = PatElem::Literal;
-        pe->d_lit = la.d_val;
+        // Strip surrounding quotes and unescape doubled quotes
+        QByteArray s = la.d_val;
+        if( s.size() >= 2 && s[0] == '"' && s[s.size() - 1] == '"' )
+        {
+            s = s.mid(1, s.size() - 2);
+            s.replace("\"\"", "\"");
+        }
+        pe->d_lit = s;
         expect(Tok_string, false, "patAtom");
     }else if( la.d_type == Tok_Lpar )
     {

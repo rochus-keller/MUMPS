@@ -324,6 +324,7 @@ struct Line {
 struct Routine {
     QList<Line*> d_lines;
     QString d_sourcePath;
+    QList<QByteArray> d_sourceLines; // original source text lines (1-indexed: [0] unused)
 
     ~Routine();
 };

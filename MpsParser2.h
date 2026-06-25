@@ -110,6 +110,7 @@ protected:
     Token cur;
     Token la;
     Scanner* scanner;
+    QList<Token> d_queue;
     void next();
     Token peek(int off);
     void invalid(const char* what);

@@ -23,7 +23,6 @@
 #include "MpsAst.h"
 #include "MpsValue.h"
 #include "MpsNode.h"
-#include <QObject>
 #include <QMap>
 #include <QStack>
 #include <QStringList>
@@ -31,7 +30,7 @@
 
 namespace Mps {
 
-class Interpreter : public QObject
+class Interpreter
 {
 public:
     Interpreter(QObject* = 0);
@@ -54,6 +53,7 @@ public:
 
     SymbolTable& locals() { return d_locals; }
     SymbolTable& globals() { return d_globals; }
+    int xPos() const { return d_xPos; }
 
 signals:
     void showOutput(const QString&);

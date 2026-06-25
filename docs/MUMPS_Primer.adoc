@@ -1519,10 +1519,434 @@ The data persists across sessions. You can add entries, quit, restart
 the interpreter, and the entries are still there -- because globals are
 the database.
 
+== Command Reference
+
+This section provides a concise reference for all 19 commands defined in
+the 1976 standard. Each entry lists the full syntax, abbreviation, and
+key behaviors. For tutorial-style explanations and examples, see the
+earlier chapters.
+
+=== BREAK
+
+*Abbreviation*: `B`
+
+*Syntax*: `B[REAK][:tvexpr]`
+
+Suspends execution until a signal from the environment (typically a
+keypress). The argument syntax, if any, is implementation-defined. BREAK
+can be post-conditionalized. It is primarily used for debugging.
+
+=== CLOSE
+
+*Abbreviation*: `C`
+
+*Syntax*: `C[LOSE][:tvexpr] expr[:deviceparams][,...]`
+
+Releases ownership of the device identified by _expr_. If
+_deviceparams_ are present, they specify termination procedures in a
+format defined by the implementation. If the closed device is the
+current device, the implementation may implicitly OPEN and USE a default
+device.
+
+----
+CLOSE 3
+C 3:(parameters)
+----
+
+=== DO
+
+*Abbreviation*: `D`
+
+*Syntax*: `D[O][:tvexpr] entryref[:tvexpr][,...]`
+
+Calls a subroutine. Execution continues at the line indicated by
+_entryref_ until QUIT (outside FOR scope) or end-of-routine, then
+returns to the command after DO.
+
+_entryref_ may be: `label`, `label+offset`, `^routine`,
+`label^routine`, or `label+offset^routine`.
+
+Both the command and individual arguments may be post-conditionalized.
+Arguments may be listed.
+
+Argumentless DO (followed by two spaces or end of line) is not defined
+in the 1976 standard.
+
+----
+DO CALC
+D INIT,^SETUP,PROC^LIB
+D PRINTA:X=1,PRINTB:X=2
+----
+
+=== ELSE
+
+*Abbreviation*: `E`
+
+*Syntax*: `E[LSE]  ` (no argument; note two spaces after the command)
+
+Executes the remainder of the line if `$TEST` is 0. ELSE takes no
+arguments and cannot be post-conditionalized.
+
+ELSE is equivalent to `IF '$TEST` but does not alter `$TEST`.
+
+----
+IF X>3 WRITE "big",!
+ELSE  WRITE "small",!
+----
+
+=== FOR
+
+*Abbreviation*: `F`
+
+*Syntax*: `F[OR] lvn=forparam[,forparam...]` +
+or argumentless: `F[OR]  ` (two spaces; infinite loop)
+
+FOR cannot be post-conditionalized. Its scope is the remainder of the
+current line.
+
+Each _forparam_ has one of three forms:
+
+* `expr` -- execute scope once with `lvn` set to value of _expr_.
+* `expr1:expr2` -- start at _expr1_, increment by _expr2_ each
+  iteration, loop forever (exit via QUIT or GOTO).
+* `expr1:expr2:expr3` -- start at _expr1_, step by _expr2_, terminate
+  when `lvn` exceeds _expr3_ (or falls below _expr3_ if step is
+  negative).
+
+Multiple _forparams_ are processed left to right.
+
+----
+FOR I=1:1:10 WRITE I," "
+F I=1:1 QUIT:I>5  WRITE I," "
+FOR I=1,3,5,7:2:15 WRITE I," "
+FOR  READ X QUIT:X=""  SET ^DATA(X)=""
+----
+
+=== GOTO
+
+*Abbreviation*: `G`
+
+*Syntax*: `G[OTO][:tvexpr] entryref[:tvexpr][,...]`
+
+Transfers control to the line indicated by _entryref_. Unlike DO, GOTO
+does not push the return stack -- control does not return. When executed
+in the scope of FOR, all FORs on the line are terminated.
+
+Both the command and individual arguments may be post-conditionalized.
+At most one argument actually executes (the first whose condition is
+true).
+
+----
+GOTO LOOP
+G A:X=1,B:X=2,C
+G INIT^SETUP
+----
+
+=== HALT
+
+*Abbreviation*: `H` (argumentless)
+
+*Syntax*: `H[ALT][:tvexpr]`
+
+Terminates the current process. HALT takes no arguments; the absence
+of an argument is what distinguishes it from HANG.
+
+----
+HALT
+H
+----
+
+=== HANG
+
+*Abbreviation*: `H` (with argument)
+
+*Syntax*: `H[ANG][:tvexpr] numexpr[,...]`
+
+Suspends execution for _numexpr_ seconds. If the value is 0 or
+negative, there is no pause. Arguments may be listed.
+
+----
+HANG 5
+H 0.5,1,2
+----
+
+=== IF
+
+*Abbreviation*: `I`
+
+*Syntax*: `I[F] tvexpr[,tvexpr...]` +
+or argumentless: `I[F]  ` (two spaces)
+
+If _tvexpr_ is true, the remainder of the line is executed; if false,
+the remainder of the line is skipped and `$TEST` is set to 0.
+
+With multiple arguments (comma-separated), each is evaluated left to
+right. If any is false, the rest of the line is skipped. Each true
+argument sets `$TEST` to 1; the first false argument sets `$TEST` to 0.
+
+Argumentless IF tests `$TEST`: if it is 1, the line continues; if 0,
+the line is skipped. Argumentless IF does not alter `$TEST`.
+
+IF cannot be post-conditionalized.
+
+----
+IF X>3 WRITE "big",!
+I X>0,X<100 WRITE "in range",!
+IF  WRITE "previous test was true",!
+----
+
+=== KILL
+
+*Abbreviation*: `K`
+
+*Syntax*: `K[ILL][:tvexpr] glvn[,...]` +
+or exclusive: `K[ILL][:tvexpr] (lvn[,...])` +
+or argumentless: `K[ILL][:tvexpr]`
+
+* *Selective*: `KILL X` deletes `X` and all its descendants.
+* *Exclusive*: `KILL (A,B)` deletes all local variables except `A` and
+  `B` (and their descendants). Only local variable names are permitted in
+  the exclusive form.
+* *Argumentless*: `KILL` deletes all local variables.
+
+KILL on a global (`KILL ^X`) removes the global node and its entire
+subtree from disk.
+
+----
+KILL X,Y,^A(3)
+K (KEEP1,KEEP2)
+K
+----
+
+=== LOCK
+
+*Abbreviation*: `L`
+
+*Syntax*: `L[OCK][:tvexpr] nref[:timeout][,...]` +
+or argumentless: `L[OCK][:tvexpr]`
+
+LOCK provides inter-process coordination by creating advisory locks on
+named resources. In a single-user system, LOCK has no practical effect.
+
+Argumentless LOCK releases all locks held by the process.
+
+With arguments, LOCK first releases all currently held locks, then
+attempts to acquire each named lock in order. If a timeout is present and
+the lock cannot be acquired within the specified time, `$TEST` is set to
+0.
+
+NOTE: LOCK is deferred in this primer. It becomes relevant in multi-user
+configurations.
+
+=== OPEN
+
+*Abbreviation*: `O`
+
+*Syntax*: `O[PEN][:tvexpr] expr[:deviceparams][:timeout][,...]`
+
+Acquires ownership of the device identified by _expr_. If a timeout is
+present and the device cannot be opened in time, `$TEST` is set to 0.
+_deviceparams_ specify device-specific initialization in a format defined
+by the implementation.
+
+----
+OPEN 3
+O 3::10
+----
+
+=== QUIT
+
+*Abbreviation*: `Q`
+
+*Syntax*: `Q[UIT][:tvexpr]`
+
+QUIT takes no arguments. Its behavior depends on context:
+
+* *Outside FOR scope*: Returns from the current DO or XECUTE subroutine
+  call. If the routine stack is empty, the process terminates.
+* *Inside FOR scope*: Terminates the innermost FOR loop. If the line
+  has nested FORs, only the innermost is terminated.
+
+QUIT can be post-conditionalized.
+
+----
+QUIT
+Q:X>100
+----
+
+=== READ
+
+*Abbreviation*: `R`
+
+*Syntax*: `R[EAD][:tvexpr] readarg[,...]`
+
+Each _readarg_ is one of:
+
+* `"string"` -- output the string literal (as a prompt).
+* `format` -- output format codes (`!`, `#`, `?n`).
+* `lvn` -- read a data string into the local variable. Terminated by
+  an implementation-defined procedure (typically Enter).
+* `lvn:timeout` -- read with a timeout of _timeout_ seconds. Sets
+  `$TEST` to 1 if terminated normally, 0 if timed out.
+* `*lvn` -- read a single character and store its ASCII code (integer)
+  in _lvn_. Returns -1 if timed out.
+* `*lvn:timeout` -- single-character read with timeout.
+
+Arguments may be listed freely, mixing prompts, format codes, and
+variable reads.
+
+----
+READ "Name: ",NAME
+R !,"Age: ",AGE,!,"City: ",CITY
+R "Answer? ",X:10
+R *CH
+----
+
+=== SET
+
+*Abbreviation*: `S`
+
+*Syntax*: `S[ET][:tvexpr] setarg[,...]`
+
+Each _setarg_ is one of:
+
+* `glvn=expr` -- evaluate _expr_ and assign its value to the variable.
+* `(glvn[,...])=expr` -- evaluate _expr_ and assign its value to all
+  listed variables (multiple SET).
+
+Evaluation order within each argument: left-hand subscripts are evaluated
+first (left to right), then the right-hand expression, then the
+assignment is made. Each argument is fully completed before the next
+begins.
+
+SET can be post-conditionalized. Arguments may be listed.
+
+----
+SET X=42
+S NAME="Alice",AGE=30
+S (A,B,C)=0
+S ^PAT(ID,"NAME")=NAME
+S:X>0 Y=X*2
+----
+
+=== USE
+
+*Abbreviation*: `U`
+
+*Syntax*: `U[SE][:tvexpr] expr[:deviceparams][,...]`
+
+Makes the device identified by _expr_ the current device for subsequent
+READ and WRITE operations. The device must have been previously OPENed
+(or be the default device). The values of `$X` and `$Y` are saved for
+the old device and restored from the new device's stored values.
+
+----
+USE 3
+U 0
+----
+
+=== VIEW
+
+*Abbreviation*: `V`
+
+*Syntax*: `V[IEW][:tvexpr] args...` (implementation-defined)
+
+VIEW is reserved for implementation-specific commands. Its argument
+syntax is defined by the implementor. Every implementation must
+recognize the VIEW command, even if it does nothing.
+
+Programs designed for portability should not use VIEW.
+
+=== WRITE
+
+*Abbreviation*: `W`
+
+*Syntax*: `W[RITE][:tvexpr] writearg[,...]`
+
+Each _writearg_ is one of:
+
+* `expr` -- output the string value of _expr_ to the current device.
+* `format` -- output format codes: `!` (new line), `#` (form feed),
+  `?intexpr` (tab to column _intexpr_).
+* `*intexpr` -- output the character whose ASCII code is the value of
+  _intexpr_. The exact interpretation is implementation-defined.
+
+WRITE can be post-conditionalized. Arguments may be listed.
+
+----
+WRITE "Hello, World!",!
+W !,"Name: ",NAME,?30,"Age: ",AGE,!
+W *7
+W:X>0 $JUSTIFY(X,10,2),!
+----
+
+=== XECUTE
+
+*Abbreviation*: `X`
+
+*Syntax*: `X[ECUTE][:tvexpr] expr[:tvexpr][,...]`
+
+Evaluates _expr_ and executes its string value as a one-line MUMPS
+subroutine. The executed code runs in its own subroutine context --
+QUIT within the executed string returns to the command after XECUTE.
+
+Both the command and individual arguments may be post-conditionalized.
+Arguments may be listed.
+
+The routine-body context of the executed code (for `$TEXT` and local
+entry references) is the routine containing the XECUTE.
+
+----
+XECUTE "SET X=1 WRITE X,!"
+X "GOTO "_LABEL
+X CMD1:X=1,CMD2:X=2,CMD3
+----
+
+
 
 (To be continued...)
 
 
+[appendix]
+== ASCII Code Table
+
+The following table lists the printable ASCII characters (codes 32-126)
+and their decimal values, which are relevant to `$ASCII` and `$CHAR`.
+
+----
+ 32 SP    48 0    64 @    80 P     96 `   112 p
+ 33 !     49 1    65 A    81 Q     97 a   113 q
+ 34 "     50 2    66 B    82 R     98 b   114 r
+ 35 #     51 3    67 C    83 S     99 c   115 s
+ 36 $     52 4    68 D    84 T    100 d   116 t
+ 37 %     53 5    69 E    85 U    101 e   117 u
+ 38 &     54 6    70 F    86 V    102 f   118 v
+ 39 '     55 7    71 G    87 W    103 g   119 w
+ 40 (     56 8    72 H    88 X    104 h   120 x
+ 41 )     57 9    73 I    89 Y    105 i   121 y
+ 42 *     58 :    74 J    90 Z    106 j   122 z
+ 43 +     59 ;    75 K    91 [    107 k   123 {
+ 44 ,     60 <    76 L    92 \    108 l   124 |
+ 45 -     61 =    77 M    93 ]    109 m   125 }
+ 46 .     62 >    78 N    94 ^    110 n   126 ~
+ 47 /     63 ?    79 O    95 _    111 o
+----
+
+Selected control characters (codes 0-31):
+
+|===
+|Code |Name |Abbrev. |Relevance
+
+|0 |Null |NUL |`$CHAR(0)`
+|7 |Bell |BEL |`WRITE *7` rings terminal bell
+|8 |Backspace |BS |Decrements `$X`
+|9 |Tab |HT |
+|10 |Line Feed |LF |Increments `$Y`; part of `!` format
+|12 |Form Feed |FF |Resets `$X` and `$Y`; part of `#` format
+|13 |Carriage Return |CR |Resets `$X`; part of `!` format
+|27 |Escape |ESC |
+|127 |Delete |DEL |Control character
+|===
 
 [appendix]
 == Glossary
@@ -1614,6 +2038,23 @@ Truth Value::
   string is: take its numeric interpretation; if the result is `0`, the
   truth value is `0`; otherwise it is `1`.
 
+== What We Have Not Covered
+
+This primer focuses on the core language for single-user operation.
+The following topics are deferred:
+
+* *Multi-user operation*: LOCK semantics, partitions, job management,
+  concurrent global access.
+* *Device parameters*: Implementation-specific arguments to OPEN, USE,
+  and CLOSE.
+* *VIEW and $VIEW*: Implementation-specific commands and functions for
+  accessing system internals.
+* *Z extensions*: Implementation-specific commands (`Z...`) and
+  functions (`$Z...`).
+* *Later standards*: The 1984 ANSI standard added `NEW` (local variable
+  scoping) and `$ORDER` (string-subscript traversal). The 1990 and 1995
+  standards added many more features. These are outside the scope of this
+  primer.
 
 [bibliography]
 == References

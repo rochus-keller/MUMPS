@@ -146,9 +146,19 @@ functions $T and $V are stubs, but $L, $E, $P, $A, $C, $D, $O, $S, $F, $J, $G, $
 The parser is callable at runtime; cross-routine calls and XECUTE are implemented.
 The goal of the interpreter is functionality, completeness and comprehensibility, not performance. 
 
+## Status on June 25, 2026
+
+There is now an interactive interpreter mode. You can either run a MUMPS routine file or enter the interpreter. 
+I also made progress with a [MUMPS Primer](docs/MUMPS_Primer.adoc) (see docs subdirectory) which specifically
+describes the 1976 version with a lot of practical examples. The original documents from 1976 are a bit hard to
+read and use uncommon terminology for today's programmers. There is now also a BUSY build and a precompiled version
+for Linux. Also the global strore is making good progress.
+
 ## Precompiled versions
 
-Not available at this time.
+The following binaries are available at this time:
+
+- [Linux x86_64](https://software.rochus-keller.ch/mumps76_linux_x64.tar.gz)
 
 ## Build Steps
 
@@ -160,6 +170,12 @@ Follow these steps if you want to build the application yourself:
 1. Run make; after a couple of seconds you will find the executable in the build directory.
 
 Alternatively you can open the *.pro files using QtCreator and build everything there.
+
+Alternatively you can use [BUSY](https://github.com/rochus-keller/BUSY) or [LeanCreator](https://github.com/rochus-keller/LeanCreator) using the
+provide BUSY file together with [LeanQt](https://github.com/rochus-keller/LeanQt). Just download 
+[the LeanQt archive](https://github.com/rochus-keller/LeanQt/archive/refs/heads/main.zip) and unpack it into the same root directory where the MUMPS archive
+was unpacked, and make sure its name is "LeanQt". See the [BUSY Users Guide](https://github.com/rochus-keller/BUSY/blob/main/docs/The_BUSY_Build_System_Users_Guide.adoc) for
+more information on how to proceed with BUSY. If you have LeanCreator installed, just open the BUSY file an activate the "Build All" menu.
 
 ## Support
 If you need support or would like to post issues or feature requests please use the Github issue list at https://github.com/rochus-keller/mumps/issues or send an email to the author.

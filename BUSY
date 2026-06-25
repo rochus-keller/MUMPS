@@ -1,0 +1,36 @@
+# author: Rochus Keller (me@rochus-keller.ch)
+# License: GPL
+# See https://github.com/rochus-keller/LeanQt and https://github.com/rochus-keller/BUSY/blob/main/README.md on how to use this file
+
+if busy_version < "2023-01-15" {
+	error("this version of BUSY is not compatible with this build")
+}
+
+let mtconf : Config {
+    .cflags = [ "/O2", "/MT" ]
+}
+
+if (build_mode == `optimized) && (target_toolchain == `msvc) {
+    set_defaults(target_toolchain,mtconf)
+}
+
+submod qtmini = ../LeanQt (HAVE_FILEIO, HAVE_COREAPP)
+
+let mumps ! : Executable {
+	.configs += [ qtmini.core_client_config ]
+    .include_dirs += ..
+	.sources += [
+        ./MpsAst.cpp 
+        ./MpsCollation.cpp 
+        ./MpsInterpreter.cpp 
+        ./MpsMain.cpp 
+        ./MpsLexer.cpp 
+        ./MpsNode.cpp 
+        ./MpsParser.cpp 
+        ./MpsParser2.cpp 
+        ./MpsToken.cpp 
+        ./MpsTokenType.cpp 
+        ./MpsValue.cpp	
+	]
+    .deps += [ qtmini.core_sources ]
+}
