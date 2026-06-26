@@ -269,10 +269,10 @@ Token Lexer::nextTokenImp()
             return token(Tok_Newline, 0);
         }
 
-        // label starts with alpha or % at col 0
-        if( d_line.size() > 0 && (::isalpha((quint8)d_line[0]) || d_line[0] == '%') )
+        // label starts with alpha, % or digit at col 0
+        if( d_line.size() > 0 && (::isalpha((quint8)d_line[0]) || d_line[0] == '%' || ::isdigit((quint8)d_line[0])) )
         {
-            // ident() will return it
+            // ident() or number() will return it
         }else
         {
             // No label; skip leading whitespace, enter command mode
@@ -330,6 +330,21 @@ Token Lexer::nextTokenImp()
             {
                 d_cmdMode = true;
                 return t; // dots will be consumed next call
+            }
+            d_cmdMode = true;
+            return t;
+        }
+        if( ::isdigit((quint8)ch) )
+        {
+            Token t = number(); // emit numeric label as Tok_integer
+            d_labelDone = true;
+            // Skip spaces after numeric label
+            while( lookAhead(0) == ' ' || lookAhead(0) == '\t' )
+                d_colNr++;
+            if( lookAhead(0) == '.' )
+            {
+                d_cmdMode = true;
+                return t;
             }
             d_cmdMode = true;
             return t;

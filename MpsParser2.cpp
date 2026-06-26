@@ -18,7 +18,7 @@
 */
 
 #include "MpsParser2.h"
-#include <Mumps/MpsTokenType.h>
+#include "MpsTokenType.h"
 using namespace Mps;
 
 
@@ -42,14 +42,14 @@ static inline bool FIRST_command(int tt) {
 
 static inline bool FIRST_line(int tt) {
     switch(tt){
-    case Tok_CmdSep: case Tok_Dot: case Tok_Newline: case Tok_ident:
+    case Tok_CmdSep: case Tok_Dot: case Tok_Newline: case Tok_ident: case Tok_integer:
         return true;
     default: return FIRST_command(tt);
     }
 }
 
 static inline bool FIRST_label(int tt) {
-    return tt == Tok_ident;
+    return tt == Tok_ident || tt == Tok_integer;
 }
 
 static inline bool FIRST_postcond(int tt) {
@@ -324,7 +324,10 @@ Line* Parser2::line()
     if( FIRST_label(la.d_type) )
     {
         l->d_label = la.d_val;
-        expect(Tok_ident, false, "label");
+        if( la.d_type == Tok_ident )
+            expect(Tok_ident, false, "label");
+        else
+            expect(Tok_integer, false, "label");
 
         // Optional formal params: label(p1,p2,...)
         if( la.d_type == Tok_Lpar )

@@ -183,7 +183,7 @@ struct LineEditor
     int cursor;
     QByteArray prompt;
 
-    LineEditor() : histIdx(0), cursor(0), prompt(">") {}
+    LineEditor() : histIdx(0), cursor(0), prompt("> ") {}
 
     void redraw()
     {

@@ -4,10 +4,9 @@
 // License (GPL) versions 2.0 or 3.0 as published by the Free Software
 // Foundation, see http://www.gnu.org/copyleft/gpl.html for more information
 
-
 = The MUMPS Primer: An Introduction and Tutorial for the 1976 Standard
 Rochus Keller
-v0.3, 2026
+v1.0, 2026-06-26
 :toc:
 :numbered:
 
@@ -1519,6 +1518,7 @@ The data persists across sessions. You can add entries, quit, restart
 the interpreter, and the entries are still there -- because globals are
 the database.
 
+
 == Command Reference
 
 This section provides a concise reference for all 19 commands defined in
@@ -1903,8 +1903,469 @@ X CMD1:X=1,CMD2:X=2,CMD3
 ----
 
 
+== Function Reference
 
-(To be continued...)
+All functions are prefixed with `$` and can be abbreviated to `$` plus
+the first letter of the name. This section provides the complete
+reference for all 12 functions defined in the 1976 standard.
+
+=== $ASCII
+
+*Abbreviation*: `$A`
+
+*Syntax*: `$A[SCII](expr[,intexpr])`
+
+Returns the decimal ASCII code of a character in _expr_.
+
+* If _intexpr_ is absent, the first character is used.
+* If _intexpr_ is present, the character at position _intexpr_ is used.
+* If the selected position is empty (empty string, or position out of
+  range), returns `-1`.
+
+----
+$A("ABC")     = 65
+$A("ABC",2)   = 66
+$A("")        = -1
+$A("AB",5)    = -1
+----
+
+=== $CHAR
+
+*Abbreviation*: `$C`
+
+*Syntax*: `$C[HAR](intexpr[,intexpr...])`
+
+Returns a string built from the given ASCII codes. Each _intexpr_ in
+the range [0,127] contributes its corresponding ASCII character. Negative
+values contribute no character. Values above 127 are erroneous.
+
+----
+$C(65)        = "A"
+$C(65,66,67)  = "ABC"
+$C(65,-1,66)  = "AB"
+$C(0)         = the ASCII NUL character
+----
+
+=== $DATA
+
+*Abbreviation*: `$D`
+
+*Syntax*: `$D[ATA](glvn)`
+
+Returns a nonnegative integer characterizing the state of the named
+variable:
+
+|===
+|Value |Meaning
+
+|0 |Node does not exist
+|1 |Node has a value, no descendants
+|10 |Node has descendants, no value of its own
+|11 |Node has both a value and descendants
+|===
+
+The argument may be a local or global variable, subscripted or
+unsubscripted. If the argument contains a global reference, the Naked
+Indicator is updated.
+
+----
+SET X=1         $D(X)=1
+SET A(1,2)=3    $D(A)=10  $D(A(1))=10  $D(A(1,2))=1
+KILL A          $D(A)=0
+----
+
+=== $EXTRACT
+
+*Abbreviation*: `$E`
+
+*Syntax*: `$E[XTRACT](expr,intexpr1[,intexpr2])`
+
+Returns a substring of _expr_ by character position (1-based).
+
+* Two-argument form: returns the single character at position
+  _intexpr1_. Returns empty string if out of range.
+* Three-argument form: returns characters from position _intexpr1_ to
+  _intexpr2_ inclusive. If _intexpr1_ > _intexpr2_, returns empty
+  string. Positions beyond the string length are silently ignored.
+
+----
+$E("ABCDE",1)      = "A"
+$E("ABCDE",2,4)    = "BCD"
+$E("ABCDE",3,99)   = "CDE"
+$E("ABCDE",0,100)  = "ABCDE"
+$E("ABCDE",4,2)    = ""
+----
+
+=== $FIND
+
+*Abbreviation*: `$F`
+
+*Syntax*: `$F[IND](expr1,expr2[,intexpr3])`
+
+Searches for _expr2_ as a substring of _expr1_. Returns the position
+number of the character *immediately after* the rightmost character of
+the first match found, or 0 if no match. The search starts at position
+_intexpr3_ (default 1).
+
+If _expr2_ is the empty string, returns _intexpr3_ (default 1).
+
+----
+$F("ABCABC","BC")    = 4
+$F("ABCABC","BC",4)  = 7
+$F("ABCABC","XY")    = 0
+$F("ABC","")          = 1
+----
+
+=== $JUSTIFY
+
+*Abbreviation*: `$J`
+
+*Syntax*: `$J[USTIFY](expr,intexpr)` +
+or: `$J[USTIFY](numexpr,intexpr1,intexpr2)`
+
+Two-argument form: right-justifies the value of _expr_ in a field of
+_intexpr_ characters, padding with spaces on the left. If the value is
+already wider than _intexpr_, it is returned unchanged.
+
+Three-argument form: rounds _numexpr_ to _intexpr2_ decimal places
+(including trailing zeros), then right-justifies in a field of _intexpr1_
+characters.
+
+----
+$J("Hi",10)        = "        Hi"
+$J(3.14159,10,2)   = "      3.14"
+$J(100,8,2)        = "  100.00"
+$J(3.14159,1,2)    = "3.14"
+----
+
+=== $LENGTH
+
+*Abbreviation*: `$L`
+
+*Syntax*: `$L[ENGTH](expr)`
+
+Returns the number of characters in the value of _expr_. The length of
+the empty string is 0.
+
+----
+$L("Hello")  = 5
+$L("")       = 0
+$L(123)      = 3
+----
+
+=== $NEXT
+
+*Abbreviation*: `$N`
+
+*Syntax*: `$N[EXT](glvn)`
+
+Returns the next subscript value at the same level, in ascending
+integer order. The argument must be a subscripted variable. Only the last
+subscript is varied; all preceding subscripts are held constant.
+
+If the last subscript value is -1, returns the first (lowest) subscript
+at that level (if any). If no higher subscript exists, returns -1.
+
+In the 1976 standard, subscripts are restricted to nonnegative integers
+for portable programs, and `$NEXT` operates on integer subscripts.
+
+----
+SET ^A(2)=1,^A(5)=1,^A(9)=1
+$N(^A(0))   = 2
+$N(^A(2))   = 5
+$N(^A(5))   = 9
+$N(^A(9))   = -1
+$N(^A(-1))  = 2
+----
+
+=== $PIECE
+
+*Abbreviation*: `$P`
+
+*Syntax*: `$P[IECE](expr1,expr2,intexpr1[,intexpr2])`
+
+Splits _expr1_ by the delimiter _expr2_ and returns pieces by number.
+
+* Three-argument form: returns the _intexpr1_-th piece. Pieces are
+  numbered starting at 1.
+* Four-argument form: returns pieces _intexpr1_ through _intexpr2_,
+  with the delimiter restored between them.
+
+If the piece number is out of range (no such piece exists), the empty
+string is returned.
+
+----
+$P("A^B^C","^",1)     = "A"
+$P("A^B^C","^",2)     = "B"
+$P("A^B^C","^",4)     = ""
+$P("A^B^C","^",1,2)   = "A^B"
+$P("A::C",":",2)      = ""
+$P("ABC","^",1)        = "ABC"
+----
+
+=== $RANDOM
+
+*Abbreviation*: `$R`
+
+*Syntax*: `$R[ANDOM](intexpr)`
+
+Returns a pseudo-random integer uniformly distributed in the range
+[0, _intexpr_-1]. The argument must be a positive integer (>= 1).
+
+----
+$R(10)   returns an integer from 0 to 9
+$R(1)    always returns 0
+$R(100)  returns an integer from 0 to 99
+----
+
+=== $SELECT
+
+*Abbreviation*: `$S`
+
+*Syntax*: `$S[ELECT](tvexpr1:expr1[,tvexpr2:expr2...])`
+
+Evaluates the truth-value expressions left to right. Returns the value
+of the _expr_ paired with the first true _tvexpr_. Only that single
+_expr_ is evaluated.
+
+It is an error if no _tvexpr_ is true. The conventional idiom is to end
+with `1:default`.
+
+----
+$S(X=1:"one",X=2:"two",1:"other")
+$S(X>0:X,1:-X)
+----
+
+=== $TEXT
+
+*Abbreviation*: `$T`
+
+*Syntax*: `$T[EXT](lineref)` or `$T[EXT](+intexpr)`
+
+Returns the source text of a line in the current routine.
+
+* `$T(label)` -- the line with the defining occurrence of _label_.
+* `$T(label+n)` -- the _n_-th line after _label_.
+* `$T(+n)` -- the _n_-th line of the routine (first line is +1).
+
+The line-start character is replaced by one space. The end-of-line
+marker is removed. If the specified line does not exist, the empty string
+is returned.
+
+----
+$T(MAIN)     returns "MAIN SET X=10"
+$T(MAIN+1)   returns " DO DOUBLE"
+$T(+1)       returns the first line of the routine
+$T(+999)     returns "" if the routine has fewer than 999 lines
+----
+
+
+== Special Variables Reference
+
+All special variables are prefixed with `$` and can be abbreviated to
+`$` plus the first letter. They are read-only: you cannot assign to
+them with SET.
+
+=== $HOROLOG
+
+*Abbreviation*: `$H`
+
+Returns a string of the form `D,S` where _D_ is an integer counting
+days since December 31, 1840 and _S_ is an integer (0 to 86399) counting
+seconds since midnight.
+
+The epoch is defined so that the first second of December 31, 1840 is
+`0,0`. _S_ resets to 0 at midnight with a carry into _D_.
+
+=== $IO
+
+*Abbreviation*: `$I`
+
+Returns the identifier of the current I/O device. This value is the
+same as the device specifier most recently provided to USE, or the
+default device if no USE has been executed.
+
+=== $JOB
+
+*Abbreviation*: `$J`
+
+Returns a positive integer uniquely identifying the current process.
+The value is constant throughout the life of the process.
+
+=== $STORAGE
+
+*Abbreviation*: `$S`
+
+Returns an integer representing the number of characters of free space
+available for local variables and routine storage. The exact computation
+is implementation-defined.
+
+=== $TEST
+
+*Abbreviation*: `$T`
+
+Contains `0` or `1`. Set by:
+
+* `IF` with argument(s): set to 1 if the (last) condition is true, 0 if
+  false.
+* `READ` with timeout: set to 1 if input was explicitly terminated
+  before timeout, 0 otherwise.
+* `OPEN` with timeout: set to 1 if the device was successfully opened,
+  0 otherwise.
+* `LOCK` with timeout: set to 1 if the lock was acquired, 0 otherwise.
+
+`$TEST` is not altered by post-conditionals, argumentless IF, or ELSE.
+
+=== $X
+
+Returns a nonnegative integer approximating the horizontal cursor
+position (column number) on the current device. Column 0 is the left
+margin. Updated by READ and WRITE: each graphic adds 1; carriage return
+and form feed reset to 0; backspace decrements (minimum 0).
+
+=== $Y
+
+Returns a nonnegative integer approximating the vertical cursor
+position (line number) on the current device. Line 0 is the top of the
+page. Updated by READ and WRITE: line feed adds 1; form feed resets to
+0.
+
+
+== Operators Reference
+
+=== Unary Operators
+
+Unary operators bind tighter than binary operators and are applied
+right to left.
+
+|===
+|Operator |Name |Operand Interpretation |Result
+
+|`+` |Plus |Numeric |Numeric interpretation of operand
+|`-` |Minus |Numeric |Negated numeric interpretation
+|`'` |Not |Truth-value |1 if operand is 0, else 0
+|===
+
+=== Binary Operators
+
+All binary operators share the same precedence and are evaluated
+strictly left to right. Parentheses override this order.
+
+==== Arithmetic
+
+|===
+|Operator |Name |Result
+
+|`+` |Add |Numeric sum
+|`-` |Subtract |Numeric difference
+|`*` |Multiply |Numeric product
+|`/` |Divide |Numeric quotient; division by zero is an error
+|`\` |Integer divide |Integer interpretation of `/` result (floor)
+|`#` |Modulo |`A#B = A-(B*floor(A/B))`; B must be nonzero
+|===
+
+==== String
+
+|===
+|Operator |Name |Result
+
+|`_` |Concatenate |Left operand followed by right operand
+|===
+
+==== Relational (return 0 or 1)
+
+|===
+|Operator |Name |Operand Interpretation |True When
+
+|`=` |Equals |String |Operands are identical strings
+|`<` |Less than |Numeric |Left < Right
+|`>` |Greater than |Numeric |Left > Right
+|`]` |Follows |String (ASCII) |Left follows Right in ASCII order
+|`[` |Contains |String |Right is a substring of Left
+|`?` |Pattern match |Left: string; Right: pattern |Left matches pattern
+|===
+
+Each relational operator can be negated with a preceding apostrophe:
+`'=`, `'<`, `'>`, `']`, `'[`, `'?`.
+
+==== Logical (return 0 or 1)
+
+|===
+|Operator |Name |Operand Interpretation |True When
+
+|`&` |And |Truth-value |Both operands are true (nonzero)
+|`!` |Or |Truth-value |At least one operand is true
+|===
+
+Negated forms: `'&` (NAND), `'!` (NOR).
+
+
+== Syntax Summary
+
+=== Line Structure
+
+----
+[label] ls command[ command]...[ ;comment] eol
+----
+
+* _ls_ is a single space.
+* Commands are separated by a single space.
+* If a command has no arguments, it is followed by two spaces before the
+  next command (or end of line).
+* A semicolon begins a comment that extends to end of line.
+
+=== Routine Structure
+
+----
+routinename eol
+line [line]... eor
+----
+
+* The first line (routine head) contains only the routine name.
+* In program interchange: _eol_ is CR LF; _eor_ is CR FF.
+
+=== Name Syntax
+
+----
+name ::= (%|alpha)(alpha|digit)*
+----
+
+A name starts with `%` or a letter, followed by any number of letters
+and digits. Names are case-sensitive.
+
+=== Variable Syntax
+
+* *Local*: `name` or `name(expr[,expr...])`
+* *Global*: `^name` or `^name(expr[,expr...])` or `^(expr[,expr...])`
+  (naked reference)
+
+=== Numeric Literal Syntax
+
+----
+numlit ::= [digits][.digits][E[+|-]digits]
+----
+
+Numeric values have a canonical form: no leading zeros (except `0`
+itself), no trailing zeros after the decimal point, no unnecessary
+decimal point.
+
+=== String Literal Syntax
+
+A string literal is enclosed in double quotes. A literal double quote
+within the string is represented by two adjacent double quotes.
+
+----
+"Hello"
+""
+"He said ""hi"""
+----
+
+=== Entry Reference Syntax
+
+----
+entryref ::= lineref [^routineref] | ^routineref
+lineref  ::= label [+intexpr]
+----
 
 
 [appendix]
@@ -1948,6 +2409,7 @@ Selected control characters (codes 0-31):
 |127 |Delete |DEL |Control character
 |===
 
+
 [appendix]
 == Glossary
 
@@ -1962,6 +2424,10 @@ Current Device::
   The I/O device to which READ and WRITE are directed. Identified by
   `$IO`. Changed by USE.
 
+D Attribute::
+  An integer (0, 1, 10, or 11) associated with each node in the
+  variable tree, returned by `$DATA`. Encodes whether the node has a
+  defined value (units digit) and whether it has descendants (tens digit).
 
 Entry Reference::
   A specification of a line in a routine, used by DO, GOTO, and $TEXT.
@@ -1974,6 +2440,10 @@ Global Variable::
 Label::
   A name or integer literal at the beginning of a line that identifies
   the line for reference by DO, GOTO, or $TEXT.
+
+Level Indicator (Line Level)::
+  In the 1976 standard, a dot-based notation (not used in NBS 118 but
+  present in some implementations) to indicate block structure.
 
 Local Variable::
   A variable without the `^` prefix. Exists only in the current
@@ -1992,6 +2462,10 @@ Node::
   A point in the variable tree identified by a name and zero or more
   subscripts. Each node may have a value, descendants, both, or neither.
 
+Partition::
+  In the MUMPS system model, the execution context of a single process,
+  containing local variables, the routine stack, the Test Switch, and
+  the Naked Indicator.
 
 Post-Conditional::
   A `:tvexpr` appended to a command word or (for DO, GOTO, XECUTE) an
@@ -2014,6 +2488,10 @@ Special Variable::
   A read-only system variable prefixed with `$` (e.g., `$HOROLOG`,
   `$TEST`). Provides access to system state.
 
+Storage Reference::
+  A syntactic construct denoting a variable node: either a local
+  variable name, a global variable name, or a naked reference, any of
+  which may be subscripted.
 
 String::
   The sole data type in MUMPS. All values, including numbers, are
@@ -2038,6 +2516,7 @@ Truth Value::
   string is: take its numeric interpretation; if the result is `0`, the
   truth value is `0`; otherwise it is `1`.
 
+
 == What We Have Not Covered
 
 This primer focuses on the core language for single-user operation.
@@ -2056,6 +2535,7 @@ The following topics are deferred:
   standards added many more features. These are outside the scope of this
   primer.
 
+
 [bibliography]
 == References
 
@@ -2063,4 +2543,5 @@ The following topics are deferred:
   Bureau of Standards Handbook 118, January 1976.
 * [[[mdc42]]] Melvin E. Conway. _MUMPS Programmers' Reference Manual_.
   MUMPS Development Committee, MDC/42, September 1976.
-
+* [[[wasserman75]]] Anthony I. Wasserman, David D. Sherertz, Charles P.
+  Rogerson. _MUMPS Globals and their Implementation_. 1975.

@@ -10,7 +10,7 @@ Mumps76 ::= { line }
 
 line ::= [ label ] { '.' } { [ CmdSep ] command } Newline
 
-label ::= ident [ '(' params ')' ]
+label ::= (ident|integer) [ '(' params ')' ]
 params ::= [ expr { ',' expr } ]
 
 // Each command consumes an optional CmdSep (space separator) before its args.

@@ -21,6 +21,8 @@ MUMPS was created in 1966 by Neil Pappalardo, Robert A. Greenes, and Curt Marble
 
 MUMPS, even today, remains in active production use, predominantly in healthcare and finance. In the U.S. healthcare sector, MUMPS-based systems still serve over 78% of patients. The U.S. Department of Veterans Affairs (VA)'s VistA system alone runs across more than 1'500 VA sites, including 172 medical centers, serving over 9 million veterans.
 
+**[Read my MUMPS 76 Primer here](https://github.com/rochus-keller/MUMPS/blob/main/docs/MUMPS_Primer.adoc)** ([PDF for download](docs/MUMPS_Primer.pdf))
+
 ## Why is MUMPS interesting
 
 MUMPS was born from a simple but radical insight: hospitals needed a system where doctors and nurses could simultaneously access and update patient data from multiple terminals, in real time, on affordable hardware. In 1966, "affordable hardware" meant a DEC PDP-7 with 8K words of 18-bit memory and a small disk. What emerged was something that the database world wouldn't have a name for until four decades later: a NoSQL database with an integrated programming language. MUMPS globals, the core data abstraction, are hierarchical sparse arrays stored persistently on disk and shared among all concurrent users. In modern terms:
@@ -126,9 +128,22 @@ The same %DOC routine, but with full command names, meaningful variables, struct
       WRITE !,$ZERROR  QUIT
 ```
 
+## How can I try it
 
+This project includes a complete, single-user MUMPS 76 parser, interpreter (with batch and REPL modus) and database which you can 
+download and run (see "Precompiled versions" below). After starting it and entering commands, you see something like this:
 
-## Status on June 18, 2026
+![MUMPS 76 REPL](docs/imgs/mumps76_repl.png)
+
+The REPL supports cursor navigation and a command history. You can e.g. copy/paste the commands from the many
+[MUMPS Primer examples](https://github.com/rochus-keller/MUMPS/blob/main/docs/MUMPS_Primer.adoc), or try to run original
+MUMPS applications from the seventies which you can find in the testcases directory. There is e.g. the
+original STARTREK application in testcases/corpus/decus/startrek which you can run with `mumps STARTREK.rou`; here
+is a [screenshot of the running application](docs/imgs/mumps76_runnin_startrek.png).
+
+## Development Log
+
+### Status on June 18, 2026
 
 The lexer and parser now work pretty well and pass > 90% of the test cases (excluding the truncation issues).
 The EBNF grammar covers all 19 standard commands + Z-commands + DSM-11 extensions, but there are still ambiguities.
@@ -138,7 +153,7 @@ and bracket skipping) pretty well, which was difficult to get right. It's likely
 The next stage is the interpreter and some form of intermediate representation. There are also issues with long-line handling
 and indirection (@) to be solved, and I need better error recovery.
 
-## Status on June 22, 2026
+### Status on June 22, 2026
 
 The interpreter works with dedicated tests and PCT_DOC.mps; globals are implemented, though there is no database yet.
 All 19 commands are implemnted; OPEN, CLOSE, USE, LOCK, VIEW, JOB, ZCMD are only stubs so far. Also the intrinsic
@@ -146,7 +161,7 @@ functions $T and $V are stubs, but $L, $E, $P, $A, $C, $D, $O, $S, $F, $J, $G, $
 The parser is callable at runtime; cross-routine calls and XECUTE are implemented.
 The goal of the interpreter is functionality, completeness and comprehensibility, not performance. 
 
-## Status on June 25, 2026
+### Status on June 25, 2026
 
 There is now an interactive interpreter mode. You can either run a MUMPS routine file or enter the interpreter. 
 I also made progress with a [MUMPS Primer](docs/MUMPS_Primer.adoc) (see docs subdirectory) which specifically

@@ -1,0 +1,56 @@
+STARTR3 ;STARTR3,,,COPYRIGHT 1986 COMP MARK, Inc.  -- This program may be freely copied for non-commercial use ONLY.;1SEP84 6:37AM;
+ ;PRX;11Aug88 15:08;(c) Copyright 1986,1987 PRx, Inc. Concord, MA
+ S X=8*Q1+X+(N*X1),Y=8*Q2+Y+(N*X2),Q1=X/8\1,Q2=Y/8\1,S1=X-(Q1*8)\1
+ S S2=Y-(Q2*8)\1 I S1=0 S Q1=Q1-1,S1=8
+ I S2=0 S Q2=Q2-1,S2=8
+ S X5=0 I Q1<1 S X5=1,Q1=1,S1=1
+ I Q1>8 S X5=1,Q1=8,S1=8
+ I Q2<1 S X5=1,Q2=1,S2=1
+ I Q2>8 S X5=1,Q2=8,S2=8
+ I X5=0 G 3860
+ W "LT. UHURA REPORTS MESSAGE FROM STARFLEET COMMAND:"
+ W !,"  'PERMISSION TO ATTEMPT CROSSING OF GALACTIC PERIMETER"
+ W !,"  IS HEREBY *DENIED*.  SHUT DOWN YOUR ENGINES.'" H 3
+ W !,"CHIEF ENGINEER SCOTT REPORTS  'WARP ENGINES SHUT DOWN"
+ W !,"  AT SECTOR ",S1,",",S2," OF QUADRANT ",Q1,",",Q2,".'",!
+ I T>(T0+T9) G 6220^STARXXX
+3860 I 8*Q1+Q2=(8*Q4+Q5) G 3370^STARTR2
+ S T=T+1 G:T>(T0+T9) 6220^STARXXX D SUB3^STARTR2 G ^STARTR1 Q
+ ;
+ ;   NAME OF GAME
+NAM S LM=8 W !!!
+1 W ?(LM+3),"SSS",!
+2 W ?(LM+2),"SSSSS    U   U  PPPP   EEEEE  RRRR",!
+3 W ?(LM+1),"SSS SSS   U   U  P   P  E      R   R",!
+4 W ?LM,"SSS   SS   U   U  P   P  E      R   R",!
+5 W ?LM,"SS         U   U  PPPP   EEE    RRRR",!
+6 W ?LM,"SS         U   U  P      E      R R",!
+7 W ?LM,"SS         U   U  P      E      R  R",!
+8 W ?(LM+1),"SS         UUU   P      EEEEE  R   R",!
+9 W ?(LM+2),"SSS",!
+10 W ?(LM+4),"SSS",!
+11 W ?(LM+6),"SS   TTTTT   A    RRRR  TTTTT  RRRR   EEEEE  K   K",!
+12 W ?(LM+7),"SS    T    A A   R   R   T    R   R  E      K  K",!
+13 W ?(LM+7),"SS    T   A   A  R   R   T    R   R  E      K K",!
+14 W ?(LM+7),"SS    T   AAAAA  RRRR    T    RRRR   EEE    KK",!
+15 W ?LM+1,"SS   SSS    T   A   A  R R     T    R R    E      K K",!
+16 W ?(LM+1),"SSS SSS     T   A   A  R  R    T    R  R   E      K  K",!
+17 W ?(LM+2),"SGSBS      T   A   A  R   R   T    R   R  EEEEE  K   K",!
+18 W ?(LM+3),"SSS",!!! Q
+ ;
+ ;   STAR SHIP
+SHIP S LM=10 W !
+A W ?LM,"___------______________________",?LM+49,"___",!
+B W ?LM,"\______________________________)",?LM+34,"______________/   \______________",!
+C W ?LM+23,"| |",?LM+34,"\_____________     _____________/",!
+D W ?LM+23,"| |",?LM+37,"/    /",?LM+48,"\___/",!
+E W ?LM+23,"| |          /    /",!
+F W ?LM+23,"| |         /    /",!
+G W ?LM+17,"______| |________/____/___",!
+H W ?LM+17,"\__                       \",?59,"U.S.S. ",SHNM,!
+I W ?LM+20,")______________________/",?63,"NCC-17O",NC,!
+ W ! Q
+ ;
+DLOGO S SHNM="ENTERPRISE",NC=1 W # D SHIP H 2 D NAM H 4 D SHIP H 3 Q
+PLOGO O ^PR X ^NPR W:$Y # S SHNM="ENTERPRISE",NC=1 D NAM,SHIP W !,# X ^NCRT Q
+

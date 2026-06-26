@@ -1,0 +1,13 @@
+STARLRS ;   ,,,COPYRIGHT 1986 COMP MARK, Inc.  -- This program may be freely copied for non-commercial use ONLY.;1APR84 1:22PM;
+ W !
+ I D(3)<0 W !,"LONG RANGE SENSORS ARE INOPERABLE!",! G 1990^STARTR1
+ W !,"LONG RANGE SCAN FOR QUADRANT ",Q1,",",Q2
+ S O1D="-------------------" W !,O1D
+ F I=Q1-1:1:Q1+1 S N(1)=-1,N(2)=-2,N(3)=-3 D 4120
+ W ! G 1990^STARTR1
+4120 F J=Q2-1:1:Q2+1 I (I>0)&(I<9)&(J>0)&(J<9) S (N(J-Q2+2),Z(I,J))=G(I,J)
+ W ! F L=1:1:3 W ": " D 4190
+ W ":",!,O1D Q
+4190 I N(L)<0 W "*** " Q
+ S NL=(N(L)+1000) W $E(NL,$L(NL)-2,$L(NL))," " Q
+
