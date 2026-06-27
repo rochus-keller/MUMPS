@@ -1,6 +1,11 @@
-The goal of this project is to build a faithful implementation of the 1976 MUMPS standard (see the [NBS Handbook 118](https://archive.org/details/bitsavers_mumpsNBSHaageStandardJan1976_6795659), the first formal specification of the MUMPS language), including a MUMPS 76 parser, interpreter and integrated database.
+The goal of this project is to build a faithful implementation of the 1976 MUMPS standard (see the [NBS Handbook 118](https://archive.org/details/bitsavers_mumpsNBSHaageStandardJan1976_6795659), the first formal specification of the MUMPS language), including a MUMPS 76 parser, interpreter, and 
+the integrated hierarchical database that anticipated NoSQL by four decades.
 
-The year 2026 marks the **50th anniversary** of this standard, and also the **60th anniversary** of MUMPS, and is therefore a good time for this project.
+The year 2026 marks the **50th anniversary** of this standard, and also the **60th anniversary** of MUMPS (and myself), and is therefore a good time for this project.
+
+This is the most recent one in a series of projects where I explore legacy programming languages of significance; other notable mentions are [Simula](https://github.com/rochus-keller/Simula), [Smalltalk](https://github.com/rochus-keller/Smalltalk), [Cedar](https://github.com/rochus-keller/Cedar), [Interlisp](https://github.com/rochus-keller/Interlisp), and [Lisa Pascal](https://github.com/rochus-keller/LisaPascal).
+
+I first came into contact with MUMPS in my early twenties when, during a refresher course, the military doctor enthusiastically demonstrated his own medical information system written in this special language after learning that I was studying at ETH. Since then, I have returned to MUMPS time and again, gained practical experience with Intersystems Caché, and even implemented MUMPS’s hierarchical data model in my own databases (see [Sdb](https://github.com/rochus-keller/Sdb) and [Udb](https://github.com/rochus-keller/Udb)).
 
 Every existing MUMPS implementation targets a later, much larger standard (e.g. GT.M, YottaDB and RSM target the 1995 ANSI standard, partly with extensions, and have more than twice as many commands and functions). As it seems, nobody so far has implemented *just the 1976 standard*. By implementing the minimal, original standard using modern languages and tools, we can:
 
@@ -10,8 +15,6 @@ Every existing MUMPS implementation targets a later, much larger standard (e.g. 
 
 - Demonstrate what made MUMPS significant: a 19-command language with an integrated hierarchical database, running historical hospital software on a PDP-11, anticipating NoSQL by four decades.
 
-
-**This project is work in progress.**
 
 ## What is MUMPS
 
@@ -130,16 +133,20 @@ The same %DOC routine, but with full command names, meaningful variables, struct
 
 ## How can I try it
 
-This project includes a complete, single-user MUMPS 76 parser, interpreter (with batch and REPL modus) and database which you can 
+This project includes a complete, single-user MUMPS 76 parser, interpreter (with batch and REPL mode) and database which you can 
 download and run (see "Precompiled versions" below). After starting it and entering commands, you see something like this:
 
 ![MUMPS 76 REPL](docs/imgs/mumps76_repl.png)
 
 The REPL supports cursor navigation and a command history. You can e.g. copy/paste the commands from the many
 [MUMPS Primer examples](https://github.com/rochus-keller/MUMPS/blob/main/docs/MUMPS_Primer.adoc), or try to run original
-MUMPS applications from the seventies which you can find in the testcases directory. There is e.g. the
+MUMPS applications from the seventies and  eighties which you can find in the testcases directory. There is e.g. the
 original STARTREK application in testcases/corpus/decus/startrek which you can run with `mumps STARTREK.rou`; here
 is a [screenshot of the running application](docs/imgs/mumps76_runnin_startrek.png).
+
+Because the original standard is so compact, the entire system is implemented in 
+under 10,000 lines (SLOC) of C++, making it an easily approachable codebase for study.
+
 
 ## Development Log
 
@@ -156,7 +163,7 @@ and indirection (@) to be solved, and I need better error recovery.
 ### Status on June 22, 2026
 
 The interpreter works with dedicated tests and PCT_DOC.mps; globals are implemented, though there is no database yet.
-All 19 commands are implemnted; OPEN, CLOSE, USE, LOCK, VIEW, JOB, ZCMD are only stubs so far. Also the intrinsic
+All 19 commands are implemented; OPEN, CLOSE, USE, LOCK, VIEW, JOB, ZCMD are only stubs so far. Also the intrinsic
 functions $T and $V are stubs, but $L, $E, $P, $A, $C, $D, $O, $S, $F, $J, $G, $TR, and $R are implemented.
 The parser is callable at runtime; cross-routine calls and XECUTE are implemented.
 The goal of the interpreter is functionality, completeness and comprehensibility, not performance. 
@@ -167,17 +174,32 @@ There is now an interactive interpreter mode. You can either run a MUMPS routine
 I also made progress with a [MUMPS Primer](docs/MUMPS_Primer.adoc) (see docs subdirectory) which specifically
 describes the 1976 version with a lot of practical examples. The original documents from 1976 are a bit hard to
 read and use uncommon terminology for today's programmers. There is now also a BUSY build and a precompiled version
-for Linux. Also the global strore is making good progress.
+for Linux. Also the global store is making good progress.
+
+### Status on June 27, 2026
+
+The global store works and is integrated with the interpreter. It has less code than I had expected (< 1000 SLOC), so 
+the whole project is below 10 kSLOC of C++). The CLI/REPL now has a more robust implementation and supports multi-command
+pasting and a command history. The Primer is complete and the examples have been tested on the interpreter.
+To my surprise, the interpreter seems to be able to run a large part of the corpus and dsm11 code (my guesstimate is > 70%,
+some day I should analyze this more precisely). MVP release.
 
 ## Precompiled versions
 
 The following binaries are available at this time:
 
 - [Linux x86_64](https://software.rochus-keller.ch/mumps76_linux_x64.tar.gz)
+- [Windows x86](https://software.rochus-keller.ch/mumps76_windows_x86.zip)
+- [macOS arm64](https://software.rochus-keller.ch/mumps76_macOS_arm64.zip)
+
+NOTE: macOS becomes more patronizing with every release, so you might not be able to simply start the executable;
+    if so, try `xattr -dr com.apple.quarantine /path/to/mumps`; if that doesn't work, you can try
+   `codesign --force --deep --sign - /path/to/mumps`; or just use the Windows binary and run it with Wine.
 
 ## Build Steps
 
-Follow these steps if you want to build the application yourself:
+Follow these steps if you want to build the application yourself. The same code builds on Linux, macOS and Windows 
+(and likely a lot of other operating systems and architectures):
 
 1. Make sure a Qt 5.x (libraries and headers) version compatible with your C++ compiler is installed on your system.
 1. Download the source code from https://github.com/rochus-keller/mumps/archive/master.zip and unpack it.

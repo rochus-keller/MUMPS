@@ -34,9 +34,14 @@ using namespace Mps;
 
 void sleep_ms(unsigned long ms); // implemented in MpsMain.cpp
 
-Interpreter::Interpreter(QObject * p):d_curRoutine(0), d_curLine(0), d_flow(FlowNormal),
-      d_gotoLine(-1), d_testFlag(true), d_xPos(0), d_yPos(0), d_out(stdout)
+Interpreter::Interpreter(): d_globalStore(0), d_curRoutine(0), d_curLine(0), d_flow(FlowNormal),
+      d_gotoLine(-1), d_testFlag(true), d_xPos(0), d_yPos(0), d_out(stdout), d_in(stdin)
 {
+}
+
+void Interpreter::setGlobalStore(GlobalStore* store)
+{
+    d_globalStore = store;
 }
 
 bool Interpreter::executeLine(const QByteArray& line)
@@ -49,59 +54,68 @@ bool Interpreter::executeLine(const QByteArray& line)
         Token peek(int offset) { return lex.peekToken(offset); }
     };
 
-    QByteArray adjusted = " " + line;
+    QByteArray code = " " + line;
     Lex lex;
-    lex.lex.setStream(adjusted, "<interactive>");
+    lex.lex.setStream(code, "DIRECT");
     Parser2 parser(&lex);
     Routine* r = parser.parse();
+
     if( !parser.errors.isEmpty() )
     {
-        for( int i = 0; i < parser.errors.size(); i++ )
+        for( int e = 0; e < parser.errors.size(); e++ )
         {
-            const Parser2::Error& e = parser.errors[i];
-            d_out << "ERR: " << e.msg << endl;
+            d_out << "ERR: " << parser.errors[e].msg << "\n";
+            d_out.flush();
         }
         delete r;
         return true;
     }
 
-    if( r->d_lines.isEmpty() )
+    if( !r || r->d_lines.isEmpty() )
     {
         delete r;
         return true;
     }
 
     d_flow = FlowNormal;
-    d_gotoLine = -1;
     executeLineCommands(r->d_lines[0], 0);
-    delete r;
 
-    return d_flow != FlowHalt;
+    bool halt = (d_flow == FlowHalt);
+    if( d_flow == FlowQuit || d_flow == FlowHalt )
+        d_flow = FlowNormal;
+
+    delete r;
+    return !halt;
 }
 
 void Interpreter::runInteractive()
 {
-    char buf[4096];
-    while( true )
+    d_flow = FlowNormal;
+    d_callStack.clear();
+    d_curRoutine = 0;
+    d_curLine = 0;
+
+    for( ;; )
     {
-        d_out << "> " << flush;
-        if( !fgets(buf, sizeof(buf), stdin) )
+        d_out << "\n>";
+        d_out.flush();
+
+        char buf[4096];
+        if( !std::fgets(buf, sizeof(buf), stdin) )
             break;
+
         QByteArray line(buf);
         if( line.endsWith('\n') )
             line.chop(1);
         if( line.endsWith('\r') )
             line.chop(1);
+
         if( line.isEmpty() )
             continue;
+
         if( !executeLine(line) )
             break;
     }
-}
-
-void Interpreter::executeLine(const QString & str)
-{
-    executeLine(str.toUtf8());
 }
 
 Interpreter::~Interpreter()
@@ -207,6 +221,8 @@ void Interpreter::runBlock(Routine* routine, int startLine, int dotLevel)
         {
             if( d_gotoLine >= 0 )
             {
+                if( d_curRoutine != routine )
+                    routine = d_curRoutine;
                 d_curLine = d_gotoLine;
                 d_gotoLine = -1;
                 d_flow = FlowNormal;
@@ -376,31 +392,35 @@ void Interpreter::execKill(Command* cmd)
             }
         }else if( ref->d_kind == VarRef::Global )
         {
-            if( ref->d_subs.isEmpty() )
+            QList<QByteArray> subs = evalSubscripts(ref->d_subs);
+            updateNakedRef(ref->d_name, subs);
+            if( d_globalStore )
             {
-                updateNakedRef(ref->d_name, QList<QByteArray>());
-                d_globals.remove(ref->d_name);
+                d_globalStore->kill(ref->d_name, subs);
             }
             else
             {
-                QList<QByteArray> subs = evalSubscripts(ref->d_subs);
-                updateNakedRef(ref->d_name, subs);
-                Node* node = d_globals.get(ref->d_name);
-                if( node )
+                if( subs.isEmpty() )
+                    d_globals.remove(ref->d_name);
+                else
                 {
-                    if( subs.size() == 1 )
-                        node->removeChild(subs[0]);
-                    else if( subs.size() > 1 )
+                    Node* node = d_globals.get(ref->d_name);
+                    if( node )
                     {
-                        Node* parent = node;
-                        for( int s = 0; s < subs.size() - 1; s++ )
+                        if( subs.size() == 1 )
+                            node->removeChild(subs[0]);
+                        else if( subs.size() > 1 )
                         {
-                            parent = parent->get(subs[s]);
-                            if( !parent )
-                                break;
+                            Node* parent = node;
+                            for( int s = 0; s < subs.size() - 1; s++ )
+                            {
+                                parent = parent->get(subs[s]);
+                                if( !parent )
+                                    break;
+                            }
+                            if( parent )
+                                parent->removeChild(subs.last());
                         }
-                        if( parent )
-                            parent->removeChild(subs.last());
                     }
                 }
             }
@@ -415,7 +435,12 @@ void Interpreter::execKill(Command* cmd)
                 if( inner->d_kind == VarRef::Local )
                     d_locals.remove(inner->d_name);
                 else if( inner->d_kind == VarRef::Global )
-                    d_globals.remove(inner->d_name);
+                {
+                    if( d_globalStore )
+                        d_globalStore->killAll(inner->d_name);
+                    else
+                        d_globals.remove(inner->d_name);
+                }
             }
         }
     }
@@ -468,13 +493,38 @@ void Interpreter::execGoto(Command* cmd)
         if( er->d_indirLabel )
         {
             Value label = evalAtom(er->d_indirLabel);
-            int idx = findLabel(d_curRoutine, label.str());
-            if( idx >= 0 )
+            QByteArray target = label.str();
+            int caretPos = target.indexOf('^');
+            if( caretPos >= 0 )
             {
+                QByteArray routineName = target.mid(caretPos + 1);
+                QByteArray labelName = target.left(caretPos);
+                Routine* targetRoutine = loadRoutine(routineName);
+                if( !targetRoutine )
+                {
+                    runtimeError(QString("routine '%1' not found").arg( QString::fromUtf8(routineName)), cmd->d_lineNr);
+                    return;
+                }
+                int idx = labelName.isEmpty() ? 0 : findLabel(targetRoutine, labelName);
+                if( idx < 0 )
+                {
+                    runtimeError(QString("label '%1' not found").arg( QString::fromUtf8(labelName)), cmd->d_lineNr);
+                    return;
+                }
+                d_curRoutine = targetRoutine;
                 d_gotoLine = idx;
                 d_flow = FlowGoto;
             }else
-                runtimeError(QString("label '%1' not found").arg( QString::fromUtf8(label.str())), cmd->d_lineNr);
+            {
+                int idx = findLabel(d_curRoutine, target);
+                if( idx >= 0 )
+                {
+                    d_gotoLine = idx;
+                    d_flow = FlowGoto;
+                }
+                else
+                    runtimeError(QString("label '%1' not found").arg( QString::fromUtf8(target)), cmd->d_lineNr);
+            }
             return;
         }
 
@@ -1239,28 +1289,32 @@ Value Interpreter::getVar(ExprAtom* a)
         return Value();
     } else if( a->d_tag == ExprAtom::GlobalVar )
     {
-        Node* node = d_globals.get(a->d_name);
-        if( !node )
-        {
-            QList<QByteArray> subs = evalSubscripts(a->d_args);
-            updateNakedRef(a->d_name, subs);
-            return Value();
-        }
-
-        if( a->d_args.isEmpty() )
-        {
-            updateNakedRef(a->d_name, QList<QByteArray>());
-            if( node->hasValue() )
-                return Value(node->value());
-            return Value();
-        }
-
         QList<QByteArray> subs = evalSubscripts(a->d_args);
         updateNakedRef(a->d_name, subs);
-        Node* child = node->descend(subs);
-        if( child && child->hasValue() )
-            return Value(child->value());
-        return Value();
+        if( d_globalStore )
+        {
+            QByteArray val = d_globalStore->get(a->d_name, subs);
+            if( val.isNull() )
+                return Value();
+            return Value(val);
+        }else
+        {
+            Node* node = d_globals.get(a->d_name);
+            if( !node )
+                return Value();
+
+            if( subs.isEmpty() )
+            {
+                if( node->hasValue() )
+                    return Value(node->value());
+                return Value();
+            }
+
+            Node* child = node->descend(subs);
+            if( child && child->hasValue() )
+                return Value(child->value());
+            return Value();
+        }
     }else if( a->d_tag == ExprAtom::NakedGlobal )
     {
         return getNakedGlobal(a->d_args);
@@ -1284,18 +1338,21 @@ void Interpreter::setVar(VarRef* ref, const Value& val)
         }
     }else if( ref->d_kind == VarRef::Global )
     {
-        Node* node = d_globals.getOrCreate(ref->d_name);
-        if( ref->d_subs.isEmpty() )
+        QList<QByteArray> subs = evalSubscripts(ref->d_subs);
+        updateNakedRef(ref->d_name, subs);
+        if( d_globalStore )
         {
-            updateNakedRef(ref->d_name, QList<QByteArray>());
-            node->setValue(val.str());
-        }
-        else
+            d_globalStore->set(ref->d_name, subs, val.str());
+        }else
         {
-            QList<QByteArray> subs = evalSubscripts(ref->d_subs);
-            updateNakedRef(ref->d_name, subs);
-            Node* target = node->descendOrCreate(subs);
-            target->setValue(val.str());
+            Node* node = d_globals.getOrCreate(ref->d_name);
+            if( subs.isEmpty() )
+                node->setValue(val.str());
+            else
+            {
+                Node* target = node->descendOrCreate(subs);
+                target->setValue(val.str());
+            }
         }
     }else if( ref->d_kind == VarRef::NakedGlobal )
     {
@@ -1433,26 +1490,30 @@ Value Interpreter::getVarRef(VarRef* ref)
         return Value();
     }else if( ref->d_kind == VarRef::Global )
     {
-        Node* node = d_globals.get(ref->d_name);
-        if( !node )
-        {
-            QList<QByteArray> subs = evalSubscripts(ref->d_subs);
-            updateNakedRef(ref->d_name, subs);
-            return Value();
-        }
-        if( ref->d_subs.isEmpty() )
-        {
-            updateNakedRef(ref->d_name, QList<QByteArray>());
-            if( node->hasValue() )
-                return Value(node->value());
-            return Value();
-        }
         QList<QByteArray> subs = evalSubscripts(ref->d_subs);
         updateNakedRef(ref->d_name, subs);
-        Node* child = node->descend(subs);
-        if( child && child->hasValue() )
-            return Value(child->value());
-        return Value();
+        if( d_globalStore )
+        {
+            QByteArray val = d_globalStore->get(ref->d_name, subs);
+            if( val.isNull() )
+                return Value();
+            return Value(val);
+        }else
+        {
+            Node* node = d_globals.get(ref->d_name);
+            if( !node )
+                return Value();
+            if( subs.isEmpty() )
+            {
+                if( node->hasValue() )
+                    return Value(node->value());
+                return Value();
+            }
+            Node* child = node->descend(subs);
+            if( child && child->hasValue() )
+                return Value(child->value());
+            return Value();
+        }
     }else if( ref->d_kind == VarRef::NakedGlobal )
     {
         return getNakedGlobal(ref->d_subs);
@@ -1466,6 +1527,109 @@ QList<QByteArray> Interpreter::evalSubscripts(const QList<Expression*>& subs)
     for( int i = 0; i < subs.size(); i++ )
         result.append(evalExpr(subs[i]).str());
     return result;
+}
+
+void Interpreter::updateNakedRef(const QByteArray& name, const QList<QByteArray>& subs)
+{
+    d_nakedName = name;
+    d_nakedSubs = subs;
+    if( !d_nakedSubs.isEmpty() )
+        d_nakedSubs.removeLast();
+}
+
+Value Interpreter::getNakedGlobal(const QList<Expression*>& subs)
+{
+    if( d_nakedName.isEmpty() )
+    {
+        runtimeError("naked global reference with no prior global access", 0);
+        return Value();
+    }
+    QList<QByteArray> evalSubs = evalSubscripts(subs);
+    QList<QByteArray> fullSubs = d_nakedSubs;
+    for( int i = 0; i < evalSubs.size(); i++ )
+        fullSubs.append(evalSubs[i]);
+    updateNakedRef(d_nakedName, fullSubs);
+
+    if( d_globalStore )
+    {
+        QByteArray val = d_globalStore->get(d_nakedName, fullSubs);
+        if( val.isNull() )
+            return Value();
+        return Value(val);
+    }
+    else
+    {
+        Node* node = d_globals.get(d_nakedName);
+        if( !node )
+            return Value();
+        Node* child = node->descend(fullSubs);
+        if( child && child->hasValue() )
+            return Value(child->value());
+        return Value();
+    }
+}
+
+void Interpreter::setNakedGlobal(const QList<Expression*>& subs, const Value& val)
+{
+    if( d_nakedName.isEmpty() )
+    {
+        runtimeError("naked global reference with no prior global access", 0);
+        return;
+    }
+    QList<QByteArray> evalSubs = evalSubscripts(subs);
+    QList<QByteArray> fullSubs = d_nakedSubs;
+    for( int i = 0; i < evalSubs.size(); i++ )
+        fullSubs.append(evalSubs[i]);
+    updateNakedRef(d_nakedName, fullSubs);
+
+    if( d_globalStore )
+    {
+        d_globalStore->set(d_nakedName, fullSubs, val.str());
+    }
+    else
+    {
+        Node* node = d_globals.getOrCreate(d_nakedName);
+        node->descendOrCreate(fullSubs)->setValue(val.str());
+    }
+}
+
+void Interpreter::killNakedGlobal(const QList<Expression*>& subs)
+{
+    if( d_nakedName.isEmpty() )
+    {
+        runtimeError("naked global reference with no prior global access", 0);
+        return;
+    }
+    QList<QByteArray> evalSubs = evalSubscripts(subs);
+    QList<QByteArray> fullSubs = d_nakedSubs;
+    for( int i = 0; i < evalSubs.size(); i++ )
+        fullSubs.append(evalSubs[i]);
+    updateNakedRef(d_nakedName, fullSubs);
+
+    if( d_globalStore )
+    {
+        d_globalStore->kill(d_nakedName, fullSubs);
+    }else
+    {
+        Node* node = d_globals.get(d_nakedName);
+        if( node )
+        {
+            if( fullSubs.size() == 1 )
+                node->removeChild(fullSubs[0]);
+            else if( fullSubs.size() > 1 )
+            {
+                Node* parent = node;
+                for( int s = 0; s < fullSubs.size() - 1; s++ )
+                {
+                    parent = parent->get(fullSubs[s]);
+                    if( !parent )
+                        break;
+                }
+                if( parent )
+                    parent->removeChild(fullSubs.last());
+            }
+        }
+    }
 }
 
 Value Interpreter::callIntrinsic(const QByteArray& name, const QList<Expression*>& args, ExprAtom* atom)
@@ -1620,31 +1784,46 @@ Value Interpreter::callIntrinsic(const QByteArray& name, const QList<Expression*
             {
                 QList<QByteArray> subs = evalSubscripts(a->d_args);
                 updateNakedRef(a->d_name, subs);
-                Node* node = d_globals.get(a->d_name);
-                if( !node )
-                    return Value(0);
-                if( a->d_args.isEmpty() )
-                    return Value(node->data());
-                Node* child = node->descend(subs);
-                if( !child )
-                    return Value(0);
-                return Value(child->data());
+                if( d_globalStore )
+                {
+                    return Value(d_globalStore->data(a->d_name, subs));
+                }
+                else
+                {
+                    Node* node = d_globals.get(a->d_name);
+                    if( !node )
+                        return Value(0);
+                    if( subs.isEmpty() )
+                        return Value(node->data());
+                    Node* child = node->descend(subs);
+                    if( !child )
+                        return Value(0);
+                    return Value(child->data());
+                }
             }else if( a->d_tag == ExprAtom::NakedGlobal )
             {
                 if( d_nakedName.isEmpty() )
                     return Value(0);
                 QList<QByteArray> evalSubs = evalSubscripts(a->d_args);
-                QList<QByteArray> fullSubs = d_nakedSubs + evalSubs;
-                updateNakedRef(d_nakedName, fullSubs);
-                Node* node = d_globals.get(d_nakedName);
-                if( !node )
-                    return Value(0);
-                if( fullSubs.isEmpty() )
-                    return Value(node->data());
-                Node* child = node->descend(fullSubs);
-                if( !child )
-                    return Value(0);
-                return Value(child->data());
+                QList<QByteArray> fullSubs = d_nakedSubs;
+                for( int ns = 0; ns < evalSubs.size(); ns++ )
+                    fullSubs.append(evalSubs[ns]);
+                QByteArray gName = d_nakedName;
+                updateNakedRef(gName, fullSubs);
+                if( d_globalStore )
+                {
+                    return Value(d_globalStore->data(gName, fullSubs));
+                }
+                else
+                {
+                    Node* node = d_globals.get(gName);
+                    if( !node )
+                        return Value(0);
+                    Node* child = node->descend(fullSubs);
+                    if( !child )
+                        return Value(0);
+                    return Value(child->data());
+                }
             }
         }
         return Value(0);
@@ -1682,38 +1861,67 @@ Value Interpreter::callIntrinsic(const QByteArray& name, const QList<Expression*
             {
                 QList<QByteArray> subs = evalSubscripts(a->d_args);
                 updateNakedRef(a->d_name, subs);
-                Node* node = d_globals.get(a->d_name);
-                if( !node )
-                    return Value();
-                if( a->d_args.isEmpty() )
-                    return Value(node->order(QByteArray(), dir));
+                if( d_globalStore )
+                {
+                    QByteArray lastSub;
+                    QList<QByteArray> parentSubs = subs;
+                    if( !parentSubs.isEmpty() )
+                    {
+                        lastSub = parentSubs.last();
+                        parentSubs.removeLast();
+                    }
+                    QByteArray result = d_globalStore->order(
+                        a->d_name, parentSubs, lastSub, dir);
+                    return Value(result);
+                }
+                else
+                {
+                    Node* node = d_globals.get(a->d_name);
+                    if( !node )
+                        return Value();
+                    if( subs.isEmpty() )
+                        return Value(node->order(QByteArray(), dir));
 
-                if( subs.isEmpty() )
-                    return Value();
-                QByteArray lastSub = subs.last();
-                subs.removeLast();
-                Node* parent = subs.isEmpty() ? node : node->descend(subs);
-                if( !parent )
-                    return Value();
-                return Value(parent->order(lastSub, dir));
+                    QByteArray lastSub = subs.last();
+                    subs.removeLast();
+                    Node* parent = subs.isEmpty() ? node : node->descend(subs);
+                    if( !parent )
+                        return Value();
+                    return Value(parent->order(lastSub, dir));
+                }
             }else if( a->d_tag == ExprAtom::NakedGlobal )
             {
                 if( d_nakedName.isEmpty() )
                     return Value();
                 QList<QByteArray> evalSubs = evalSubscripts(a->d_args);
-                QList<QByteArray> fullSubs = d_nakedSubs + evalSubs;
-                updateNakedRef(d_nakedName, fullSubs);
-                Node* node = d_globals.get(d_nakedName);
-                if( !node )
-                    return Value();
-                if( fullSubs.isEmpty() )
-                    return Value(node->order(QByteArray(), dir));
-                QByteArray lastSub = fullSubs.last();
-                fullSubs.removeLast();
-                Node* parent = fullSubs.isEmpty() ? node : node->descend(fullSubs);
-                if( !parent )
-                    return Value();
-                return Value(parent->order(lastSub, dir));
+                QList<QByteArray> fullSubs = d_nakedSubs;
+                for( int ns = 0; ns < evalSubs.size(); ns++ )
+                    fullSubs.append(evalSubs[ns]);
+                QByteArray gName = d_nakedName;
+                updateNakedRef(gName, fullSubs);
+
+                QByteArray lastSub;
+                QList<QByteArray> parentSubs = fullSubs;
+                if( !parentSubs.isEmpty() )
+                {
+                    lastSub = parentSubs.last();
+                    parentSubs.removeLast();
+                }
+                if( d_globalStore )
+                {
+                    return Value(d_globalStore->order(
+                        gName, parentSubs, lastSub, dir));
+                }
+                else
+                {
+                    Node* node = d_globals.get(gName);
+                    if( !node )
+                        return Value();
+                    Node* parent = parentSubs.isEmpty() ? node : node->descend(parentSubs);
+                    if( !parent )
+                        return Value();
+                    return Value(parent->order(lastSub, dir));
+                }
             }
         }
         return Value();
@@ -1752,21 +1960,36 @@ Value Interpreter::callIntrinsic(const QByteArray& name, const QList<Expression*
             {
                 QList<QByteArray> subs = evalSubscripts(a->d_args);
                 updateNakedRef(a->d_name, subs);
-                Node* node = d_globals.get(a->d_name);
-                if( !node )
-                    return Value(QByteArray("-1"));
-                if( subs.isEmpty() )
+                if( d_globalStore )
                 {
-                    QByteArray r = node->order(QByteArray(), 1);
+                    QByteArray lastSub;
+                    QList<QByteArray> parentSubs = subs;
+                    if( !parentSubs.isEmpty() )
+                    {
+                        lastSub = parentSubs.last();
+                        parentSubs.removeLast();
+                    }
+                    QByteArray r = d_globalStore->order(
+                        a->d_name, parentSubs, lastSub, 1);
+                    return Value(r.isEmpty() ? QByteArray("-1") : r);
+                }else
+                {
+                    Node* node = d_globals.get(a->d_name);
+                    if( !node )
+                        return Value(QByteArray("-1"));
+                    if( subs.isEmpty() )
+                    {
+                        QByteArray r = node->order(QByteArray(), 1);
+                        return Value(r.isEmpty() ? QByteArray("-1") : r);
+                    }
+                    QByteArray lastSub = subs.last();
+                    subs.removeLast();
+                    Node* parent = subs.isEmpty() ? node : node->descend(subs);
+                    if( !parent )
+                        return Value(QByteArray("-1"));
+                    QByteArray r = parent->order(lastSub, 1);
                     return Value(r.isEmpty() ? QByteArray("-1") : r);
                 }
-                QByteArray lastSub = subs.last();
-                subs.removeLast();
-                Node* parent = subs.isEmpty() ? node : node->descend(subs);
-                if( !parent )
-                    return Value(QByteArray("-1"));
-                QByteArray r = parent->order(lastSub, 1);
-                return Value(r.isEmpty() ? QByteArray("-1") : r);
             }else if( a->d_tag == ExprAtom::NakedGlobal )
             {
                 if( d_nakedName.isEmpty() )
@@ -1785,14 +2008,22 @@ Value Interpreter::callIntrinsic(const QByteArray& name, const QList<Expression*
                     lastSub = parentSubs.last();
                     parentSubs.removeLast();
                 }
-                Node* node = d_globals.get(gName);
-                if( !node )
-                    return Value(QByteArray("-1"));
-                Node* parent = parentSubs.isEmpty() ? node : node->descend(parentSubs);
-                if( !parent )
-                    return Value(QByteArray("-1"));
-                QByteArray r = parent->order(lastSub, 1);
-                return Value(r.isEmpty() ? QByteArray("-1") : r);
+                if( d_globalStore )
+                {
+                    QByteArray r = d_globalStore->order(
+                        gName, parentSubs, lastSub, 1);
+                    return Value(r.isEmpty() ? QByteArray("-1") : r);
+                }else
+                {
+                    Node* node = d_globals.get(gName);
+                    if( !node )
+                        return Value(QByteArray("-1"));
+                    Node* parent = parentSubs.isEmpty() ? node : node->descend(parentSubs);
+                    if( !parent )
+                        return Value(QByteArray("-1"));
+                    QByteArray r = parent->order(lastSub, 1);
+                    return Value(r.isEmpty() ? QByteArray("-1") : r);
+                }
             }
         }
         return Value(QByteArray("-1"));
@@ -1940,39 +2171,56 @@ Value Interpreter::callIntrinsic(const QByteArray& name, const QList<Expression*
             {
                 QList<QByteArray> subs = evalSubscripts(a->d_args);
                 updateNakedRef(a->d_name, subs);
-                Node* node = d_globals.get(a->d_name);
-                if( !node )
-                    return defaultVal;
-                if( a->d_args.isEmpty() )
+                if( d_globalStore )
                 {
-                    if( node->hasValue() )
-                        return Value(node->value());
+                    QByteArray val = d_globalStore->get(a->d_name, subs);
+                    if( val.isNull() )
+                        return defaultVal;
+                    return Value(val);
+                }
+                else
+                {
+                    Node* node = d_globals.get(a->d_name);
+                    if( !node )
+                        return defaultVal;
+                    if( subs.isEmpty() )
+                    {
+                        if( node->hasValue() )
+                            return Value(node->value());
+                        return defaultVal;
+                    }
+                    Node* child = node->descend(subs);
+                    if( child && child->hasValue() )
+                        return Value(child->value());
                     return defaultVal;
                 }
-                Node* child = node->descend(subs);
-                if( child && child->hasValue() )
-                    return Value(child->value());
-                return defaultVal;
             }else if( a->d_tag == ExprAtom::NakedGlobal )
             {
                 if( d_nakedName.isEmpty() )
                     return defaultVal;
                 QList<QByteArray> evalSubs = evalSubscripts(a->d_args);
-                QList<QByteArray> fullSubs = d_nakedSubs + evalSubs;
-                updateNakedRef(d_nakedName, fullSubs);
-                Node* node = d_globals.get(d_nakedName);
-                if( !node )
-                    return defaultVal;
-                if( fullSubs.isEmpty() )
+                QList<QByteArray> fullSubs = d_nakedSubs;
+                for( int ns = 0; ns < evalSubs.size(); ns++ )
+                    fullSubs.append(evalSubs[ns]);
+                QByteArray gName = d_nakedName;
+                updateNakedRef(gName, fullSubs);
+                if( d_globalStore )
                 {
-                    if( node->hasValue() )
-                        return Value(node->value());
+                    QByteArray val = d_globalStore->get(gName, fullSubs);
+                    if( val.isNull() )
+                        return defaultVal;
+                    return Value(val);
+                }
+                else
+                {
+                    Node* node = d_globals.get(gName);
+                    if( !node )
+                        return defaultVal;
+                    Node* child = node->descend(fullSubs);
+                    if( child && child->hasValue() )
+                        return Value(child->value());
                     return defaultVal;
                 }
-                Node* child = node->descend(fullSubs);
-                if( child && child->hasValue() )
-                    return Value(child->value());
-                return defaultVal;
             }
         }
         return defaultVal;
@@ -2447,94 +2695,6 @@ void Interpreter::restoreFrame(const StackFrame& frame)
             if( saved )
                 d_locals.reattach(name, saved);
         }
-    }
-}
-
-void Interpreter::updateNakedRef(const QByteArray& name, const QList<QByteArray>& subs)
-{
-    d_nakedName = name;
-    d_nakedSubs = subs;
-    if( !d_nakedSubs.isEmpty() )
-        d_nakedSubs.removeLast();
-}
-
-Value Interpreter::getNakedGlobal(const QList<Expression*>& subs)
-{
-    if( d_nakedName.isEmpty() )
-        return Value();
-
-    QList<QByteArray> evalSubs = evalSubscripts(subs);
-    QList<QByteArray> fullSubs = d_nakedSubs + evalSubs;
-    updateNakedRef(d_nakedName, fullSubs);
-
-    Node* node = d_globals.get(d_nakedName);
-    if( !node )
-        return Value();
-
-    if( fullSubs.isEmpty() )
-    {
-        if( node->hasValue() )
-            return Value(node->value());
-        return Value();
-    }
-
-    Node* child = node->descend(fullSubs);
-    if( child && child->hasValue() )
-        return Value(child->value());
-    return Value();
-}
-
-void Interpreter::setNakedGlobal(const QList<Expression*>& subs, const Value& val)
-{
-    if( d_nakedName.isEmpty() )
-        return;
-
-    QList<QByteArray> evalSubs = evalSubscripts(subs);
-    QList<QByteArray> fullSubs = d_nakedSubs + evalSubs;
-    updateNakedRef(d_nakedName, fullSubs);
-
-    Node* node = d_globals.getOrCreate(d_nakedName);
-    if( fullSubs.isEmpty() )
-        node->setValue(val.str());
-    else
-    {
-        Node* target = node->descendOrCreate(fullSubs);
-        target->setValue(val.str());
-    }
-}
-
-void Interpreter::killNakedGlobal(const QList<Expression*>& subs)
-{
-    if( d_nakedName.isEmpty() )
-        return;
-
-    QList<QByteArray> evalSubs = evalSubscripts(subs);
-    QList<QByteArray> fullSubs = d_nakedSubs + evalSubs;
-    updateNakedRef(d_nakedName, fullSubs);
-
-    Node* node = d_globals.get(d_nakedName);
-    if( !node )
-        return;
-
-    if( fullSubs.isEmpty() )
-    {
-        d_globals.remove(d_nakedName);
-        return;
-    }
-
-    if( fullSubs.size() == 1 )
-        node->removeChild(fullSubs[0]);
-    else
-    {
-        Node* parent = node;
-        for( int s = 0; s < fullSubs.size() - 1; s++ )
-        {
-            parent = parent->get(fullSubs[s]);
-            if( !parent )
-                return;
-        }
-        if( parent )
-            parent->removeChild(fullSubs.last());
     }
 }
 

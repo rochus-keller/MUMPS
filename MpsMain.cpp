@@ -18,9 +18,11 @@
 */
 
 #include "MpsInterpreter.h"
+#include "MpsGlobalStore.h"
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QDir>
+#include <QFile>
 #include <QtDebug>
 #include <stdio.h>
 #include <string.h>
@@ -69,7 +71,7 @@ static void enableRawMode()
     raw.c_lflag &= ~(ECHO | ICANON | ISIG);
     raw.c_cc[VMIN] = 1;
     raw.c_cc[VTIME] = 0;
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+    tcsetattr(STDIN_FILENO, TCSANOW, &raw);
 #endif
     s_rawMode = true;
 }
@@ -82,7 +84,7 @@ static void disableRawMode()
     SetConsoleMode(s_hStdin, s_origInputMode);
     SetConsoleMode(s_hStdout, s_origOutputMode);
 #else
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &s_origTermios);
+    tcsetattr(STDIN_FILENO, TCSANOW, &s_origTermios);
 #endif
     s_rawMode = false;
 }
@@ -347,6 +349,67 @@ struct LineEditor
     }
 };
 
+static QByteArray stripPrompt(const QByteArray& line)
+{
+    if( line.startsWith("> ") )
+        return line.mid(2);
+    if( line.startsWith(">") )
+        return line.mid(1);
+    return line;
+}
+
+static bool isCommandWord(const QByteArray& word)
+{
+    if( word.isEmpty() )
+        return false;
+    QByteArray w = word.toUpper();
+
+    static const char* cmds[] = {
+        "BREAK", "CLOSE", "DO", "ELSE", "FOR", "GOTO",
+        "HALT", "HANG", "IF", "JOB", "KILL", "LOCK",
+        "NEW", "OPEN", "QUIT", "READ", "SET", "USE",
+        "VIEW", "WRITE", "XECUTE", 0
+    };
+
+    if( w[0] == 'Z' )
+        return true;
+
+    for( int i = 0; cmds[i]; i++ )
+    {
+        QByteArray full(cmds[i]);
+        if( full[0] == w[0] && w.size() <= full.size() && full.left(w.size()) == w )
+            return true;
+    }
+    return false;
+}
+
+static bool looksLikeLabel(const QByteArray& line)
+{
+    if( line.isEmpty() )
+        return false;
+    char first = line[0];
+    if( first == '%' )
+        return true;
+    if( !((first >= 'A' && first <= 'Z') || (first >= 'a' && first <= 'z')) )
+        return false;
+    int i = 0;
+    while( i < line.size() && ((line[i] >= 'A' && line[i] <= 'Z') ||
+                                (line[i] >= 'a' && line[i] <= 'z')) )
+        i++;
+    return !isCommandWord(line.left(i));
+}
+
+static QByteArray extractLabel(const QByteArray& line)
+{
+    int i = 0;
+    while( i < line.size() && ((line[i] >= 'A' && line[i] <= 'Z') ||
+                                (line[i] >= 'a' && line[i] <= 'z') ||
+                                (line[i] >= '0' && line[i] <= '9') ||
+                                line[i] == '%') )
+        i++;
+    return line.left(i);
+}
+
 #define MPS_CHROME(o)   fprintf(o, "MUMPS 76 Interpreter\n"); \
                         fprintf(o, "(c) 2026 Rochus Keller <mailto:me@rochus-keller.ch>\n"); \
                         fprintf(o, "Available under GPL 2 or 3\n");
@@ -354,7 +417,7 @@ struct LineEditor
 static void printUsage(const char* progName)
 {
     MPS_CHROME(stderr)
-    fprintf(stderr, "Usage: mumps [options] [routine.mps] [search-dir ...]\n\n", progName);
+    fprintf(stderr, "Usage: %s [options] [routine.mps] [search-dir ...]\n\n", progName);
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -db <path>    Path to global database file\n");
     fprintf(stderr, "  -h, --help    Show this help message\n");
@@ -411,8 +474,16 @@ int main(int argc, char* argv[])
     if( dbPath.isEmpty() )
         dbPath = QDir::currentPath() + "/mumps.db";
 
+    GlobalStore store;
+    if( !store.open(dbPath) )
+    {
+        fprintf(stderr, "Error: cannot open database '%s'\n",
+                     dbPath.toUtf8().constData());
+        return 1;
+    }
 
     Interpreter interp;
+    interp.setGlobalStore(&store);
     interp.addSearchPath(QDir::currentPath());
 
     for( int i = 0; i < searchPaths.size(); i++ )
@@ -455,6 +526,7 @@ int main(int argc, char* argv[])
             QByteArray line(buf);
             if( line.endsWith('\n') ) line.chop(1);
             if( line.endsWith('\r') ) line.chop(1);
+            line = stripPrompt(line);
             if( line.isEmpty() ) continue;
             if( !interp.executeLine(line) )
                 break;
@@ -477,9 +549,60 @@ int main(int argc, char* argv[])
         QByteArray line = editor.readLine();
         if( line.isNull() ) // EOF
             break;
+
+        line = stripPrompt(line);
+
         if( line.trimmed().isEmpty() )
             continue;
-        // temporarily disable raw mode for interpreter I/O
+
+        if( looksLikeLabel(line) )
+        {
+            // routine entry mode: collect lines until blank line
+            QList<QByteArray> routineLines;
+            routineLines.append(line);
+            QByteArray routineName = extractLabel(line);
+            QByteArray savedPrompt = editor.prompt;
+            editor.prompt = ". ";
+
+            for(;;)
+            {
+                QByteArray rline = editor.readLine();
+                if( rline.isNull() )
+                    break;
+                rline = stripPrompt(rline);
+                if( rline.trimmed().isEmpty() )
+                    break;
+                routineLines.append(rline);
+            }
+
+            editor.prompt = savedPrompt;
+
+            if( routineLines.size() > 0 )
+            {
+                QString filename = QString::fromUtf8(routineName) + ".mps";
+                QFile f(filename);
+                if( f.open(QIODevice::WriteOnly | QIODevice::Truncate) )
+                {
+                    for( int i = 0; i < routineLines.size(); i++ )
+                    {
+                        f.write(routineLines[i]);
+                        f.write("\n");
+                    }
+                    f.close();
+                    fprintf(stdout, "Routine '%s' saved to %s. Type DO ^%s to run.\n",
+                            routineName.constData(), filename.toUtf8().constData(),
+                            routineName.constData());
+                    fflush(stdout);
+                }else
+                {
+                    fprintf(stderr, "Error: cannot write '%s'\n",
+                            filename.toUtf8().constData());
+                }
+            }
+            continue;
+        }
+
+        // execute as direct-mode command
         disableRawMode();
         bool cont = interp.executeLine(line);
         // ensure cursor is on a fresh line before re-entering the editor

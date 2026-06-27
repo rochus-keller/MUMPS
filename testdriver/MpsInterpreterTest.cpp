@@ -21,8 +21,11 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QtDebug>
-#include "MpsInterpreter.h"
+#include "../MpsInterpreter.h"
+#include "../MpsGlobalStore.h"
 using namespace Mps;
+
+void sleep_ms(unsigned long) {}
 
 int main(int argc, char *argv[])
 {
@@ -30,31 +33,52 @@ int main(int argc, char *argv[])
 
     if( a.arguments().size() <= 1 )
     {
-        qDebug() << "Usage: mumps [-i] <routine.mps> [search-dir ...]";
-        qDebug() << "  -i   interactive mode (REPL)";
+        qDebug() << "Usage: MpsInterpreterTest [-db <path>] [-i] [routine.mps] [search-dir ...]";
+        qDebug() << "  -i             interactive (direct) mode";
+        qDebug() << "  -db <path>     persistent global database file";
+        qDebug() << "  routine.mps    run in batch mode (omit for interactive)";
         return -1;
     }
 
-    bool interactive = false;
     QString routinePath;
+    QString dbPath;
     QStringList searchPaths;
+    bool interactive = false;
 
     for( int i = 1; i < a.arguments().size(); i++ )
     {
-        if( a.arguments()[i] == "-i" )
+        if( a.arguments()[i] == "-db" && i + 1 < a.arguments().size() )
+        {
+            dbPath = a.arguments()[++i];
+        }else if( a.arguments()[i] == "-i" )
+        {
             interactive = true;
+        }
         else if( routinePath.isEmpty() && !interactive )
             routinePath = a.arguments()[i];
         else
             searchPaths.append(a.arguments()[i]);
     }
 
+    GlobalStore store;
     Interpreter interp;
+
+    if( !dbPath.isEmpty() )
+    {
+        if( !store.open(dbPath) )
+        {
+            qCritical() << "Failed to open global database:" << dbPath;
+            return -1;
+        }
+        interp.setGlobalStore(&store);
+    }
+
     for( int i = 0; i < searchPaths.size(); i++ )
         interp.addSearchPath(searchPaths[i]);
 
     if( interactive )
     {
+        interp.addSearchPath(QDir::currentPath());
         interp.runInteractive();
         return 0;
     }

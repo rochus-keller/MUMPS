@@ -23,6 +23,7 @@
 #include "MpsAst.h"
 #include "MpsValue.h"
 #include "MpsNode.h"
+#include "MpsGlobalStore.h"
 #include <QMap>
 #include <QStack>
 #include <QStringList>
@@ -33,10 +34,11 @@ namespace Mps {
 class Interpreter
 {
 public:
-    Interpreter(QObject* = 0);
+    Interpreter();
     ~Interpreter();
 
     void addSearchPath(const QString& path);
+    void setGlobalStore(GlobalStore* store);
     void run(const QString& routinePath);
     void run(Routine* routine);
     bool executeLine(const QByteArray& line);
@@ -53,13 +55,8 @@ public:
 
     SymbolTable& locals() { return d_locals; }
     SymbolTable& globals() { return d_globals; }
+    GlobalStore* globalStore() const { return d_globalStore; }
     int xPos() const { return d_xPos; }
-
-signals:
-    void showOutput(const QString&);
-
-public slots:
-    void executeLine(const QString&);
 
 protected:
     enum Flow { FlowNormal, FlowQuit, FlowGoto, FlowHalt, FlowSkipLine };
@@ -112,6 +109,11 @@ protected:
     Value getVarRef(VarRef* ref);
     QList<QByteArray> evalSubscripts(const QList<Expression*>& subs);
 
+    void updateNakedRef(const QByteArray& name, const QList<QByteArray>& subs);
+    Value getNakedGlobal(const QList<Expression*>& subs);
+    void setNakedGlobal(const QList<Expression*>& subs, const Value& val);
+    void killNakedGlobal(const QList<Expression*>& subs);
+
     Value callIntrinsic(const QByteArray& name, const QList<Expression*>& args, ExprAtom* atom);
 
     Value getSpecialVar(const QByteArray& name);
@@ -129,16 +131,12 @@ protected:
 
     void restoreFrame(const StackFrame& frame);
 
-    void updateNakedRef(const QByteArray& name, const QList<QByteArray>& subs);
-    Value getNakedGlobal(const QList<Expression*>& subs);
-    void setNakedGlobal(const QList<Expression*>& subs, const Value& val);
-    void killNakedGlobal(const QList<Expression*>& subs);
-
     void runtimeError(const QString& msg, quint32 lineNr);
 
 private:
     SymbolTable d_locals;
-    SymbolTable d_globals;
+    SymbolTable d_globals;       // in-memory fallback
+    GlobalStore* d_globalStore;  // persistent storage (if set)
     QMap<QByteArray, Routine*> d_routineCache;
     QStringList d_searchPaths;
 
@@ -156,6 +154,7 @@ private:
     QList<QByteArray> d_nakedSubs;
 
     QTextStream d_out;
+    QTextStream d_in;
 };
 
 }

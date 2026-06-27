@@ -10,6 +10,7 @@ INCLUDEPATH += . ..
 SOURCES += \
     MpsAst.cpp \
     MpsCollation.cpp \
+    MpsGlobalStore.cpp \
     MpsInterpreter.cpp \
     MpsMain.cpp \
     MpsLexer.cpp \
@@ -23,6 +24,7 @@ SOURCES += \
 HEADERS += \
     MpsAst.h \
     MpsCollation.h \
+    MpsGlobalStore.h \
     MpsInterpreter.h \
     MpsLexer.h \
     MpsNode.h \

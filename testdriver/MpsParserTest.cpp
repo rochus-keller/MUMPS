@@ -24,9 +24,9 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QElapsedTimer>
-#include "MpsLexer.h"
-#include "MpsParser.h"
-#include "MpsParser2.h"
+#include "../MpsLexer.h"
+#include "../MpsParser.h"
+#include "../MpsParser2.h"
 using namespace Mps;
 
 QStringList collectFiles(const QDir& dir, const QStringList& suffix)
