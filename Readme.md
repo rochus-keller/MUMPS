@@ -141,7 +141,8 @@ download and run (see "Precompiled versions" below). After starting it and enter
 The REPL supports cursor navigation and a command history. You can e.g. copy/paste the commands from the many
 [MUMPS Primer examples](https://github.com/rochus-keller/MUMPS/blob/main/docs/MUMPS_Primer.adoc), or try to run original
 MUMPS applications from the seventies and  eighties which you can find in the testcases directory. There is e.g. the
-original STARTREK application in testcases/corpus/decus/startrek which you can run with `mumps STARTREK.rou`; here
+original STARTREK application in [testcases/corpus/decus/startrek](testcases/corpus/decus/startrek) 
+which you can run with `mumps STARTREK.rou`; here
 is a [screenshot of the running application](docs/imgs/mumps76_runnin_startrek.png).
 
 Because the original standard is so compact, the entire system is implemented in 
@@ -203,7 +204,7 @@ Follow these steps if you want to build the application yourself. The same code 
 
 1. Make sure a Qt 5.x (libraries and headers) version compatible with your C++ compiler is installed on your system.
 1. Download the source code from https://github.com/rochus-keller/mumps/archive/master.zip and unpack it.
-1. Goto the unpacked directory and execute `QTDIR/bin/qmake MpsParserTest.pro` (see the Qt documentation concerning QTDIR).
+1. Goto the unpacked directory and execute `QTDIR/bin/qmake MpsMain.pro` (see the Qt documentation concerning QTDIR).
 1. Run make; after a couple of seconds you will find the executable in the build directory.
 
 Alternatively you can open the *.pro files using QtCreator and build everything there.
