@@ -24,7 +24,7 @@ MUMPS was created in 1966 by Neil Pappalardo, Robert A. Greenes, and Curt Marble
 
 MUMPS, even today, remains in active production use, predominantly in healthcare and finance. In the U.S. healthcare sector, MUMPS-based systems still serve over 78% of patients. The U.S. Department of Veterans Affairs (VA)'s VistA system alone runs across more than 1'500 VA sites, including 172 medical centers, serving over 9 million veterans.
 
-**[Read my MUMPS 76 Primer here](https://github.com/rochus-keller/MUMPS/blob/main/docs/MUMPS_Primer.adoc)** ([PDF for download](docs/MUMPS_Primer.pdf))
+**[Read my MUMPS 76 Primer here](https://github.com/rochus-keller/MUMPS/blob/main/docs/MUMPS_Primer.adoc)** ([PDF for download](https://software.rochus-keller.ch/MUMPS_Primer.pdf))
 
 ## Why is MUMPS interesting
 
@@ -184,6 +184,13 @@ the whole project is below 10 kSLOC of C++). The CLI/REPL now has a more robust 
 pasting and a command history. The Primer is complete and the examples have been tested on the interpreter.
 To my surprise, the interpreter seems to be able to run a large part of the corpus and dsm11 code (my guesstimate is > 70%,
 some day I should analyze this more precisely). MVP release.
+
+### Status on July 1, 2026
+
+Some examples in the primer extended the 1976 standard (thanks to the audience for pointing that out!) which I now refactored.
+Concerning $NEXT, to my understanding string indexes are allowed, just cannot be assumed portable; but my interpreter supports it.
+Sticking to an old standard when used to modern versions is pretty delicate as it seems.
+Additional interpreter fixes were necessary to support my ongoing Are-we-fast-yet migration.
 
 ## Precompiled versions
 

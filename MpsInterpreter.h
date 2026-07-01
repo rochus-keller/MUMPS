@@ -59,7 +59,7 @@ public:
     int xPos() const { return d_xPos; }
 
 protected:
-    enum Flow { FlowNormal, FlowQuit, FlowGoto, FlowHalt, FlowSkipLine };
+    enum Flow { FlowNormal, FlowQuit, FlowGoto, FlowHalt, FlowSkipLine, FlowReturn };
 
     struct StackFrame
     {

@@ -81,7 +81,7 @@ bool Interpreter::executeLine(const QByteArray& line)
     executeLineCommands(r->d_lines[0], 0);
 
     bool halt = (d_flow == FlowHalt);
-    if( d_flow == FlowQuit || d_flow == FlowHalt )
+    if( d_flow == FlowQuit || d_flow == FlowHalt || d_flow == FlowReturn )
         d_flow = FlowNormal;
 
     delete r;
@@ -211,7 +211,7 @@ void Interpreter::runBlock(Routine* routine, int startLine, int dotLevel)
             continue;
         }
 
-        if( d_flow == FlowQuit )
+        if( d_flow == FlowQuit || d_flow == FlowReturn )
         {
             d_flow = FlowNormal;
             return;
@@ -572,8 +572,9 @@ void Interpreter::execQuit(Command* cmd)
         Value retVal = evalExpr(cmd->d_quitExpr);
         Node* retNode = d_locals.getOrCreate("$RETURN$");
         retNode->setValue(retVal.str());
-    }
-    d_flow = FlowQuit;
+        d_flow = FlowReturn;
+    }else
+        d_flow = FlowQuit;
 }
 
 void Interpreter::execFor(Command* cmd, Line* line, int cmdIdx)
@@ -594,7 +595,7 @@ void Interpreter::execFor(Command* cmd, Line* line, int cmdIdx)
                 d_flow = FlowNormal;
                 return;
             }
-            if( d_flow == FlowGoto || d_flow == FlowHalt )
+            if( d_flow == FlowGoto || d_flow == FlowHalt || d_flow == FlowReturn )
                 return;
         }
         return;
@@ -621,7 +622,7 @@ void Interpreter::execFor(Command* cmd, Line* line, int cmdIdx)
                 d_flow = FlowNormal;
                 return;
             }
-            if( d_flow == FlowGoto || d_flow == FlowHalt )
+            if( d_flow == FlowGoto || d_flow == FlowHalt || d_flow == FlowReturn )
                 return;
             continue;
         }
@@ -660,7 +661,7 @@ void Interpreter::execFor(Command* cmd, Line* line, int cmdIdx)
                 d_flow = FlowNormal;
                 return;
             }
-            if( d_flow == FlowGoto || d_flow == FlowHalt )
+            if( d_flow == FlowGoto || d_flow == FlowHalt || d_flow == FlowReturn )
                 return;
 
             current += inc;
@@ -773,17 +774,20 @@ void Interpreter::execDo(Command* cmd)
         frame.cmdIdx = 0;
         d_callStack.push(frame);
 
-        // bind actual parameters to formal parameters
+        // Evaluate all actual parameters before binding any formals
         Line* targetLine = targetRoutine->d_lines[idx];
+        QList<Value> actuals;
         for( int p = 0; p < er->d_actuals.size() && p < targetLine->d_params.size(); p++ )
+            actuals.append(evalExpr(er->d_actuals[p]));
+
+        for( int p = 0; p < actuals.size(); p++ )
         {
-            Value actual = evalExpr(er->d_actuals[p]);
             const QByteArray& formal = targetLine->d_params[p];
             StackFrame& topFrame = d_callStack.top();
             Node* existing = d_locals.detach(formal);
             topFrame.savedNames.append(formal);
             topFrame.savedVars.insert(formal, existing);
-            d_locals.getOrCreate(formal)->setValue(actual.str());
+            d_locals.getOrCreate(formal)->setValue(actuals[p].str());
         }
 
         runBlock(targetRoutine, idx, 0);
@@ -1029,7 +1033,7 @@ void Interpreter::execXecute(Command* cmd)
 
         if( d_flow == FlowHalt )
             return;
-        if( d_flow == FlowQuit )
+        if( d_flow == FlowQuit || d_flow == FlowReturn )
             d_flow = FlowNormal;
     }
 }
@@ -2640,17 +2644,23 @@ Value Interpreter::callExtrinsic(ExprAtom* a)
     frame.lineIdx = d_curLine;
     d_callStack.push(frame);
 
-    // Bind actual parameters
+    // Evaluate all actual parameters before binding any formals,
+    // so that parameter names don't shadow the caller's variables
+    // during evaluation (e.g. $$SHORTER(y,x) where SHORTER has formals x,y)
     Line* targetLine = targetRoutine->d_lines[idx];
+    QList<Value> actuals;
     for( int p = 0; p < a->d_args.size() && p < targetLine->d_params.size(); p++ )
+        actuals.append(evalExpr(a->d_args[p]));
+
+    // Now bind formal parameters
+    for( int p = 0; p < actuals.size(); p++ )
     {
-        Value actual = evalExpr(a->d_args[p]);
         const QByteArray& formal = targetLine->d_params[p];
         StackFrame& topFrame = d_callStack.top();
         Node* existing = d_locals.detach(formal);
         topFrame.savedNames.append(formal);
         topFrame.savedVars.insert(formal, existing);
-        d_locals.getOrCreate(formal)->setValue(actual.str());
+        d_locals.getOrCreate(formal)->setValue(actuals[p].str());
     }
 
     // Create a special return value variable
@@ -2675,7 +2685,7 @@ Value Interpreter::callExtrinsic(ExprAtom* a)
     StackFrame restored = d_callStack.pop();
     restoreFrame(restored);
 
-    if( d_flow == FlowQuit )
+    if( d_flow == FlowQuit || d_flow == FlowReturn )
         d_flow = FlowNormal;
 
     return retVal;

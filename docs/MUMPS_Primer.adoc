@@ -6,7 +6,7 @@
 
 = The MUMPS Primer: An Introduction and Tutorial for the 1976 Standard
 Rochus Keller
-v1.0, 2026-06-26
+v1.1, 2026-07-01
 :toc:
 :numbered:
 
@@ -244,6 +244,15 @@ Any variable can have subscripts, forming a hierarchical tree:
 An unsubscripted variable and its subscripted forms coexist
 independently. `PATIENT` can hold a value while `PATIENT("NAME")` holds
 a different one -- they are separate nodes in the same tree.
+
+NOTE: The 1976 standard allows any expression as a subscript,
+but the Portability Requirements (Part III of NBS 118) restrict portable
+programs to nonnegative integer subscripts. String subscripts like
+`"NAME"` above are accepted by most implementations but are
+non-portable; `$NEXT` (the standard traversal function) operates only
+on integer subscripts. We use string subscripts in some data-model
+examples for readability but use integer subscripts wherever `$NEXT`
+traversal is needed.
 
 === Strings, Numbers, and Automatic Conversion
 
@@ -719,6 +728,11 @@ DO can call into other routines using the caret notation:
 
 The last form means "start at the 2nd line after LABEL in ROUTINE."
 
+NOTE: The Portability Requirements (Part III of NBS 118) specify that
+only the first 8 characters of a name are uniquely distinguished, and
+that portable names use uppercase letters only. Longer names are
+permitted by the language but may collide in some implementations.
+
 Arguments of DO may be listed, with each called in turn:
 
 ----
@@ -1129,16 +1143,17 @@ To iterate over all patients:
 
 ----
 >SET ID=0
->FOR  SET ID=$NEXT(^PAT(ID)) QUIT:ID=-1  WRITE ID,": ",^PAT(ID,"NAME"),!
+>FOR J=1:1 SET ID=$NEXT(^PAT(ID)) QUIT:ID=-1  WRITE ID,": ",^PAT(ID,"NAME"),!
 1: Smith, John
 2: Doe, Jane
 ----
 
-Note the argumentless FOR -- `FOR` followed by two spaces -- which
-creates an infinite loop. The loop body uses `$NEXT` to advance to the
-next subscript and QUITs when `-1` is returned (no more entries).
+The loop variable `J` is a throwaway counter; what matters is the
+`$NEXT` call which advances `ID` to the next subscript. When there are
+no more entries, `$NEXT` returns `-1` and the post-conditional QUIT
+terminates the loop.
 
-This pattern -- an argumentless FOR with $NEXT and a QUIT on -1 -- is
+This pattern -- a `FOR` with `$NEXT` and a QUIT on -1 -- is
 the fundamental database traversal idiom in 1976-era MUMPS.
 
 === The Naked Reference
@@ -1204,7 +1219,7 @@ Example -- a formatted report:
 >WRITE #,!,"Patient Report",!
 >WRITE "==============",!!
 >SET ID=0
->FOR  SET ID=$NEXT(^PAT(ID)) QUIT:ID=-1  DO SHOW
+>FOR J=1:1 SET ID=$NEXT(^PAT(ID)) QUIT:ID=-1  DO SHOW
 >HALT
 SHOW WRITE "ID: ",ID,?15,"Name: ",^PAT(ID,"NAME"),!
  QUIT
@@ -1470,6 +1485,10 @@ Let us build a small but complete application: a phone directory that
 stores names and phone numbers in global variables and lets the user
 look them up, add entries, and list all entries.
 
+The data model uses integer subscripts (as required for portable
+`$NEXT` traversal), with each record stored as a `^`-delimited string.
+A separate global `^PHONECT` tracks the next available ID.
+
 ----
 PHONE ; Phone directory application
  WRITE #,!,"=== Phone Directory ===",!
@@ -1483,34 +1502,41 @@ MENU WRITE !,"Options: (A)dd  (L)ookup  (D)irectory  (Q)uit",!
  ;
 ADD WRITE !,"Add new entry:",!
  READ "  Name: ",NAME QUIT:NAME=""
- READ "  Phone: ",PHONE QUIT:PHONE=""
- SET ^PHONE(NAME)=PHONE
- WRITE "  Saved.",!
+ READ "  Phone: ",NUM QUIT:NUM=""
+ IF '$DATA(^PHONECT) SET ^PHONECT=0
+ SET ^PHONECT=^PHONECT+1
+ SET ^PHONE(^PHONECT)=NAME_"^"_NUM
+ WRITE "  Saved as entry ",^PHONECT,".",!
  QUIT
  ;
 LOOKUP WRITE !,"Look up entry:",!
  READ "  Name: ",NAME QUIT:NAME=""
- IF $DATA(^PHONE(NAME)) WRITE "  Phone: ",^PHONE(NAME),!
+ SET ID=0,FOUND=0
+ FOR I=1:1 SET ID=$NEXT(^PHONE(ID)) QUIT:ID=-1  IF $PIECE(^PHONE(ID),"^",1)=NAME SET FOUND=1 QUIT
+ IF FOUND WRITE "  Phone: ",$PIECE(^PHONE(ID),"^",2),!
  ELSE  WRITE "  Not found.",!
  QUIT
  ;
 LIST WRITE !,"All entries:",!
- SET NAME=""
- FOR  SET NAME=$NEXT(^PHONE(NAME)) QUIT:NAME=-1  DO
- . WRITE "  ",NAME,?25,^PHONE(NAME),!
+ SET ID=0
+ FOR I=1:1 SET ID=$NEXT(^PHONE(ID)) QUIT:ID=-1  DO SHOW
+ QUIT
+ ;
+SHOW WRITE "  ",$PIECE(^PHONE(ID),"^",1),?25,$PIECE(^PHONE(ID),"^",2),!
  QUIT
 ----
 
 This small program demonstrates most of the features covered in this
 tutorial:
 
-* Global variables (`^PHONE`) for persistent storage
+* Global variables (`^PHONE`, `^PHONECT`) for persistent storage
+* Integer subscripts with `$NEXT` for database traversal
+* `$PIECE` for extracting fields from delimited records
 * READ for user input with prompts
 * IF/ELSE for branching
 * DO for subroutine calls
 * GOTO for returning to the menu
-* FOR with $NEXT for iterating over the database
-* $DATA for testing whether an entry exists
+* $DATA for testing whether a variable exists
 * Post-conditionals (`QUIT:NAME=""`) for early exit
 * Format codes (`!`, `#`, `?25`) for output formatting
 
@@ -1518,6 +1544,17 @@ The data persists across sessions. You can add entries, quit, restart
 the interpreter, and the entries are still there -- because globals are
 the database.
 
+NOTE: The phone directory stores each record as a ^-delimited string
+(e.g. "Smith, John^555-1234") and extracts fields with $PIECE.
+This is historically authentic: production MUMPS systems of the era,
+most notably the VA's DHCP/VistA, stored virtually all data as
+^-delimited strings with $PIECE access. This design packs an
+entire record into a single global node, requiring only one B-tree
+lookup instead of one per field. On the hardware of the era, minimizing
+disk-backed B-tree traversals was essential. An alternative
+1976-compliant design would use integer subscripts for each field
+(e.g. ^PHONE(1,1) for the name and ^PHONE(1,2) for the number),
+but at the cost of an additional B-tree lookup per field.
 
 == Command Reference
 
@@ -1598,8 +1635,7 @@ ELSE  WRITE "small",!
 
 *Abbreviation*: `F`
 
-*Syntax*: `F[OR] lvn=forparam[,forparam...]` +
-or argumentless: `F[OR]  ` (two spaces; infinite loop)
+*Syntax*: `F[OR] lvn=forparam[,forparam...]`
 
 FOR cannot be post-conditionalized. Its scope is the remainder of the
 current line.
@@ -1608,7 +1644,8 @@ Each _forparam_ has one of three forms:
 
 * `expr` -- execute scope once with `lvn` set to value of _expr_.
 * `expr1:expr2` -- start at _expr1_, increment by _expr2_ each
-  iteration, loop forever (exit via QUIT or GOTO).
+  iteration, loop forever (exit via QUIT or GOTO). This two-parameter
+  form is the standard way to create an open-ended loop.
 * `expr1:expr2:expr3` -- start at _expr1_, step by _expr2_, terminate
   when `lvn` exceeds _expr3_ (or falls below _expr3_ if step is
   negative).
@@ -1619,7 +1656,7 @@ Multiple _forparams_ are processed left to right.
 FOR I=1:1:10 WRITE I," "
 F I=1:1 QUIT:I>5  WRITE I," "
 FOR I=1,3,5,7:2:15 WRITE I," "
-FOR  READ X QUIT:X=""  SET ^DATA(X)=""
+FOR I=1:1 READ X QUIT:X=""  SET ^DATA(+X)=""
 ----
 
 === GOTO
